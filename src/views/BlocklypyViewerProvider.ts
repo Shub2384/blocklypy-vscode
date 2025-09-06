@@ -294,7 +294,7 @@ export class BlocklypyViewerProvider
         const editorWorkerUri = webviewPanel.webview.asWebviewUri(
             vscode.Uri.joinPath(this.context.extensionUri, 'dist', 'editor.worker.js'),
         );
-        // const languageWorkerUris = ['python', 'vb'].map((lang) => [
+        // const languageWorkerUris = ['python', 'less'].map((lang) => [
         //     lang,
         //     this.currentPanel?.webview.asWebviewUri(
         //         vscode.Uri.joinPath(

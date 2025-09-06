@@ -109,7 +109,7 @@ const webviewConfig = {
     },
     plugins: [
         new MonacoWebpackPlugin({
-            languages: ['python', 'vb'],
+            languages: ['python', 'less'],
             globalAPI: true,
         }),
     ],

@@ -1,6 +1,4 @@
 import noble, { Peripheral } from '@abandonware/noble';
-import config from '../utils/config';
-
 import {
     setContextIsConnected,
     setContextIsProgramRunning,
@@ -20,6 +18,7 @@ import {
     statusToFlag,
 } from '../pybricks/protocol';
 import { retryWithTimeout } from '../utils/async';
+import Config from '../utils/config';
 
 export enum BLEStatus {
     Disconnected = 'disconnected',
@@ -112,7 +111,7 @@ class BLE {
             logDebug(`Connected to ${peripheral.advertisement.localName}`);
 
             const connectedName = peripheral.advertisement.localName;
-            await config.setLastConnectedDevice(connectedName);
+            await Config.setLastConnectedDevice(connectedName);
         } catch (error) {
             this.Status = BLEStatus.Error;
             throw new Error(`Failed to connect to ${name}: ${error}`);

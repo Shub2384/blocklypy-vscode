@@ -189,6 +189,11 @@
         "command": "blocklypy-vscode.showPythonPreview",
         "key": "f2",
         "when": "editorLangId == python"
+      },
+      {
+        "command": "blocklypy-vscode.pythonPreview.showSource",
+        "key": "f2",
+        "when": "activeCustomEditorId == blocklypy-vscode.pythonPreview"
       }
     ],
     "configuration": {
@@ -291,7 +296,8 @@
           {
             "filenamePattern": "*.{llsp3,llsp,lms,lmsp,ev3,ev3m,rbf,proj}"
           }
-        ]
+        ],
+        "priority": "default"
       },
       {
         "viewType": "blocklypy-vscode.pythonPreview",

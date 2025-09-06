@@ -92,7 +92,7 @@ function showView(view: string, content: string) {
         if (model) {
             monaco.editor.setModelLanguage(
                 model,
-                view === ViewType.Pycode ? 'python' : 'vb',
+                view === ViewType.Pycode ? 'python' : 'less',
             );
         }
     } else if (view === ViewType.Preview || view === ViewType.Graph) {
