@@ -148,7 +148,7 @@ export function activate(context: vscode.ExtensionContext) {
                 if (editor && editor.document.languageId === 'python') {
                     await vscode.commands.executeCommand(
                         'vscode.openWith',
-                        editor.document.uri,
+                        PybricksPythonPreviewProvider.encodeUri(editor.document.uri),
                         PybricksPythonPreviewProvider.viewType,
                         vscode.ViewColumn.Beside,
                     );

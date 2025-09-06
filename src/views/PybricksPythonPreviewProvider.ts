@@ -43,6 +43,36 @@ export class PybricksPythonPreviewProvider
         super();
     }
 
+    /**
+     *
+     * @param uri Encodes a file URI into a custom URI for the Python preview, adding a "Graph: " prefix to the filename for display
+     * @returns The custom URI
+     */
+    public static encodeUri(uri: vscode.Uri) {
+        const filename = uri.path.split('/').pop() || uri.path;
+        const customUri = uri.with({
+            scheme: 'blocklypy-preview',
+            path: 'Graph: ' + filename,
+            fragment: uri.path,
+        });
+        return customUri;
+    }
+
+    /**
+     * Decode a custom URI back into a file URI
+     * @param uri The custom URI to decode
+     * @returns The original file URI
+     */
+    public static decodeUri(uri: vscode.Uri) {
+        if (uri.scheme !== 'blocklypy-preview') {
+            throw new Error('Invalid scheme: ' + uri.scheme);
+        }
+        return uri.with({
+            scheme: 'file',
+            path: uri.fragment,
+        });
+    }
+
     async openCustomDocument(
         uri: vscode.Uri,
         openContext: { backupId?: string },
@@ -70,7 +100,9 @@ export class PybricksPythonPreviewProvider
         };
 
         // Collect all modules and generate the dependency graph
-        const modules = await collectPythonModules(document.uri);
+        const modules = await collectPythonModules(
+            PybricksPythonPreviewProvider.decodeUri(document.uri),
+        );
         const encoder = new TextEncoder();
         const files = modules.map((m) => ({
             name: m.path.split('/').pop()!, // Use only the filename
@@ -86,22 +118,16 @@ export class PybricksPythonPreviewProvider
 
         webviewPanel.webview.html = this.getHtmlForWebview(webviewPanel);
 
-        // window.setTimeout(() => {
+        // setTimeout(() => {
         this.refreshWebview(document);
         // });
-
-        // Set up file change monitoring
-        await this.monitorFileChanges(
-            document,
-            webviewPanel,
-            async () => await this.refreshWebview(document),
-            new Set<string>(modules.map((m) => m.path)),
-        );
     }
 
     public async refreshWebview(document: vscode.CustomDocument) {
         // Collect all modules and generate the dependency graph
-        const modules = await collectPythonModules(document.uri);
+        const modules = await collectPythonModules(
+            PybricksPythonPreviewProvider.decodeUri(document.uri),
+        );
         const encoder = new TextEncoder();
         const files = modules.map((m) => ({
             name: m.path.split('/').pop()!, // Use only the filename
@@ -116,6 +142,14 @@ export class PybricksPythonPreviewProvider
         }
 
         this.setContent(content);
+
+        // Set up file change monitoring (re-do every time to catch new imports)
+        await this.monitorFileChanges(
+            document,
+            this.currentPanel,
+            async () => await this.refreshWebview(document),
+            new Set<string>(modules.map((m) => m.path)),
+        );
     }
 
     private setContent(content: string) {

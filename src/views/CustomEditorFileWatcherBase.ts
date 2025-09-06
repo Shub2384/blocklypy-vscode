@@ -4,16 +4,20 @@ import { showError } from '../extension';
 export abstract class CustomEditorFileWatcherBase {
     protected pollInterval?: NodeJS.Timeout;
     protected changeListener?: vscode.Disposable;
+    protected disposeListener?: vscode.Disposable; // Store the dispose handler
 
     protected async monitorFileChanges(
         document: vscode.CustomDocument,
-        webviewPanel: vscode.WebviewPanel,
+        webviewPanel: vscode.WebviewPanel | undefined,
         refreshCallback: () => Promise<void>,
         watchedUris?: Set<string>,
     ) {
         if (this.pollInterval) {
             clearInterval(this.pollInterval);
         }
+
+        // Dispose previous dispose handler if present
+        this.disposeListener?.dispose();
 
         // if the main file is in the workspace, only listen to workspace changes
         // otherwise, poll for all watched files
@@ -62,6 +66,7 @@ export abstract class CustomEditorFileWatcherBase {
                     lastModified.set(uriStr, 0);
                 }
             }
+
             let polling = false;
             this.pollInterval = setInterval(async () => {
                 if (polling) return;
@@ -91,7 +96,9 @@ export abstract class CustomEditorFileWatcherBase {
                     polling = false;
                 }
             }, 2000);
-            webviewPanel.onDidDispose(() => {
+
+            // Store the disposable for onDidDispose
+            this.disposeListener = webviewPanel?.onDidDispose(() => {
                 if (this.pollInterval) {
                     clearInterval(this.pollInterval);
                 }

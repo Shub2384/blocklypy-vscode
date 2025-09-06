@@ -286,6 +286,7 @@
       {
         "viewType": "blocklypy-vscode.pythonPreview",
         "displayName": "Python Dependency Graph Preview",
+        "priority": "option",
         "selector": [
           {
             "filenamePattern": "*.py"
