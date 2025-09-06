@@ -1,0 +1,363 @@
+{
+  "name": "blocklypy-vscode-commander",
+  "displayName": "BlocklyPy Commander for VSCode",
+  "description": "Interact with LEGO® Hubs running Pybricks firmware: compile and upload Python scripts, convert LEGO robotics files.",
+  "version": "0.1.0",
+  "engines": {
+    "vscode": "^1.101.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Visualization",
+    "Other"
+  ],
+  "keywords": [
+    "pybricks",
+    "lego",
+    "ev3",
+    "spike",
+    "spike prime",
+    "mindstorms",
+    "robotics",
+    "micropython",
+    "python",
+    "blockly",
+    "visual programming",
+    "first lego league",
+    "fll",
+    "education",
+    "world robot olympiad",
+    "wro"
+  ],
+  "publisher": "afarago",
+  "homepage": "https://attilafarago.hu",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/afarago/pybricks-vscode.git"
+  },
+  "icon": "icon.png",
+  "activationEvents": [],
+  "main": "./dist/extension.js",
+  "packageManager": "yarn@1.22.19",
+  "files": [
+    "dist",
+    "asset/",
+    "src/assets/"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "pybricks.connectDevice",
+        "title": "Pybricks: Connect Device",
+        "icon": "asset/hub-small.svg"
+      },
+      {
+        "command": "pybricks.connectDeviceLastConnected",
+        "title": "Pybricks: Connect Last Connected Device",
+        "icon": "asset/hub-small-fav.svg"
+      },
+      {
+        "command": "pybricks.disconnectDevice",
+        "title": "Pybricks: Disconnect Device",
+        "icon": "$(debug-disconnect)"
+      },
+      {
+        "command": "pybricks.compileAndRun",
+        "title": "Pybricks: Compile and Run",
+        "icon": "$(debug-start)"
+      },
+      {
+        "command": "pybricks.startUserProgram",
+        "title": "Pybricks: Start User Program",
+        "icon": "$(run)"
+      },
+      {
+        "command": "pybricks.stopUserProgram",
+        "title": "Pybricks: Stop User Program",
+        "icon": "$(debug-stop)"
+      },
+      {
+        "command": "pybricks.toggleAutoConnect",
+        "title": "Pybricks: Toggle Auto-Connect",
+        "icon": "$(plug)",
+        "category": "Pybricks.Settings"
+      },
+      {
+        "command": "pybricks.toggleAutoStart",
+        "title": "Pybricks: Toggle Auto-Start",
+        "icon": "$(play)",
+        "category": "Pybricks.Settings"
+      },
+      {
+        "command": "pybricks.statusPlaceholder",
+        "title": "Pybricks: Status",
+        "icon": "$(debug-stackframe)",
+        "category": "Pybricks.Status"
+      },
+      {
+        "command": "pybricks.blocklypyViewer.displayNextView",
+        "title": "Pybricks: Next view",
+        "icon": "$(preview)"
+      },
+      {
+        "command": "pybricks.blocklypyViewer.displayPreviousView",
+        "title": "Pybricks: Previous view",
+        "icon": "$(preview)"
+      },
+      {
+        "command": "pybricks.blocklypyViewer.displayPycode",
+        "title": "Pybricks: Show Python Code",
+        "icon": "asset/display-py.svg"
+      },
+      {
+        "command": "pybricks.blocklypyViewer.displayPseudo",
+        "title": "Pybricks: Show Pseudo Code",
+        "icon": "asset/display-pseudo.svg"
+      },
+      {
+        "command": "pybricks.blocklypyViewer.displayPreview",
+        "title": "Pybricks: Show Preview",
+        "icon": "asset/display-preview.svg"
+      },
+      {
+        "command": "pybricks.blocklypyViewer.displayGraph",
+        "title": "Pybricks: Show Dependency Graph",
+        "icon": "asset/display-graph.svg"
+      },
+      {
+        "command": "pybricks.showPythonPreview",
+        "title": "Show Python Dependency Preview",
+        "icon": "asset/display-graph.svg"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "pybricksVSCodeCommander",
+          "title": "Pybricks Commander",
+          "icon": "asset/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "pybricksVSCodeCommander": [
+        {
+          "id": "pybricks-vscommander-commands",
+          "name": "Commands",
+          "icon": "asset/icon.svg"
+        },
+        {
+          "id": "pybricks-vscommander-settings",
+          "name": "Settings",
+          "icon": "asset/commands.svg"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "pybricks.connectDeviceLastConnected",
+        "key": "f12",
+        "when": "editorLangId == python || view == pybricks"
+      },
+      {
+        "command": "pybricks.compileAndRun",
+        "key": "f5",
+        "when": "editorLangId == python || activeCustomEditorId == pybricks.blocklypyViewer"
+      },
+      {
+        "command": "pybricks.stopUserProgram",
+        "key": "f6",
+        "when": "editorLangId == python || activeCustomEditorId == pybricks.blocklypyViewer"
+      },
+      {
+        "command": "pybricks.blocklypyViewer.displayNextView",
+        "key": "f2",
+        "when": "activeCustomEditorId == pybricks.blocklypyViewer"
+      },
+      {
+        "command": "pybricks.blocklypyViewer.displayPreviousView",
+        "key": "Shift+f2",
+        "when": "activeCustomEditorId == pybricks.blocklypyViewer"
+      },
+      {
+        "command": "pybricks.showPythonPreview",
+        "key": "f2",
+        "when": "editorLangId == python"
+      }
+    ],
+    "configuration": {
+      "title": "Pybricks",
+      "properties": {
+        "pybricks.lastConnectedDevice": {
+          "type": "string",
+          "default": "",
+          "description": "The name of the last connected device."
+        },
+        "pybricks.autoConnect": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically connect to the last connected device when opening a Python file."
+        },
+        "pybricks.autoStart": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically start the user program after connecting to a device."
+        }
+      }
+    },
+    "menus": {
+      "editor/title/run": [
+        {
+          "command": "pybricks.compileAndRun",
+          "group": "navigation",
+          "when": "(editorLangId == python || activeCustomEditorId == pybricks.blocklypyViewer) && !pybricks.isProgramRunning && pybricks.isConnected"
+        },
+        {
+          "command": "pybricks.stopUserProgram",
+          "group": "navigation",
+          "when": "(editorLangId == python || activeCustomEditorId == pybricks.blocklypyViewer) && pybricks.isProgramRunning && pybricks.isConnected"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "pybricks.blocklypyViewer.displayPreview",
+          "when": "activeCustomEditorId == pybricks.blocklypyViewer && pybricks.customViewType !== 'preview'",
+          "group": "navigation@2"
+        },
+        {
+          "command": "pybricks.blocklypyViewer.displayPseudo",
+          "when": "activeCustomEditorId == pybricks.blocklypyViewer && pybricks.customViewType !== 'pseudo'",
+          "group": "navigation@3"
+        },
+        {
+          "command": "pybricks.blocklypyViewer.displayPycode",
+          "when": "activeCustomEditorId == pybricks.blocklypyViewer && pybricks.customViewType !== 'pycode'",
+          "group": "navigation@5"
+        },
+        {
+          "command": "pybricks.blocklypyViewer.displayGraph",
+          "when": "activeCustomEditorId == pybricks.blocklypyViewer && pybricks.customViewType !== 'graph'",
+          "group": "navigation@6"
+        },
+        {
+          "command": "pybricks.blocklypyViewer.displayNextView",
+          "when": "activeCustomEditorId == pybricks.blocklypyViewer"
+        },
+        {
+          "command": "pybricks.blocklypyViewer.displayPreviousView",
+          "when": "activeCustomEditorId == pybricks.blocklypyViewer"
+        },
+        {
+          "command": "pybricks.showPythonPreview",
+          "when": "editorLangId == python",
+          "group": "navigation"
+        }
+      ]
+    },
+    "contexts": [
+      {
+        "key": "pybricks.isProgramRunning",
+        "type": "boolean",
+        "default": false
+      },
+      {
+        "key": "pybricks.isConnected",
+        "type": "boolean",
+        "default": false
+      },
+      {
+        "key": "pybricks.customViewType",
+        "type": "string",
+        "default": ""
+      }
+    ],
+    "customEditors": [
+      {
+        "viewType": "pybricks.blocklypyViewer",
+        "displayName": "BlocklyPy Viewer",
+        "icon": "asset/file-lego.svg",
+        "selector": [
+          {
+            "filenamePattern": "*.{llsp3,llsp,lms,lmsp,ev3,ev3m,rbf,proj}"
+          }
+        ]
+      },
+      {
+        "viewType": "pybricks.pythonPreview",
+        "displayName": "Pybricks Python Preview",
+        "selector": [
+          {
+            "filenamePattern": "*.py"
+          }
+        ]
+      }
+    ],
+    "languages": [
+      {
+        "id": "lego",
+        "extensions": [
+          ".llsp3",
+          ".llsp",
+          ".lmsp",
+          ".lms",
+          ".ev3",
+          ".ev3m",
+          ".rbf",
+          ".proj"
+        ],
+        "aliases": [
+          "LEGO",
+          "lego"
+        ],
+        "icon": {
+          "light": "asset/file-lego.svg",
+          "dark": "asset/file-lego.svg"
+        }
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run package",
+    "compile": "webpack",
+    "watch": "webpack --watch",
+    "package": "webpack --mode production --devtool hidden-source-map",
+    "compile-tests": "tsc -p . --outDir out",
+    "watch-tests": "tsc -p . -w --outDir out",
+    "pretest": "npm run compile-tests && npm run compile && npm run lint",
+    "lint": "eslint src",
+    "test": "vscode-test",
+    "postinstall": "patch-package",
+    "package-extension": "npx vsce package",
+    "publish-extension": "npx vsce publish"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.10",
+    "@types/node": "20.x",
+    "@types/resolve": "^1.20.6",
+    "@types/vscode": "^1.101.0",
+    "@typescript-eslint/eslint-plugin": "^8.31.1",
+    "@typescript-eslint/parser": "^8.31.1",
+    "@vscode/test-cli": "^0.0.10",
+    "@vscode/test-electron": "^2.5.2",
+    "copy-webpack-plugin": "^13.0.0",
+    "css-loader": "^7.1.2",
+    "eslint": "^9.25.1",
+    "monaco-editor": "^0.52.2",
+    "monaco-editor-webpack-plugin": "^7.1.0",
+    "patch-package": "^8.0.0",
+    "style-loader": "^4.0.0",
+    "ts-loader": "^9.5.2",
+    "typescript": "^5.8.3",
+    "webpack": "^5.99.7",
+    "webpack-cli": "^6.0.1"
+  },
+  "dependencies": {
+    "@abandonware/noble": "^1.9.2-26",
+    "@hpcc-js/wasm-graphviz": "^1.12.0",
+    "@pybricks/mpy-cross-v6": "^2.0.0",
+    "@pybricks/python-program-analysis": "^2.0.0",
+    "blocklypy": "^0.1.8",
+    "resolve": "^1.22.10",
+    "svg-pan-zoom": "^3.6.2"
+  }
+}

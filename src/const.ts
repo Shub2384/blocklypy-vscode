@@ -1,0 +1,1 @@
+export const MAGIC_AUTOSTART = "AUTOSTART";
