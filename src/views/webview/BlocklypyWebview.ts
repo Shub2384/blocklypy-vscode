@@ -10,7 +10,7 @@ import * as monaco from 'monaco-editor';
 declare const acquireVsCodeApi: any;
 const vscode = acquireVsCodeApi();
 
-let monacoEditor: monaco.editor.IStandaloneCodeEditor | undefined = undefined;
+let monacoInstance: monaco.editor.IStandaloneCodeEditor | undefined = undefined;
 
 const ViewType = {
     Preview: 'preview',
@@ -24,7 +24,7 @@ function getVsCodeTheme() {
 }
 
 window.addEventListener('DOMContentLoaded', () => {
-    monacoEditor = monaco.editor.create(document.getElementById('editor')!, {
+    monacoInstance = monaco.editor.create(document.getElementById('editor')!, {
         language: 'python',
         value: '',
         readOnly: true,
@@ -42,28 +42,10 @@ window.addEventListener('message', (event) => {
     }
 });
 
-let svgPanZoomInstance: ReturnType<typeof svgPanZoom> | undefined = undefined;
-
 const resizeHandler = () => {
     // Resize Monaco Editor
-    monacoEditor?.layout();
-
-    // Resize svg-pan-zoom
-    // Find the currently visible SVG
-    const previewEl = document.getElementById('preview');
-    const graphEl = document.getElementById('graph');
-    const svgEl =
-        (previewEl &&
-            previewEl.style.display === 'block' &&
-            previewEl.querySelector('svg')) ||
-        (graphEl && graphEl.style.display === 'block' && graphEl.querySelector('svg'));
-
-    if (svgEl && svgPanZoomInstance) {
-        // svg-pan-zoom doesn't have a direct resize method, but you can call 'resize' and 'fit'
-        svgPanZoomInstance.resize();
-        svgPanZoomInstance.fit();
-        svgPanZoomInstance.center();
-    }
+    monacoInstance?.layout();
+    panzoomFitCenter();
 };
 window.addEventListener('resize', resizeHandler);
 
@@ -81,39 +63,32 @@ function showView(view: string, content: string) {
     };
 
     if (view === ViewType.Pycode || view === ViewType.Pseudo) {
-        if (!monacoEditor) {
-            return;
-        }
+        if (!monacoInstance) return;
         refreshVisibility();
         resizeHandler();
 
-        monacoEditor.setValue(content);
-        const model = monacoEditor.getModel();
+        monacoInstance.setValue(content);
+        const model = monacoInstance.getModel();
         if (model) {
-            monaco.editor.setModelLanguage(
-                model,
-                view === ViewType.Pycode ? 'python' : 'less',
-            );
+            try {
+                monaco.editor.setModelLanguage(
+                    model,
+                    view === ViewType.Pycode ? 'python' : 'less',
+                );
+            } catch {
+                // less will fail many times, this is expected
+                // NOOP
+            }
         }
     } else if (view === ViewType.Preview || view === ViewType.Graph) {
         const element = document.getElementById(view);
         if (element) {
             element.innerHTML = content ?? '';
-
-            // If SVG, enable pan/zoom
-            const svgEl = element.querySelector('svg');
-            if (svgEl) {
-                requestAnimationFrame(() => {
-                    svgPanZoomInstance = svgPanZoom(svgEl, {
-                        panEnabled: true,
-                        zoomEnabled: true,
-                        controlIconsEnabled: true,
-                        fit: true,
-                        center: true,
-                        zoomScaleSensitivity: 1.0, // Lower = slower zoom, higher = faster (default is 0.2)
-                    });
-                });
-            }
+            // requestAnimationFrame schedules a callback to run after the browser has painted the changes.
+            requestAnimationFrame(() => {
+                getPanZoom(false, element); // clear cache and re-init
+                panzoomFitCenter();
+            });
         }
     } else if (view === 'loading') {
         // Do nothing, just show the loading image
@@ -133,3 +108,45 @@ self.MonacoEnvironment = {
         return workerUrls[label] || workerUrls['default'];
     },
 };
+
+let _panzoomInstance: ReturnType<typeof svgPanZoom> | undefined = undefined;
+function getPanZoom(allowcached = true, rootelem: HTMLElement | null = null) {
+    if (rootelem === null) {
+        const previewEl = document.getElementById('preview');
+        const graphEl = document.getElementById('graph');
+
+        if (previewEl?.style.display === 'block') {
+            rootelem = previewEl;
+        }
+        if (graphEl?.style.display === 'block') {
+            rootelem = graphEl;
+        }
+    }
+    const svg = rootelem?.querySelector('svg');
+
+    if (svg && (!_panzoomInstance || !allowcached)) {
+        // requestAnimationFrame(() => {
+        _panzoomInstance = svgPanZoom(svg, {
+            panEnabled: true,
+            zoomEnabled: true,
+            controlIconsEnabled: true,
+            fit: true,
+            center: true,
+            zoomScaleSensitivity: 0.4, // Lower = slower zoom, higher = faster (default is 0.2)
+        });
+    }
+    return _panzoomInstance;
+}
+
+function panzoomFitCenter() {
+    const instance = getPanZoom();
+    if (instance) {
+        try {
+            instance.resize();
+            instance.fit();
+            instance.center();
+        } catch {
+            // NOOP
+        }
+    }
+}

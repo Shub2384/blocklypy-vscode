@@ -50,31 +50,30 @@ export function activate(context: vscode.ExtensionContext) {
         [
             Commands.DisplayNextView,
             async () => {
-                BlocklypyViewerProvider.activeViewer?.rotateViews(true);
+                BlocklypyViewerProvider.Provider?.rotateViews(true);
             },
         ],
         [
             Commands.DisplayPreviousView,
             async () => {
-                BlocklypyViewerProvider.activeViewer?.rotateViews(false);
+                BlocklypyViewerProvider.Provider?.rotateViews(false);
             },
         ],
         [
             Commands.DisplayPreview,
-            async () =>
-                BlocklypyViewerProvider.activeViewer?.showView(ViewType.Preview),
+            async () => BlocklypyViewerProvider.Provider?.showView(ViewType.Preview),
         ],
         [
             Commands.DisplayPycode,
-            async () => BlocklypyViewerProvider.activeViewer?.showView(ViewType.Pycode),
+            async () => BlocklypyViewerProvider.Provider?.showView(ViewType.Pycode),
         ],
         [
             Commands.DisplayPseudo,
-            async () => BlocklypyViewerProvider.activeViewer?.showView(ViewType.Pseudo),
+            async () => BlocklypyViewerProvider.Provider?.showView(ViewType.Pseudo),
         ],
         [
             Commands.DisplayGraph,
-            async () => BlocklypyViewerProvider.activeViewer?.showView(ViewType.Graph),
+            async () => BlocklypyViewerProvider.Provider?.showView(ViewType.Graph),
         ],
         [
             Commands.ShowPythonPreview,
@@ -97,11 +96,10 @@ export function activate(context: vscode.ExtensionContext) {
         [
             Commands.ShowSource,
             async () => {
-                const customview = PybricksPythonPreviewProvider.activeViewer;
-                if (!customview || !customview.currentUri) return;
-                const origialUri = PybricksPythonPreviewProvider.decodeUri(
-                    customview.currentUri,
-                );
+                const uri: vscode.Uri | undefined =
+                    PybricksPythonPreviewProvider.Get?.ActiveUri;
+                if (!uri) return;
+                const origialUri = PybricksPythonPreviewProvider.decodeUri(uri);
                 openOrActivate(origialUri);
             },
         ],
@@ -166,7 +164,7 @@ function onActiveEditorSaveCallback(document: vscode.TextDocument) {
             const line1 = document.lineAt(0).text;
             if (new RegExp(`\\b${MAGIC_AUTOSTART}\\b`).test(line1)) {
                 console.log('AutoStart detected, compiling and running...');
-                vscode.commands.executeCommand('blocklypy-vscode.compileAndRun');
+                vscode.commands.executeCommand(Commands.CompileAndRun);
             }
         }
     }

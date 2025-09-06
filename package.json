@@ -232,22 +232,22 @@
       "editor/title": [
         {
           "command": "blocklypy-vscode.blocklypyViewer.displayPreview",
-          "when": "activeCustomEditorId == blocklypy-vscode.blocklypyViewer && blocklypy-vscode.customViewType !== 'preview'",
+          "when": "activeCustomEditorId == blocklypy-vscode.blocklypyViewer && blocklypy-vscode.customViewType !== 'preview' && blocklypy-vscode.contentAvailability.hasPreview",
           "group": "navigation@2"
         },
         {
           "command": "blocklypy-vscode.blocklypyViewer.displayPseudo",
-          "when": "activeCustomEditorId == blocklypy-vscode.blocklypyViewer && blocklypy-vscode.customViewType !== 'pseudo'",
+          "when": "activeCustomEditorId == blocklypy-vscode.blocklypyViewer && blocklypy-vscode.customViewType !== 'pseudo' && blocklypy-vscode.contentAvailability.hasPseudo",
           "group": "navigation@3"
         },
         {
           "command": "blocklypy-vscode.blocklypyViewer.displayPycode",
-          "when": "activeCustomEditorId == blocklypy-vscode.blocklypyViewer && blocklypy-vscode.customViewType !== 'pycode'",
+          "when": "activeCustomEditorId == blocklypy-vscode.blocklypyViewer && blocklypy-vscode.customViewType !== 'pycode' && blocklypy-vscode.contentAvailability.hasPycode",
           "group": "navigation@5"
         },
         {
           "command": "blocklypy-vscode.blocklypyViewer.displayGraph",
-          "when": "activeCustomEditorId == blocklypy-vscode.blocklypyViewer && blocklypy-vscode.customViewType !== 'graph'",
+          "when": "activeCustomEditorId == blocklypy-vscode.blocklypyViewer && blocklypy-vscode.customViewType !== 'graph' && blocklypy-vscode.contentAvailability.hasGraph",
           "group": "navigation@6"
         },
         {
@@ -270,23 +270,6 @@
         }
       ]
     },
-    "contexts": [
-      {
-        "key": "blocklypy-vscode.isProgramRunning",
-        "type": "boolean",
-        "default": false
-      },
-      {
-        "key": "blocklypy-vscode.isConnected",
-        "type": "boolean",
-        "default": false
-      },
-      {
-        "key": "blocklypy-vscode.customViewType",
-        "type": "string",
-        "default": ""
-      }
-    ],
     "customEditors": [
       {
         "viewType": "blocklypy-vscode.blocklypyViewer",

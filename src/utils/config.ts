@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { EXTENSION_KEY } from '../const';
 
-const CONFIG_BASEKEY = EXTENSION_KEY;
+const CONFIG_BASEKEY = EXTENSION_KEY + '.';
 const enum ConfigKeys {
     LastConnectedDevice = 'lastConnectedDevice',
     EnableAutoConnect = 'autoConnect',
@@ -20,13 +20,13 @@ export async function updateConfig(key: string, value: any) {
 
 class Config {
     private static read(key: ConfigKeys) {
-        return getConfig<any>(CONFIG_BASEKEY + '.' + key);
+        return getConfig<any>(CONFIG_BASEKEY + key);
     }
     private static async write(key: ConfigKeys, value: any) {
         await updateConfig(Config.getKey(key), value);
     }
     public static getKey(key: ConfigKeys) {
-        return CONFIG_BASEKEY + '.' + key;
+        return CONFIG_BASEKEY + key;
     }
     public static get lastConnectedDevice() {
         return this.read(ConfigKeys.LastConnectedDevice);

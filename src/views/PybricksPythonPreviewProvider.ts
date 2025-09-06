@@ -3,16 +3,24 @@ import * as vscode from 'vscode';
 import { EXTENSION_KEY } from '../const';
 import { collectPythonModules } from './collectPythonModules';
 import { CustomEditorFileWatcherBase } from './CustomEditorFileWatcherBase';
-import { GraphvizClass } from './utils';
+import GraphvizLoader from '../utils/graphviz-helper';
+
+interface DocumentState {
+    document: vscode.CustomDocument;
+    content: string | undefined;
+    dirty: boolean;
+    uriLastModified: number;
+    panel: vscode.WebviewPanel | undefined;
+}
 
 export class PybricksPythonPreviewProvider
     extends CustomEditorFileWatcherBase
     implements vscode.CustomReadonlyEditorProvider
 {
-    private static providers = new Map<string, PybricksPythonPreviewProvider>();
-    private static activeProvider?: PybricksPythonPreviewProvider;
-    private currentPanel?: vscode.WebviewPanel;
-    private currentDocument?: vscode.CustomDocument;
+    private static providerInstance: PybricksPythonPreviewProvider | undefined =
+        undefined;
+    private documents = new Map<vscode.Uri | undefined, DocumentState>();
+    private activeUri?: vscode.Uri;
 
     public static get viewType() {
         return EXTENSION_KEY + '.pythonPreview';
@@ -20,6 +28,7 @@ export class PybricksPythonPreviewProvider
 
     public static register(context: vscode.ExtensionContext): vscode.Disposable {
         const provider = new PybricksPythonPreviewProvider(context);
+        PybricksPythonPreviewProvider.providerInstance = provider;
         return vscode.window.registerCustomEditorProvider(
             PybricksPythonPreviewProvider.viewType,
             provider,
@@ -30,14 +39,8 @@ export class PybricksPythonPreviewProvider
         );
     }
 
-    public static getProviderForUri(
-        uri: vscode.Uri,
-    ): PybricksPythonPreviewProvider | undefined {
-        return PybricksPythonPreviewProvider.providers.get(uri.toString());
-    }
-
-    public static get activeViewer(): PybricksPythonPreviewProvider | undefined {
-        return PybricksPythonPreviewProvider.activeProvider;
+    public static get Get(): PybricksPythonPreviewProvider | undefined {
+        return PybricksPythonPreviewProvider.providerInstance;
     }
 
     constructor(private readonly context: vscode.ExtensionContext) {
@@ -75,13 +78,27 @@ export class PybricksPythonPreviewProvider
         openContext: { backupId?: string },
         _token: vscode.CancellationToken,
     ): Promise<vscode.CustomDocument> {
-        PybricksPythonPreviewProvider.providers.set(uri.toString(), this);
-        return {
+        const document = {
             uri,
             dispose: () => {
-                PybricksPythonPreviewProvider.providers.delete(uri.toString());
+                this.documents.delete(uri);
+                if (this.activeUri === uri) {
+                    this.activeUri = undefined;
+                }
             },
         };
+
+        const state: DocumentState = {
+            document,
+            content: undefined,
+            dirty: false,
+            uriLastModified: 0,
+            panel: undefined,
+        };
+        this.documents.set(uri, state);
+        this.activeUri = uri;
+
+        return document;
     }
 
     async resolveCustomEditor(
@@ -89,52 +106,53 @@ export class PybricksPythonPreviewProvider
         webviewPanel: vscode.WebviewPanel,
         _token: vscode.CancellationToken,
     ): Promise<void> {
-        this.currentPanel = webviewPanel;
-        this.currentDocument = document;
-        PybricksPythonPreviewProvider.activeProvider = this;
+        this.activeUri = document.uri;
+
+        const state = this.documents.get(document.uri);
+        if (!state) throw new Error('Document state not found');
+        state.panel = webviewPanel;
 
         webviewPanel.onDidChangeViewState(
             (e: vscode.WebviewPanelOnDidChangeViewStateEvent) => {
+                // find the matching uri and state
+                const state = this.documents.get(document.uri);
                 if (webviewPanel.active) {
-                    PybricksPythonPreviewProvider.activeProvider = this;
-                    // if (this.dirty) {
-                    //     this.refreshWebview(document, true);
-                    // }
-                } else if (PybricksPythonPreviewProvider.activeProvider === this) {
-                    PybricksPythonPreviewProvider.activeProvider = undefined;
+                    this.activeUri = document.uri;
+                    if (state?.dirty) {
+                        this.refreshWebview(document, webviewPanel, true);
+                    }
+                } else if (this.activeUri === document.uri) {
+                    this.activeUri = undefined;
                 }
             },
         );
+
+        webviewPanel.onDidDispose(() => {
+            this.documents.delete(document.uri);
+            if (this.activeUri === document.uri) {
+                this.activeUri = undefined;
+            }
+        });
 
         webviewPanel.webview.options = {
             enableScripts: true,
         };
 
-        // Collect all modules and generate the dependency graph
-        const modules = await collectPythonModules(
-            PybricksPythonPreviewProvider.decodeUri(document.uri),
-        );
-        const encoder = new TextEncoder();
-        const files = modules.map((m) => ({
-            name: m.path.split('/').pop()!, // Use only the filename
-            buffer: encoder.encode(m.content).buffer,
-        }));
-        const result = await convertProjectToPython(files, {});
-        const dependencygraph = result.dependencygraph;
-        let content = '';
-        if (dependencygraph) {
-            const graphviz = await GraphvizClass();
-            content = await graphviz.dot(dependencygraph);
-        }
-
         webviewPanel.webview.html = this.getHtmlForWebview(webviewPanel);
 
         // setTimeout(() => {
-        this.refreshWebview(document);
+        this.refreshWebview(document, webviewPanel);
         // });
     }
 
-    public async refreshWebview(document: vscode.CustomDocument) {
+    public async refreshWebview(
+        document: vscode.CustomDocument,
+        webviewPanel: vscode.WebviewPanel,
+        _forced = false,
+    ) {
+        const state = this.documents.get(document.uri);
+        if (!state) return;
+
         // Collect all modules and generate the dependency graph
         const modules = await collectPythonModules(
             PybricksPythonPreviewProvider.decodeUri(document.uri),
@@ -148,28 +166,26 @@ export class PybricksPythonPreviewProvider
         const dependencygraph = result.dependencygraph;
         let content = '';
         if (dependencygraph) {
-            const graphviz = await GraphvizClass();
+            const graphviz = await GraphvizLoader();
             content = await graphviz.dot(dependencygraph);
         }
 
-        this.setContent(content);
+        this.setContent(content, webviewPanel);
 
         // Set up file change monitoring (re-do every time to catch new imports)
         await this.monitorFileChanges(
             document,
-            this.currentPanel,
-            async () => await this.refreshWebview(document),
+            webviewPanel,
+            async () => await this.refreshWebview(document, webviewPanel),
             new Set<string>(modules.map((m) => m.path)),
         );
     }
 
-    private setContent(content: string) {
-        if (PybricksPythonPreviewProvider.activeViewer === this) {
-            this.currentPanel?.webview.postMessage({
-                command: 'setContent',
-                content,
-            });
-        }
+    private setContent(content: string, webviewPanel: vscode.WebviewPanel) {
+        webviewPanel.webview.postMessage({
+            command: 'setContent',
+            content,
+        });
     }
 
     private getHtmlForWebview(webviewPanel: vscode.WebviewPanel): string {
@@ -206,7 +222,7 @@ export class PybricksPythonPreviewProvider
         `;
     }
 
-    public get currentUri(): vscode.Uri | undefined {
-        return this.currentDocument?.uri;
+    public get ActiveUri(): vscode.Uri | undefined {
+        return this?.activeUri;
     }
 }

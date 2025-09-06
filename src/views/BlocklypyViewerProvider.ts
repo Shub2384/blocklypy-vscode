@@ -6,9 +6,13 @@ import {
 import * as vscode from 'vscode';
 import { EXTENSION_KEY } from '../const';
 import { CustomEditorFileWatcherBase } from './CustomEditorFileWatcherBase';
-import { GraphvizClass } from './utils';
 import { logDebug } from '../extension/debug-channel';
-import { setContextCustomViewType } from '../extension/context-utils';
+import {
+    setContextContentAvailability,
+    setContextCustomViewType,
+} from '../extension/context-utils';
+import { get } from 'http';
+import GraphvizLoader from '../utils/graphviz-helper';
 
 interface BlocklypyViewerContent {
     filename?: string;
@@ -18,13 +22,10 @@ interface BlocklypyViewerContent {
     graph?: string;
     // result
 }
-
-// interface BlocklypyViewerState {
-//     uri: string;
-//     currentView?: ViewType;
-//     content: BlocklypyViewerContent;
-//     lastModified: number;
-// }
+export type BlocklypyViewerContentAvailabilityMap = Record<
+    Exclude<keyof BlocklypyViewerContent, 'filename' | 'result'>,
+    boolean
+>;
 
 export enum ViewType {
     Preview = 'preview',
@@ -34,12 +35,23 @@ export enum ViewType {
     Loading = 'loading',
 }
 
+interface DocumentState {
+    document: vscode.CustomDocument;
+    viewtype: ViewType;
+    content: BlocklypyViewerContent | undefined;
+    contentAvailability: BlocklypyViewerContentAvailabilityMap | undefined;
+    dirty: boolean;
+    uriLastModified: number;
+    panel: vscode.WebviewPanel | undefined;
+}
+
 export class BlocklypyViewerProvider
     extends CustomEditorFileWatcherBase
     implements vscode.CustomReadonlyEditorProvider
 {
-    private static providers = new Map<string, BlocklypyViewerProvider>();
-    private static activeProvider?: BlocklypyViewerProvider;
+    private static providerInstance: BlocklypyViewerProvider | undefined = undefined;
+    private documents = new Map<vscode.Uri | undefined, DocumentState>();
+    private activeUri?: vscode.Uri;
 
     public static get viewType() {
         return EXTENSION_KEY + '.blocklypyViewer';
@@ -47,6 +59,7 @@ export class BlocklypyViewerProvider
 
     public static register(context: vscode.ExtensionContext): vscode.Disposable {
         const provider = new BlocklypyViewerProvider(context);
+        BlocklypyViewerProvider.providerInstance = provider;
         return vscode.window.registerCustomEditorProvider(
             BlocklypyViewerProvider.viewType,
             provider,
@@ -57,37 +70,43 @@ export class BlocklypyViewerProvider
         );
     }
 
-    public static getProviderForUri(
-        uri: vscode.Uri,
-    ): BlocklypyViewerProvider | undefined {
-        return BlocklypyViewerProvider.providers.get(uri.toString());
-    }
-
-    public static get activeViewer(): BlocklypyViewerProvider | undefined {
-        return BlocklypyViewerProvider.activeProvider;
+    public static get Provider(): BlocklypyViewerProvider | undefined {
+        return BlocklypyViewerProvider.providerInstance;
     }
 
     constructor(private readonly context: vscode.ExtensionContext) {
         super();
     }
 
-    private content: BlocklypyViewerContent = {};
-    private currentPanel?: vscode.WebviewPanel;
-    private currentView?: ViewType;
-    private dirty = false;
-
     async openCustomDocument(
         uri: vscode.Uri,
         openContext: { backupId?: string },
         _token: vscode.CancellationToken,
     ): Promise<vscode.CustomDocument> {
-        BlocklypyViewerProvider.providers.set(uri.toString(), this);
-        return {
+        const document = {
             uri,
             dispose: () => {
-                BlocklypyViewerProvider.providers.delete(uri.toString());
+                this.documents.delete(uri);
+                if (this.activeUri === uri) {
+                    this.activeUri = undefined;
+                }
             },
         };
+
+        const state = {
+            document,
+            viewtype: ViewType.Loading,
+            content: undefined,
+            contentAvailability: undefined,
+            dirty: false,
+            uriLastModified: 0,
+            panel: undefined,
+        } satisfies DocumentState;
+
+        this.documents.set(uri, state);
+        this.activeUri = uri;
+
+        return document;
     }
 
     async resolveCustomEditor(
@@ -95,30 +114,44 @@ export class BlocklypyViewerProvider
         webviewPanel: vscode.WebviewPanel,
         _token: vscode.CancellationToken,
     ): Promise<void> {
-        this.currentPanel = webviewPanel;
-        BlocklypyViewerProvider.activeProvider = this;
+        // find the current state
+        this.activeUri = document.uri;
+
+        const state = this.documents.get(document.uri);
+        if (!state) throw new Error('No document state found');
+        state.panel = webviewPanel;
 
         webviewPanel.onDidChangeViewState(
-            (e: vscode.WebviewPanelOnDidChangeViewStateEvent) => {
+            async (e: vscode.WebviewPanelOnDidChangeViewStateEvent) => {
+                // find the matching uri and state
+                const state = this.documents.get(document.uri);
                 if (webviewPanel.active) {
-                    BlocklypyViewerProvider.activeProvider = this;
-                    if (this.dirty) {
-                        this.refreshWebview(document, true);
+                    this.activeUri = document.uri;
+                    if (state?.dirty) {
+                        await this.refreshWebview(document, true);
+                        // setContextContentAvailability is called in refreshWebview
+                    } else {
+                        setContextContentAvailability(state?.contentAvailability);
                     }
-                } else if (BlocklypyViewerProvider.activeProvider === this) {
-                    BlocklypyViewerProvider.activeProvider = undefined;
+                } else if (this.activeUri === document.uri) {
+                    this.activeUri = undefined;
                 }
             },
         );
 
-        // webviewPanel.onDidDispose(() => {
-        //     // Serialize state and store it
-        //     const state = this.serializeState();
-        //     this.context.workspaceState.update(
-        //         `blocklypyViewerState:${this.uri?.toString()}`,
-        //         state,
-        //     );
-        // });
+        webviewPanel.onDidDispose(() => {
+            this.documents.delete(document.uri);
+            if (this.activeUri === document.uri) {
+                this.activeUri = undefined;
+            }
+
+            // // Serialize state and store it
+            // const state = this.serializeState();
+            // this.context.workspaceState.update(
+            //     `blocklypyViewerState:${this.currentDocument?.uri.toString()}`,
+            //     state,
+            // );
+        });
 
         webviewPanel.webview.options = {
             enableScripts: true,
@@ -145,17 +178,17 @@ export class BlocklypyViewerProvider
         // } else
         {
             setTimeout(async () => {
-                // Read the binary file as Uint8Array
-                this.content = await this.convertFileToPython(document.uri);
+                await this.refreshWebview(document, true);
 
                 setTimeout(() => {
-                    this.showView(this.availableView(this.currentView));
+                    const state = this.documents.get(document.uri);
+                    this.showView(this.guardViewType(state, state?.viewtype));
+                    logDebug(
+                        state?.content
+                            ? `Successfully converted ${document.uri.path} to Python (${state.content.pycode?.length} bytes).`
+                            : `Failed to convert ${document.uri.path} to Python.`,
+                    );
                 }, 100);
-                logDebug(
-                    this.content
-                        ? `Successfully converted ${document.uri.path} to Python (${this.content.pycode?.length} bytes).`
-                        : `Failed to convert ${document.uri.path} to Python.`,
-                );
             }, 0);
         }
 
@@ -169,12 +202,27 @@ export class BlocklypyViewerProvider
     }
 
     public async refreshWebview(document: vscode.CustomDocument, forced = false) {
-        if (this.currentPanel?.active || forced) {
-            this.content = await this.convertFileToPython(document.uri);
-            this.showView(this.availableView(this.currentView));
-            this.dirty = false;
+        const state = this.documents.get(document.uri);
+        if (!state) return;
+
+        if (this.activeUri === document.uri || forced) {
+            state.uriLastModified = (
+                await vscode.workspace.fs.stat(document.uri)
+            ).mtime;
+
+            state.content = await this.convertFileToPython(document.uri);
+            state.contentAvailability = {
+                preview: !!state.content.preview,
+                pseudo: !!state.content.pseudo,
+                pycode: !!state.content.pycode,
+                graph: !!state.content.graph,
+            } satisfies BlocklypyViewerContentAvailabilityMap;
+            setContextContentAvailability(state.contentAvailability);
+
+            this.showView(this.guardViewType(state, state.viewtype));
+            state.dirty = false;
         } else {
-            this.dirty = true; // Mark as dirty, don't refresh yet
+            state.dirty = true; // Mark as dirty, don't refresh yet
         }
     }
 
@@ -201,7 +249,8 @@ export class BlocklypyViewerProvider
 
         const preview: string | undefined = result.extra?.['blockly.svg'];
 
-        const graphviz = await GraphvizClass();
+        const graphviz = await GraphvizLoader();
+
         const dependencygraph = result.dependencygraph;
         const graph: string | undefined = dependencygraph
             ? await graphviz.dot(dependencygraph)
@@ -218,31 +267,40 @@ export class BlocklypyViewerProvider
     }
 
     public rotateViews(forward: boolean) {
-        const view = this.availableView(
-            this.nextView(this.currentView, forward ? +1 : -1),
+        const state = this.documents.get(this.activeUri);
+
+        const view = this.guardViewType(
+            state,
+            this.nextView(state?.viewtype, forward ? +1 : -1),
         );
         this.showView(view);
     }
 
-    private contentForView(view: ViewType | undefined) {
-        if (view === ViewType.Pycode && this.content.pycode) {
-            return this.content.pycode;
-        } else if (view === ViewType.Pseudo && this.content.pseudo) {
-            return this.content.pseudo;
-        } else if (view === ViewType.Preview && this.content.preview) {
-            return this.content.preview;
-        } else if (view === ViewType.Graph && this.content.graph) {
-            return this.content.graph;
+    private contentForView(
+        state: DocumentState | undefined,
+        view: ViewType | undefined,
+    ) {
+        if (view === ViewType.Pycode && state?.content?.pycode) {
+            return state.content.pycode;
+        } else if (view === ViewType.Pseudo && state?.content?.pseudo) {
+            return state.content.pseudo;
+        } else if (view === ViewType.Preview && state?.content?.preview) {
+            return state.content.preview;
+        } else if (view === ViewType.Graph && state?.content?.graph) {
+            return state.content.graph;
         } else {
             return undefined;
         }
     }
 
-    private availableView(current: ViewType | undefined): ViewType {
+    private guardViewType(
+        state: DocumentState | undefined,
+        current: ViewType | undefined,
+    ): ViewType {
         let effectiveView = current;
         let content: string | undefined;
         do {
-            content = this.contentForView(effectiveView);
+            content = this.contentForView(state, effectiveView);
             if (!content) {
                 // try next view
                 effectiveView = this.nextView(effectiveView);
@@ -265,18 +323,24 @@ export class BlocklypyViewerProvider
     }
 
     public showView(view: ViewType | undefined) {
-        const content = view ? this.contentForView(view) : undefined;
-        this.currentView = view ?? ViewType.Loading;
+        const state = this.documents.get(this.activeUri);
+        if (!state) throw new Error('No active document state');
+
+        const content = view ? this.contentForView(state, view) : undefined;
+        state.viewtype = view ?? ViewType.Loading;
         setContextCustomViewType(view);
 
-        this.currentPanel?.webview.postMessage({
+        state.panel?.webview.postMessage({
             command: 'showView',
-            view: this.currentView,
+            view: state.viewtype,
             content,
         });
     }
 
     private getHtmlForWebview(webviewPanel: vscode.WebviewPanel): string {
+        const state = this.documents.get(this.activeUri);
+        if (!state) throw new Error('No active document state');
+
         const scriptUri = webviewPanel.webview.asWebviewUri(
             vscode.Uri.joinPath(
                 this.context.extensionUri,
@@ -309,7 +373,7 @@ export class BlocklypyViewerProvider
             <html lang="en">
             <head>
             <meta charset="UTF-8">
-            <title>${this.content?.filename}</title>
+            <title>${state.content?.filename}</title>
             <link rel="preload" href="${imageUri}" as="image">
             <style>
             html, body, #container, #editor {
@@ -368,20 +432,22 @@ export class BlocklypyViewerProvider
     }
 
     get pycode(): string | undefined {
-        return this.content.pycode;
+        const state = this.documents.get(this.activeUri);
+        return state?.content?.pycode;
     }
 
     get filename(): string | undefined {
-        return this.content.filename;
+        const state = this.documents.get(this.activeUri);
+        return state?.content?.filename;
     }
 
     // public serializeState(): any {
-    //     if (!this.uri) {
+    //     if (!this.currentDocument?.uri) {
     //         return undefined;
     //     }
 
     //     return {
-    //         uri: this.uri.toString(),
+    //         uri: this.currentDocument?.uri.toString(),
     //         currentView: this.currentView,
     //         content: this.content,
     //         lastModified: this.uriLastModified,

@@ -1,37 +1,11 @@
 import svgPanZoom from 'svg-pan-zoom';
 
 window.addEventListener('DOMContentLoaded', () => {
-    getSvgPanZoomInstance();
+    getPanZoom();
 });
 
-let svgPanZoomInstance_: ReturnType<typeof svgPanZoom> | undefined = undefined;
-function getSvgPanZoomInstance() {
-    const element = document.getElementById('graph-container');
-    const svg = element?.querySelector('svg');
-    if (svg) {
-        requestAnimationFrame(() => {
-            svgPanZoomInstance_ = svgPanZoom(svg, {
-                panEnabled: true,
-                zoomEnabled: true,
-                controlIconsEnabled: true,
-                fit: true,
-                center: true,
-                zoomScaleSensitivity: 0.4, // Lower = slower zoom, higher = faster (default is 0.2)
-            });
-        });
-    }
-    return svgPanZoomInstance_;
-}
-
 window.addEventListener('resize', () => {
-    // Resize svg-pan-zoom
-    // Find the currently visible SVG
-    const instance = getSvgPanZoomInstance();
-    if (instance) {
-        instance.resize();
-        instance.fit();
-        instance.center();
-    }
+    panzoomFitCenter();
 });
 
 window.addEventListener('message', (event) => {
@@ -42,6 +16,8 @@ window.addEventListener('message', (event) => {
 });
 
 function setContent(data: string) {
+    _panzoomInstance = undefined;
+
     const element = document.getElementById('graph-container');
     const svg = element?.querySelector('svg');
     if (svg) {
@@ -50,11 +26,38 @@ function setContent(data: string) {
     if (element) {
         element.innerHTML = data ?? '';
     }
-    svgPanZoomInstance_ = undefined;
-    const instance = getSvgPanZoomInstance();
+
+    getPanZoom(false); // clear cache and re-init
+    panzoomFitCenter();
+}
+
+let _panzoomInstance: ReturnType<typeof svgPanZoom> | undefined = undefined;
+function getPanZoom(allowcached = true) {
+    const element = document.getElementById('graph-container');
+    const svg = element?.querySelector('svg');
+    if (svg && (!_panzoomInstance || !allowcached)) {
+        // requestAnimationFrame(() => {
+        _panzoomInstance = svgPanZoom(svg, {
+            panEnabled: true,
+            zoomEnabled: true,
+            controlIconsEnabled: true,
+            fit: true,
+            center: true,
+            zoomScaleSensitivity: 0.4, // Lower = slower zoom, higher = faster (default is 0.2)
+        });
+    }
+    return _panzoomInstance;
+}
+
+function panzoomFitCenter() {
+    const instance = getPanZoom();
     if (instance) {
-        instance.resize();
-        instance.fit();
-        instance.center();
+        try {
+            instance.resize();
+            instance.fit();
+            instance.center();
+        } catch {
+            // NOOP
+        }
     }
 }

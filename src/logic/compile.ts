@@ -21,7 +21,8 @@ function getPythonCode(): { content: string; folder?: string } | undefined {
         return { content, folder };
     }
 
-    const customViewer = BlocklypyViewerProvider.activeViewer;
+    // TODO: if not in editor it will have a problem!
+    const customViewer = BlocklypyViewerProvider.Provider;
     if (customViewer && customViewer.pycode) {
         const content = customViewer.pycode;
         return { content };
