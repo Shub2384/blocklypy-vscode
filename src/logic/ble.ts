@@ -1,13 +1,13 @@
 import noble, { Peripheral } from '@abandonware/noble';
 import config from '../utils/config';
+
 import {
-    clearPythonErrors,
-    logDebug,
-    reportPythonError,
     setContextIsConnected,
     setContextIsProgramRunning,
-    setStatusBarItem,
-} from '../extension';
+} from '../extension/context-utils';
+import { logDebug } from '../extension/debug-channel';
+import { clearPythonErrors, reportPythonError } from '../extension/diagnostics';
+import { setStatusBarItem } from '../extension/statusbar';
 import { TreeCommands } from '../extension/tree-commands';
 import {
     EventType,

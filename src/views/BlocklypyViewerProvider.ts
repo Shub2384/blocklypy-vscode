@@ -5,9 +5,10 @@ import {
 } from 'blocklypy';
 import * as vscode from 'vscode';
 import { EXTENSION_KEY } from '../const';
-import { logDebug, setContextCustomViewType } from '../extension';
 import { CustomEditorFileWatcherBase } from './CustomEditorFileWatcherBase';
 import { GraphvizClass } from './utils';
+import { logDebug } from '../extension/debug-channel';
+import { setContextCustomViewType } from '../extension/context-utils';
 
 interface BlocklypyViewerContent {
     filename?: string;

@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { showError } from '../extension';
+import { showError } from '../extension/diagnostics';
 
 export abstract class CustomEditorFileWatcherBase {
     protected pollInterval?: NodeJS.Timeout;

@@ -1,4 +1,5 @@
-import { clearDebugLog, clearPythonErrors, logDebug } from '../extension';
+import { logDebug } from '../extension/debug-channel';
+import { clearPythonErrors } from '../extension/diagnostics';
 import { Device } from '../logic/ble';
 import { compileAsync } from '../logic/compile';
 import {
