@@ -142,7 +142,7 @@ export function activate(context: vscode.ExtensionContext) {
             async () => BlocklypyViewerProvider.activeViewer?.showView(ViewType.Graph),
         ],
         [
-            Commands.showPythonPreview,
+            Commands.ShowPythonPreview,
             async () => {
                 const editor = vscode.window.activeTextEditor;
                 if (editor && editor.document.languageId === 'python') {
@@ -157,6 +157,17 @@ export function activate(context: vscode.ExtensionContext) {
                         'Open a Python file to preview.',
                     );
                 }
+            },
+        ],
+        [
+            Commands.ShowSource,
+            async () => {
+                const customview = PybricksPythonPreviewProvider.activeViewer;
+                if (!customview || !customview.currentUri) return;
+                const origialUri = PybricksPythonPreviewProvider.decodeUri(
+                    customview.currentUri,
+                );
+                openOrActivate(origialUri);
             },
         ],
         [Commands.StatusPlaceHolder, async () => {}],
@@ -332,4 +343,33 @@ const decorationType = vscode.window.createTextEditorDecorationType({
 
 function delay(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function openOrActivate(uri: vscode.Uri) {
+    // Check all tab groups for an open tab with the custom URI
+    for (const group of vscode.window.tabGroups.all) {
+        for (const tab of group.tabs) {
+            if (
+                tab.input instanceof vscode.TabInputText &&
+                tab.input.uri.toString() === uri.toString()
+            ) {
+                // Activate the tab
+                // if (tab.input instanceof vscode.TabInputText) {
+                await vscode.window.showTextDocument(tab.input.uri, {
+                    preview: false,
+                    preserveFocus: false,
+                    viewColumn: group.viewColumn,
+                });
+
+                return;
+            }
+        }
+    }
+
+    // If not found, open it in a new tab
+    await vscode.window.showTextDocument(uri, {
+        preview: false,
+        preserveFocus: false,
+    });
+    // await vscode.commands.executeCommand('vscode.open', uri, vscode.ViewColumn.Beside);
 }

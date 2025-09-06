@@ -129,6 +129,11 @@
         "command": "blocklypy-vscode.showPythonPreview",
         "title": "Show Python Dependency Preview",
         "icon": "asset/display-graph.svg"
+      },
+      {
+        "command": "blocklypy-vscode.pythonPreview.showSource",
+        "title": "Show Python Source Code",
+        "icon": "$(go-to-file)"
       }
     ],
     "viewsContainers": {
@@ -252,6 +257,11 @@
           "command": "blocklypy-vscode.showPythonPreview",
           "when": "editorLangId == python",
           "group": "navigation"
+        },
+        {
+          "command": "blocklypy-vscode.pythonPreview.showSource",
+          "when": "activeCustomEditorId == blocklypy-vscode.pythonPreview",
+          "group": "navigation@1"
         }
       ]
     },
@@ -287,6 +297,7 @@
         "viewType": "blocklypy-vscode.pythonPreview",
         "displayName": "Python Dependency Graph Preview",
         "priority": "option",
+        "icon": "asset/display-graph.svg",
         "selector": [
           {
             "filenamePattern": "*.py"

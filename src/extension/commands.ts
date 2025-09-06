@@ -15,5 +15,6 @@ export enum Commands {
     DisplayPycode = 'blocklypy-vscode.blocklypyViewer.displayPycode',
     DisplayPseudo = 'blocklypy-vscode.blocklypyViewer.displayPseudo',
     DisplayGraph = 'blocklypy-vscode.blocklypyViewer.displayGraph',
-    showPythonPreview = 'blocklypy-vscode.showPythonPreview',
+    ShowPythonPreview = 'blocklypy-vscode.showPythonPreview',
+    ShowSource = 'blocklypy-vscode.pythonPreview.showSource',
 }

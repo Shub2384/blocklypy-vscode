@@ -12,6 +12,7 @@ export class PybricksPythonPreviewProvider
     private static providers = new Map<string, PybricksPythonPreviewProvider>();
     private static activeProvider?: PybricksPythonPreviewProvider;
     private currentPanel?: vscode.WebviewPanel;
+    private currentDocument?: vscode.CustomDocument;
 
     public static get viewType() {
         return EXTENSION_KEY + '.pythonPreview';
@@ -51,7 +52,6 @@ export class PybricksPythonPreviewProvider
     public static encodeUri(uri: vscode.Uri) {
         const filename = uri.path.split('/').pop() || uri.path;
         const customUri = uri.with({
-            scheme: 'blocklypy-preview',
             path: 'Graph: ' + filename,
             fragment: uri.path,
         });
@@ -64,12 +64,9 @@ export class PybricksPythonPreviewProvider
      * @returns The original file URI
      */
     public static decodeUri(uri: vscode.Uri) {
-        if (uri.scheme !== 'blocklypy-preview') {
-            throw new Error('Invalid scheme: ' + uri.scheme);
-        }
         return uri.with({
-            scheme: 'file',
             path: uri.fragment,
+            fragment: '',
         });
     }
 
@@ -93,7 +90,21 @@ export class PybricksPythonPreviewProvider
         _token: vscode.CancellationToken,
     ): Promise<void> {
         this.currentPanel = webviewPanel;
+        this.currentDocument = document;
         PybricksPythonPreviewProvider.activeProvider = this;
+
+        webviewPanel.onDidChangeViewState(
+            (e: vscode.WebviewPanelOnDidChangeViewStateEvent) => {
+                if (webviewPanel.active) {
+                    PybricksPythonPreviewProvider.activeProvider = this;
+                    // if (this.dirty) {
+                    //     this.refreshWebview(document, true);
+                    // }
+                } else if (PybricksPythonPreviewProvider.activeProvider === this) {
+                    PybricksPythonPreviewProvider.activeProvider = undefined;
+                }
+            },
+        );
 
         webviewPanel.webview.options = {
             enableScripts: true,
@@ -193,5 +204,9 @@ export class PybricksPythonPreviewProvider
             </body>
             </html>
         `;
+    }
+
+    public get currentUri(): vscode.Uri | undefined {
+        return this.currentDocument?.uri;
     }
 }
