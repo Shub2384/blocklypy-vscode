@@ -111,7 +111,6 @@ class BLE {
             onChange && onChange();
             logDebug(`Connected to ${peripheral.advertisement.localName}`);
 
-            // save lastConnected: connectedName to pybricks.json
             const connectedName = peripheral.advertisement.localName;
             await config.setLastConnectedDevice(connectedName);
         } catch (error) {

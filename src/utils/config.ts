@@ -1,9 +1,12 @@
 import * as vscode from 'vscode';
+import { EXTENSION_KEY } from '../const';
 
-const CONFIG_BASEKEY = 'pybricks.';
-const CONFIG_LASTCONNECTEDDEVICE = 'lastConnectedDevice';
-const CONFIG_ENABLE_AUTOCONNECT = 'autoConnect';
-const CONFIG_ENABLE_AUTOSTART = 'autoStart';
+const CONFIG_BASEKEY = EXTENSION_KEY;
+const enum ConfigKeys {
+    LastConnectedDevice = 'lastConnectedDevice',
+    EnableAutoConnect = 'autoConnect',
+    EnableAutostart = 'autoStart',
+}
 
 export function getConfig<T>(key: string) {
     return vscode.workspace.getConfiguration().get(key) as T;
@@ -16,30 +19,32 @@ export async function updateConfig(key: string, value: any) {
 }
 
 class Config {
-    private read(key: string) {
-        return getConfig<any>(CONFIG_BASEKEY + key);
+    private static read(key: ConfigKeys) {
+        return getConfig<any>(CONFIG_BASEKEY + '.' + key);
     }
-    private async write(key: string, value: any) {
-        await updateConfig(CONFIG_BASEKEY + key, value);
+    private static async write(key: ConfigKeys, value: any) {
+        await updateConfig(Config.getKey(key), value);
     }
-    public get lastConnectedDevice() {
-        return this.read(CONFIG_LASTCONNECTEDDEVICE);
+    public static getKey(key: ConfigKeys) {
+        return CONFIG_BASEKEY + '.' + key;
     }
-    public async setLastConnectedDevice(value: string) {
-        await this.write(CONFIG_LASTCONNECTEDDEVICE, value);
+    public static get lastConnectedDevice() {
+        return this.read(ConfigKeys.LastConnectedDevice);
     }
-    public get enableAutoConnect() {
-        return this.read(CONFIG_ENABLE_AUTOCONNECT);
+    public static async setLastConnectedDevice(value: string) {
+        await this.write(ConfigKeys.LastConnectedDevice, value);
     }
-    public async setEnableAutoConnect(value: boolean) {
-        await this.write(CONFIG_ENABLE_AUTOCONNECT, value);
+    public static get enableAutoConnect() {
+        return this.read(ConfigKeys.EnableAutoConnect);
     }
-    public get enableAutostart() {
-        return this.read(CONFIG_ENABLE_AUTOSTART);
+    public static async setEnableAutoConnect(value: boolean) {
+        await this.write(ConfigKeys.EnableAutoConnect, value);
     }
-    public async setEnableAutostart(value: boolean) {
-        await this.write(CONFIG_ENABLE_AUTOSTART, value);
+    public static get enableAutostart() {
+        return this.read(ConfigKeys.EnableAutostart);
+    }
+    public static async setEnableAutostart(value: boolean) {
+        await this.write(ConfigKeys.EnableAutostart, value);
     }
 }
-const config = new Config();
-export default config;
+export default Config;

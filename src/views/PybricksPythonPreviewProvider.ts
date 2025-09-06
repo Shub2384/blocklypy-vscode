@@ -1,8 +1,9 @@
 import { convertProjectToPython } from 'blocklypy';
 import * as vscode from 'vscode';
+import { EXTENSION_KEY } from '../const';
 import { collectPythonModules } from './collectPythonModules';
-import { GraphvizClass } from './utils';
 import { CustomEditorFileWatcherBase } from './CustomEditorFileWatcherBase';
+import { GraphvizClass } from './utils';
 
 export class PybricksPythonPreviewProvider
     extends CustomEditorFileWatcherBase
@@ -12,10 +13,14 @@ export class PybricksPythonPreviewProvider
     private static activeProvider?: PybricksPythonPreviewProvider;
     private currentPanel?: vscode.WebviewPanel;
 
+    public static get viewType() {
+        return EXTENSION_KEY + '.pythonPreview';
+    }
+
     public static register(context: vscode.ExtensionContext): vscode.Disposable {
         const provider = new PybricksPythonPreviewProvider(context);
         return vscode.window.registerCustomEditorProvider(
-            'pybricks.pythonPreview',
+            PybricksPythonPreviewProvider.viewType,
             provider,
             {
                 webviewOptions: { retainContextWhenHidden: true },

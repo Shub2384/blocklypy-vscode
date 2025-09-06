@@ -4,9 +4,10 @@ import {
     IPyConverterOptions,
 } from 'blocklypy';
 import * as vscode from 'vscode';
+import { EXTENSION_KEY } from '../const';
 import { logDebug, setContextCustomViewType } from '../extension';
-import { GraphvizClass } from './utils';
 import { CustomEditorFileWatcherBase } from './CustomEditorFileWatcherBase';
+import { GraphvizClass } from './utils';
 
 interface BlocklypyViewerContent {
     filename?: string;
@@ -39,10 +40,14 @@ export class BlocklypyViewerProvider
     private static providers = new Map<string, BlocklypyViewerProvider>();
     private static activeProvider?: BlocklypyViewerProvider;
 
+    public static get viewType() {
+        return EXTENSION_KEY + '.blocklypyViewer';
+    }
+
     public static register(context: vscode.ExtensionContext): vscode.Disposable {
         const provider = new BlocklypyViewerProvider(context);
         return vscode.window.registerCustomEditorProvider(
-            'pybricks.blocklypyViewer',
+            BlocklypyViewerProvider.viewType,
             provider,
             {
                 webviewOptions: { retainContextWhenHidden: true },

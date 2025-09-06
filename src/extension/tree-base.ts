@@ -1,5 +1,7 @@
 import * as vscode from 'vscode';
 
+const PACKAGEJSON_COMMAND_PREFIX = 'BlocklyPy: ';
+
 export interface ITreeItem {
     command: string;
     title?: string;
@@ -75,8 +77,7 @@ export abstract class BaseTreeDataProvider<T extends BaseTreeItem>
 
     async init(context: vscode.ExtensionContext) {
         this.context = context;
-        const ext = vscode.extensions.getExtension('afarago.pybricks-vscode');
-        this.commands = ext?.packageJSON.contributes.commands;
+        this.commands = context.extension.packageJSON.contributes.commands;
         this.refresh();
     }
 
@@ -93,7 +94,7 @@ export abstract class BaseTreeDataProvider<T extends BaseTreeItem>
         const elems2 = [] as BaseTreeItem[];
         for (const e of elems) {
             let cmd = { ...this.commands?.find((c) => c.command === e.command), ...e };
-            cmd.title = cmd.title?.replace('Pybricks: ', '') ?? '';
+            cmd.title = cmd.title?.replace(PACKAGEJSON_COMMAND_PREFIX, '') ?? '';
 
             const elem = new BaseTreeItem(
                 cmd.title ?? '',

@@ -7,18 +7,19 @@ import {
 import { disconnectDeviceAsync } from './commands/disconnect-device';
 import { startUserProgramAsync } from './commands/start-user-program';
 import { stopUserProgramAsync } from './commands/stop-user-program';
-import { MAGIC_AUTOSTART } from './const';
-import { PybricksCommand } from './extension/commands';
-import { TreeCommands } from './extension/tree-commands';
-import { settingsTreeData } from './extension/tree-settings';
+import { EXTENSION_KEY, MAGIC_AUTOSTART } from './const';
+import { Commands } from './extension/commands';
+import { registerCommandsTree } from './extension/tree-commands';
+import { registerSettingsTree, settingsTreeData } from './extension/tree-settings';
 import { MAIN_MOCULE_PATH } from './logic/compile';
-import config from './utils/config';
 import { BlocklypyViewerProvider, ViewType } from './views/BlocklypyViewerProvider';
 import { PybricksPythonPreviewProvider } from './views/PybricksPythonPreviewProvider';
+import Config from './utils/config';
 
-const pybricksDebugChannel = vscode.window.createOutputChannel('Pybricks Debug');
-const diagnosticsCollection = vscode.languages.createDiagnosticCollection('Pybricks');
-const statusBarItem = vscode.window.createStatusBarItem('pybricks.status');
+const DebugChannel = vscode.window.createOutputChannel('BlocklyPy Pybricks Debug');
+const diagnosticsCollection =
+    vscode.languages.createDiagnosticCollection('BlocklyPy Pybricks');
+const statusBarItem = vscode.window.createStatusBarItem(EXTENSION_KEY + '.status');
 
 function wrapErrorHandling(fn: () => Promise<void>) {
     return async () => {
@@ -43,13 +44,21 @@ export function setStatusBarItem(show: boolean, text: string, tooltip: string) {
 }
 
 export function setContextIsProgramRunning(value: boolean) {
-    vscode.commands.executeCommand('setContext', 'pybricks.isProgramRunning', value);
+    vscode.commands.executeCommand(
+        'setContext',
+        'blocklypy-vscode.isProgramRunning',
+        value,
+    );
 }
 export function setContextIsConnected(value: boolean) {
-    vscode.commands.executeCommand('setContext', 'pybricks.isConnected', value);
+    vscode.commands.executeCommand('setContext', 'blocklypy-vscode.isConnected', value);
 }
 export function setContextCustomViewType(value: ViewType | undefined) {
-    vscode.commands.executeCommand('setContext', 'pybricks.customViewType', value);
+    vscode.commands.executeCommand(
+        'setContext',
+        'blocklypy-vscode.customViewType',
+        value,
+    );
 }
 export function showInfo(message: string) {
     vscode.window.showInformationMessage(message);
@@ -62,13 +71,13 @@ export function logDebug(
     { linebreak, show }: { linebreak?: boolean; show?: boolean } = {},
 ) {
     if (linebreak !== false) {
-        pybricksDebugChannel.appendLine(message);
+        DebugChannel.appendLine(message);
     } else {
-        pybricksDebugChannel.append(message);
+        DebugChannel.append(message);
     }
 
     if (show !== false) {
-        pybricksDebugChannel.show(true);
+        DebugChannel.show(true);
     }
 }
 
@@ -76,71 +85,71 @@ export function activate(context: vscode.ExtensionContext) {
     BlocklypyViewerProvider.register(context);
     PybricksPythonPreviewProvider.register(context);
 
-    TreeCommands.init(context);
-    settingsTreeData.init(context);
+    registerCommandsTree(context);
+    registerSettingsTree(context);
 
-    const commands: [PybricksCommand, () => Promise<void>][] = [
-        [PybricksCommand.ConnectDevice, connectDeviceAsync],
+    const commands: [Commands, () => Promise<void>][] = [
+        [Commands.ConnectDevice, connectDeviceAsync],
         [
-            PybricksCommand.ConnectDeviceLastConnected,
-            async () => await connectDeviceByNameAsync(config.lastConnectedDevice),
+            Commands.ConnectDeviceLastConnected,
+            async () => await connectDeviceByNameAsync(Config.lastConnectedDevice),
         ],
-        [PybricksCommand.CompileAndRun, compileAndRunAsync],
-        [PybricksCommand.StartUserProgram, startUserProgramAsync],
-        [PybricksCommand.StopUserProgram, stopUserProgramAsync],
-        [PybricksCommand.DisconnectDevice, disconnectDeviceAsync],
+        [Commands.CompileAndRun, compileAndRunAsync],
+        [Commands.StartUserProgram, startUserProgramAsync],
+        [Commands.StopUserProgram, stopUserProgramAsync],
+        [Commands.DisconnectDevice, disconnectDeviceAsync],
         [
-            PybricksCommand.ToggleAutoConnect,
+            Commands.ToggleAutoConnect,
             async () => {
-                await config.setEnableAutoConnect(!config.enableAutoConnect);
+                await Config.setEnableAutoConnect(!Config.enableAutoConnect);
                 settingsTreeData.refresh();
             },
         ],
         [
-            PybricksCommand.ToggleAutoStart,
+            Commands.ToggleAutoStart,
             async () => {
-                await config.setEnableAutostart(!config.enableAutostart);
+                await Config.setEnableAutostart(!Config.enableAutostart);
                 settingsTreeData.refresh();
             },
         ],
         [
-            PybricksCommand.DisplayNextView,
+            Commands.DisplayNextView,
             async () => {
                 BlocklypyViewerProvider.activeViewer?.rotateViews(true);
             },
         ],
         [
-            PybricksCommand.DisplayPreviousView,
+            Commands.DisplayPreviousView,
             async () => {
                 BlocklypyViewerProvider.activeViewer?.rotateViews(false);
             },
         ],
         [
-            PybricksCommand.DisplayPreview,
+            Commands.DisplayPreview,
             async () =>
                 BlocklypyViewerProvider.activeViewer?.showView(ViewType.Preview),
         ],
         [
-            PybricksCommand.DisplayPycode,
+            Commands.DisplayPycode,
             async () => BlocklypyViewerProvider.activeViewer?.showView(ViewType.Pycode),
         ],
         [
-            PybricksCommand.DisplayPseudo,
+            Commands.DisplayPseudo,
             async () => BlocklypyViewerProvider.activeViewer?.showView(ViewType.Pseudo),
         ],
         [
-            PybricksCommand.DisplayGraph,
+            Commands.DisplayGraph,
             async () => BlocklypyViewerProvider.activeViewer?.showView(ViewType.Graph),
         ],
         [
-            PybricksCommand.showPythonPreview,
+            Commands.showPythonPreview,
             async () => {
                 const editor = vscode.window.activeTextEditor;
                 if (editor && editor.document.languageId === 'python') {
                     await vscode.commands.executeCommand(
                         'vscode.openWith',
                         editor.document.uri,
-                        'pybricks.pythonPreview',
+                        PybricksPythonPreviewProvider.viewType,
                         vscode.ViewColumn.Beside,
                     );
                 } else {
@@ -150,7 +159,7 @@ export function activate(context: vscode.ExtensionContext) {
                 }
             },
         ],
-        [PybricksCommand.StatusPlaceHolder, async () => {}],
+        [Commands.StatusPlaceHolder, async () => {}],
     ];
 
     context.subscriptions.push(
@@ -158,21 +167,13 @@ export function activate(context: vscode.ExtensionContext) {
             vscode.commands.registerCommand(name, wrapErrorHandling(command)),
         ),
     );
-    vscode.window.registerTreeDataProvider(
-        'pybricks-vscommander-commands',
-        TreeCommands,
-    );
-    // vscode.window.registerTreeDataProvider(
-    //     'pybricks-vscommander-settings',
-    //     TreeSettings,
-    // );
 
     // autoconnect to last connected device
-    if (config.enableAutoConnect) {
-        if (config.lastConnectedDevice) {
-            vscode.commands.executeCommand('pybricks.connectDeviceLastConnected');
+    if (Config.enableAutoConnect) {
+        if (Config.lastConnectedDevice) {
+            vscode.commands.executeCommand(Commands.ConnectDeviceLastConnected);
         } else {
-            vscode.commands.executeCommand('pybricks.connectDevice');
+            vscode.commands.executeCommand(Commands.ConnectDevice);
         }
     }
 
@@ -185,7 +186,7 @@ export function activate(context: vscode.ExtensionContext) {
     );
 
     // context.subscriptions.push(
-    //     vscode.window.registerWebviewPanelSerializer('pybricks.blocklypyViewer', {
+    //     vscode.window.registerWebviewPanelSerializer(EXTENSION_KEY'.blocklypyViewer', {
     //         async deserializeWebviewPanel(webviewPanel, state) {
     //             const uri = vscode.Uri.parse((state as any).uri);
     //             await blocklypyViewerProvider.activeViewer?.resolveCustomEditor(
@@ -214,12 +215,12 @@ function onActiveEditorSaveCallback(document: vscode.TextDocument) {
     const activeEditor = vscode.window.activeTextEditor;
 
     if (activeEditor && activeEditor.document === document) {
-        if (config.enableAutostart && document.languageId === 'python') {
+        if (Config.enableAutostart && document.languageId === 'python') {
             // check if file is python and has magic header
             const line1 = document.lineAt(0).text;
             if (new RegExp(`\\b${MAGIC_AUTOSTART}\\b`).test(line1)) {
                 console.log('AutoStart detected, compiling and running...');
-                vscode.commands.executeCommand('pybricks.compileAndRun');
+                vscode.commands.executeCommand('blocklypy-vscode.compileAndRun');
             }
         }
     }
@@ -261,7 +262,7 @@ async function findEditorForFile(
 }
 
 export function clearDebugLog() {
-    pybricksDebugChannel.clear();
+    DebugChannel.clear();
 }
 
 export async function reportPythonError(

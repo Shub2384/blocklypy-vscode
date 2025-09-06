@@ -1,23 +1,22 @@
 import * as vscode from 'vscode';
-import config from '../utils/config';
+import { EXTENSION_KEY } from '../const';
 import { Device } from '../logic/ble';
+import Config from '../utils/config';
+import { Commands } from './commands';
 import { BaseTreeDataProvider, BaseTreeItem, ITreeItem } from './tree-base';
-import { PybricksCommand } from './commands';
 import { ToCapialized } from './utils';
 
 class CommandsTreeDataProvider extends BaseTreeDataProvider<BaseTreeItem> {
     getTreeItem(element: BaseTreeItem): BaseTreeItem {
-        if (element.command?.command === PybricksCommand.DisconnectDevice) {
+        if (element.command?.command === Commands.DisconnectDevice) {
             element.label = Device.Current
                 ? `Disconnect from ${Device.Current.advertisement.localName}`
                 : 'Disconnect';
-        } else if (
-            element.command?.command === PybricksCommand.ConnectDeviceLastConnected
-        ) {
-            element.label = config.lastConnectedDevice
-                ? `Connect to ${config.lastConnectedDevice}`
+        } else if (element.command?.command === Commands.ConnectDeviceLastConnected) {
+            element.label = Config.lastConnectedDevice
+                ? `Connect to ${Config.lastConnectedDevice}`
                 : 'Connect Last Connected Device';
-        } else if (element.command?.command === PybricksCommand.StatusPlaceHolder) {
+        } else if (element.command?.command === Commands.StatusPlaceHolder) {
             element.label =
                 'Status: ' + ToCapialized(Device.Status ?? 'No Device Connected');
         }
@@ -27,24 +26,33 @@ class CommandsTreeDataProvider extends BaseTreeDataProvider<BaseTreeItem> {
     getChildren(element?: BaseTreeItem): vscode.ProviderResult<BaseTreeItem[]> {
         const elems = [] as ITreeItem[];
         if (!Device.Current) {
-            elems.push({ command: PybricksCommand.ConnectDevice });
-            if (config.lastConnectedDevice) {
-                elems.push({ command: PybricksCommand.ConnectDeviceLastConnected });
+            elems.push({ command: Commands.ConnectDevice });
+            if (Config.lastConnectedDevice) {
+                elems.push({ command: Commands.ConnectDeviceLastConnected });
             }
         } else {
-            elems.push({ command: PybricksCommand.DisconnectDevice });
-            elems.push({ command: PybricksCommand.CompileAndRun });
+            elems.push({ command: Commands.DisconnectDevice });
+            elems.push({ command: Commands.CompileAndRun });
             if (!Device.IsProgramRunning) {
-                elems.push({ command: PybricksCommand.StartUserProgram });
+                elems.push({ command: Commands.StartUserProgram });
             } else {
-                elems.push({ command: PybricksCommand.StopUserProgram });
+                elems.push({ command: Commands.StopUserProgram });
             }
         }
-        elems.push({ command: PybricksCommand.StatusPlaceHolder });
+        elems.push({ command: Commands.StatusPlaceHolder });
 
         return this.expandChildren(elems);
     }
 }
 
 export const TreeCommands = new CommandsTreeDataProvider();
-vscode.window.registerTreeDataProvider('pybricks-vscommander-commands', TreeCommands);
+export function registerCommandsTree(context: vscode.ExtensionContext) {
+    vscode.window.registerTreeDataProvider(EXTENSION_KEY + '-commands', TreeCommands);
+    TreeCommands.init(context);
+
+    // const commandsTreeView = vscode.window.createTreeView(EXTENSION_KEY+'-commands', {
+    //     treeDataProvider: TreeCommands,
+    // });
+
+    // return commandsTreeView;
+}

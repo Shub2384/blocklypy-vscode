@@ -1,5 +1,5 @@
 {
-  "name": "blocklypy-vscode-commander",
+  "name": "blocklypy-vscode",
   "displayName": "BlocklyPy Commander for VSCode",
   "description": "Interact with LEGO® Hubs running Pybricks firmware: compile and upload Python scripts, convert LEGO robotics files.",
   "version": "0.1.0",
@@ -13,6 +13,7 @@
   ],
   "keywords": [
     "pybricks",
+    "blocklypy",
     "lego",
     "ev3",
     "spike",
@@ -33,7 +34,7 @@
   "homepage": "https://attilafarago.hu",
   "repository": {
     "type": "git",
-    "url": "https://github.com/afarago/pybricks-vscode.git"
+    "url": "https://github.com/afarago/blocklypy-vscode.git"
   },
   "icon": "icon.png",
   "activationEvents": [],
@@ -47,85 +48,85 @@
   "contributes": {
     "commands": [
       {
-        "command": "pybricks.connectDevice",
-        "title": "Pybricks: Connect Device",
+        "command": "blocklypy-vscode.connectDevice",
+        "title": "BlocklyPy: Connect Device",
         "icon": "asset/hub-small.svg"
       },
       {
-        "command": "pybricks.connectDeviceLastConnected",
-        "title": "Pybricks: Connect Last Connected Device",
+        "command": "blocklypy-vscode.connectDeviceLastConnected",
+        "title": "BlocklyPy: Connect Last Connected Device",
         "icon": "asset/hub-small-fav.svg"
       },
       {
-        "command": "pybricks.disconnectDevice",
-        "title": "Pybricks: Disconnect Device",
+        "command": "blocklypy-vscode.disconnectDevice",
+        "title": "BlocklyPy: Disconnect Device",
         "icon": "$(debug-disconnect)"
       },
       {
-        "command": "pybricks.compileAndRun",
-        "title": "Pybricks: Compile and Run",
+        "command": "blocklypy-vscode.compileAndRun",
+        "title": "BlocklyPy: Compile and Run",
         "icon": "$(debug-start)"
       },
       {
-        "command": "pybricks.startUserProgram",
-        "title": "Pybricks: Start User Program",
+        "command": "blocklypy-vscode.startUserProgram",
+        "title": "BlocklyPy: Start User Program",
         "icon": "$(run)"
       },
       {
-        "command": "pybricks.stopUserProgram",
-        "title": "Pybricks: Stop User Program",
+        "command": "blocklypy-vscode.stopUserProgram",
+        "title": "BlocklyPy: Stop User Program",
         "icon": "$(debug-stop)"
       },
       {
-        "command": "pybricks.toggleAutoConnect",
-        "title": "Pybricks: Toggle Auto-Connect",
+        "command": "blocklypy-vscode.toggleAutoConnect",
+        "title": "BlocklyPy: Toggle Auto-Connect",
         "icon": "$(plug)",
-        "category": "Pybricks.Settings"
+        "category": "blocklypy-vscode.Settings"
       },
       {
-        "command": "pybricks.toggleAutoStart",
-        "title": "Pybricks: Toggle Auto-Start",
+        "command": "blocklypy-vscode.toggleAutoStart",
+        "title": "BlocklyPy: Toggle Auto-Start",
         "icon": "$(play)",
-        "category": "Pybricks.Settings"
+        "category": "blocklypy-vscode.Settings"
       },
       {
-        "command": "pybricks.statusPlaceholder",
-        "title": "Pybricks: Status",
+        "command": "blocklypy-vscode.statusPlaceholder",
+        "title": "BlocklyPy: Status",
         "icon": "$(debug-stackframe)",
-        "category": "Pybricks.Status"
+        "category": "blocklypy-vscode.Status"
       },
       {
-        "command": "pybricks.blocklypyViewer.displayNextView",
-        "title": "Pybricks: Next view",
+        "command": "blocklypy-vscode.blocklypyViewer.displayNextView",
+        "title": "BlocklyPy: Next view",
         "icon": "$(preview)"
       },
       {
-        "command": "pybricks.blocklypyViewer.displayPreviousView",
-        "title": "Pybricks: Previous view",
+        "command": "blocklypy-vscode.blocklypyViewer.displayPreviousView",
+        "title": "BlocklyPy: Previous view",
         "icon": "$(preview)"
       },
       {
-        "command": "pybricks.blocklypyViewer.displayPycode",
-        "title": "Pybricks: Show Python Code",
+        "command": "blocklypy-vscode.blocklypyViewer.displayPycode",
+        "title": "BlocklyPy: Show Python Code",
         "icon": "asset/display-py.svg"
       },
       {
-        "command": "pybricks.blocklypyViewer.displayPseudo",
-        "title": "Pybricks: Show Pseudo Code",
+        "command": "blocklypy-vscode.blocklypyViewer.displayPseudo",
+        "title": "BlocklyPy: Show Pseudo Code",
         "icon": "asset/display-pseudo.svg"
       },
       {
-        "command": "pybricks.blocklypyViewer.displayPreview",
-        "title": "Pybricks: Show Preview",
+        "command": "blocklypy-vscode.blocklypyViewer.displayPreview",
+        "title": "BlocklyPy: Show Preview",
         "icon": "asset/display-preview.svg"
       },
       {
-        "command": "pybricks.blocklypyViewer.displayGraph",
-        "title": "Pybricks: Show Dependency Graph",
+        "command": "blocklypy-vscode.blocklypyViewer.displayGraph",
+        "title": "BlocklyPy: Show Dependency Graph",
         "icon": "asset/display-graph.svg"
       },
       {
-        "command": "pybricks.showPythonPreview",
+        "command": "blocklypy-vscode.showPythonPreview",
         "title": "Show Python Dependency Preview",
         "icon": "asset/display-graph.svg"
       }
@@ -133,21 +134,21 @@
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "pybricksVSCodeCommander",
-          "title": "Pybricks Commander",
+          "id": "blocklyPyVSCodeCommander",
+          "title": "BlocklyPy Commander",
           "icon": "asset/icon.svg"
         }
       ]
     },
     "views": {
-      "pybricksVSCodeCommander": [
+      "blocklyPyVSCodeCommander": [
         {
-          "id": "pybricks-vscommander-commands",
+          "id": "blocklypy-vscode-commands",
           "name": "Commands",
           "icon": "asset/icon.svg"
         },
         {
-          "id": "pybricks-vscommander-settings",
+          "id": "blocklypy-vscode-settings",
           "name": "Settings",
           "icon": "asset/commands.svg"
         }
@@ -155,50 +156,50 @@
     },
     "keybindings": [
       {
-        "command": "pybricks.connectDeviceLastConnected",
+        "command": "blocklypy-vscode.connectDeviceLastConnected",
         "key": "f12",
-        "when": "editorLangId == python || view == pybricks"
+        "when": "editorLangId == python || view == blocklyPyVSCodeCommander"
       },
       {
-        "command": "pybricks.compileAndRun",
+        "command": "blocklypy-vscode.compileAndRun",
         "key": "f5",
-        "when": "editorLangId == python || activeCustomEditorId == pybricks.blocklypyViewer"
+        "when": "editorLangId == python || activeCustomEditorId == blocklypy-vscode.blocklypyViewer"
       },
       {
-        "command": "pybricks.stopUserProgram",
+        "command": "blocklypy-vscode.stopUserProgram",
         "key": "f6",
-        "when": "editorLangId == python || activeCustomEditorId == pybricks.blocklypyViewer"
+        "when": "editorLangId == python || activeCustomEditorId == blocklypy-vscode.blocklypyViewer"
       },
       {
-        "command": "pybricks.blocklypyViewer.displayNextView",
+        "command": "blocklypy-vscode.blocklypyViewer.displayNextView",
         "key": "f2",
-        "when": "activeCustomEditorId == pybricks.blocklypyViewer"
+        "when": "activeCustomEditorId == blocklypy-vscode.blocklypyViewer"
       },
       {
-        "command": "pybricks.blocklypyViewer.displayPreviousView",
+        "command": "blocklypy-vscode.blocklypyViewer.displayPreviousView",
         "key": "Shift+f2",
-        "when": "activeCustomEditorId == pybricks.blocklypyViewer"
+        "when": "activeCustomEditorId == blocklypy-vscode.blocklypyViewer"
       },
       {
-        "command": "pybricks.showPythonPreview",
+        "command": "blocklypy-vscode.showPythonPreview",
         "key": "f2",
         "when": "editorLangId == python"
       }
     ],
     "configuration": {
-      "title": "Pybricks",
+      "title": "BlocklyPy",
       "properties": {
-        "pybricks.lastConnectedDevice": {
+        "blocklypy-vscode.lastConnectedDevice": {
           "type": "string",
           "default": "",
           "description": "The name of the last connected device."
         },
-        "pybricks.autoConnect": {
+        "blocklypy-vscode.autoConnect": {
           "type": "boolean",
           "default": false,
           "description": "Automatically connect to the last connected device when opening a Python file."
         },
-        "pybricks.autoStart": {
+        "blocklypy-vscode.autoStart": {
           "type": "boolean",
           "default": false,
           "description": "Automatically start the user program after connecting to a device."
@@ -208,47 +209,47 @@
     "menus": {
       "editor/title/run": [
         {
-          "command": "pybricks.compileAndRun",
+          "command": "blocklypy-vscode.compileAndRun",
           "group": "navigation",
-          "when": "(editorLangId == python || activeCustomEditorId == pybricks.blocklypyViewer) && !pybricks.isProgramRunning && pybricks.isConnected"
+          "when": "(editorLangId == python || activeCustomEditorId == blocklypy-vscode.blocklypyViewer) && !blocklypy-vscode.isProgramRunning && blocklypy-vscode.isConnected"
         },
         {
-          "command": "pybricks.stopUserProgram",
+          "command": "blocklypy-vscode.stopUserProgram",
           "group": "navigation",
-          "when": "(editorLangId == python || activeCustomEditorId == pybricks.blocklypyViewer) && pybricks.isProgramRunning && pybricks.isConnected"
+          "when": "(editorLangId == python || activeCustomEditorId == blocklypy-vscode.blocklypyViewer) && blocklypy-vscode.isProgramRunning && blocklypy-vscode.isConnected"
         }
       ],
       "editor/title": [
         {
-          "command": "pybricks.blocklypyViewer.displayPreview",
-          "when": "activeCustomEditorId == pybricks.blocklypyViewer && pybricks.customViewType !== 'preview'",
+          "command": "blocklypy-vscode.blocklypyViewer.displayPreview",
+          "when": "activeCustomEditorId == blocklypy-vscode.blocklypyViewer && blocklypy-vscode.customViewType !== 'preview'",
           "group": "navigation@2"
         },
         {
-          "command": "pybricks.blocklypyViewer.displayPseudo",
-          "when": "activeCustomEditorId == pybricks.blocklypyViewer && pybricks.customViewType !== 'pseudo'",
+          "command": "blocklypy-vscode.blocklypyViewer.displayPseudo",
+          "when": "activeCustomEditorId == blocklypy-vscode.blocklypyViewer && blocklypy-vscode.customViewType !== 'pseudo'",
           "group": "navigation@3"
         },
         {
-          "command": "pybricks.blocklypyViewer.displayPycode",
-          "when": "activeCustomEditorId == pybricks.blocklypyViewer && pybricks.customViewType !== 'pycode'",
+          "command": "blocklypy-vscode.blocklypyViewer.displayPycode",
+          "when": "activeCustomEditorId == blocklypy-vscode.blocklypyViewer && blocklypy-vscode.customViewType !== 'pycode'",
           "group": "navigation@5"
         },
         {
-          "command": "pybricks.blocklypyViewer.displayGraph",
-          "when": "activeCustomEditorId == pybricks.blocklypyViewer && pybricks.customViewType !== 'graph'",
+          "command": "blocklypy-vscode.blocklypyViewer.displayGraph",
+          "when": "activeCustomEditorId == blocklypy-vscode.blocklypyViewer && blocklypy-vscode.customViewType !== 'graph'",
           "group": "navigation@6"
         },
         {
-          "command": "pybricks.blocklypyViewer.displayNextView",
-          "when": "activeCustomEditorId == pybricks.blocklypyViewer"
+          "command": "blocklypy-vscode.blocklypyViewer.displayNextView",
+          "when": "activeCustomEditorId == blocklypy-vscode.blocklypyViewer"
         },
         {
-          "command": "pybricks.blocklypyViewer.displayPreviousView",
-          "when": "activeCustomEditorId == pybricks.blocklypyViewer"
+          "command": "blocklypy-vscode.blocklypyViewer.displayPreviousView",
+          "when": "activeCustomEditorId == blocklypy-vscode.blocklypyViewer"
         },
         {
-          "command": "pybricks.showPythonPreview",
+          "command": "blocklypy-vscode.showPythonPreview",
           "when": "editorLangId == python",
           "group": "navigation"
         }
@@ -256,24 +257,24 @@
     },
     "contexts": [
       {
-        "key": "pybricks.isProgramRunning",
+        "key": "blocklypy-vscode.isProgramRunning",
         "type": "boolean",
         "default": false
       },
       {
-        "key": "pybricks.isConnected",
+        "key": "blocklypy-vscode.isConnected",
         "type": "boolean",
         "default": false
       },
       {
-        "key": "pybricks.customViewType",
+        "key": "blocklypy-vscode.customViewType",
         "type": "string",
         "default": ""
       }
     ],
     "customEditors": [
       {
-        "viewType": "pybricks.blocklypyViewer",
+        "viewType": "blocklypy-vscode.blocklypyViewer",
         "displayName": "BlocklyPy Viewer",
         "icon": "asset/file-lego.svg",
         "selector": [
@@ -283,8 +284,8 @@
         ]
       },
       {
-        "viewType": "pybricks.pythonPreview",
-        "displayName": "Pybricks Python Preview",
+        "viewType": "blocklypy-vscode.pythonPreview",
+        "displayName": "Python Dependency Graph Preview",
         "selector": [
           {
             "filenamePattern": "*.py"

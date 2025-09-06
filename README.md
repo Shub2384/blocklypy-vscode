@@ -1,4 +1,4 @@
-# Pybricks Hub Commander for VSCode
+# BlocklyPy Commander for VSCode
 
 [![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)](CHANGELOG.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)

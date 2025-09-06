@@ -1,41 +1,50 @@
 import * as vscode from 'vscode';
-import config from '../utils/config';
-import { PybricksCommand } from './commands';
-import { BaseTreeItem, BaseTreeDataProvider } from './tree-base';
+import { EXTENSION_KEY } from '../const';
+import Config from '../utils/config';
+import { Commands } from './commands';
+import { BaseTreeDataProvider, BaseTreeItem } from './tree-base';
 
 class SettingsTreeDataProvider extends BaseTreeDataProvider<BaseTreeItem> {
     getChildren(element?: BaseTreeItem): vscode.ProviderResult<BaseTreeItem[]> {
         const elems = [
             {
-                command: PybricksCommand.ToggleAutoConnect,
-                check: config.enableAutoConnect,
+                command: Commands.ToggleAutoConnect,
+                check: Config.enableAutoConnect,
             },
-            { command: PybricksCommand.ToggleAutoStart, check: config.enableAutostart },
+            {
+                command: Commands.ToggleAutoStart,
+                check: Config.enableAutostart,
+            },
         ];
         return this.expandChildren(elems);
     }
 }
 
-const settingsTreeData = new SettingsTreeDataProvider();
+const SettingsTree = new SettingsTreeDataProvider();
+function registerSettingsTree(context: vscode.ExtensionContext) {
+    SettingsTree.init(context);
 
-const settingsTreeView = vscode.window.createTreeView('pybricks-vscommander-settings', {
-    treeDataProvider: settingsTreeData,
-});
+    const settingsTreeView = vscode.window.createTreeView(EXTENSION_KEY + '-settings', {
+        treeDataProvider: SettingsTree,
+    });
 
-settingsTreeView.onDidChangeCheckboxState(
-    (e: vscode.TreeCheckboxChangeEvent<BaseTreeItem>) => {
-        e.items.forEach(([elem, state1]) => {
-            const state = state1 === vscode.TreeItemCheckboxState.Checked;
-            switch (elem.command?.command) {
-                case PybricksCommand.ToggleAutoConnect:
-                    config.setEnableAutoConnect(state).then(settingsTreeData.refresh);
-                    break;
-                case PybricksCommand.ToggleAutoStart:
-                    config.setEnableAutostart(state).then(settingsTreeData.refresh);
-                    break;
-            }
-        });
-    },
-);
+    settingsTreeView.onDidChangeCheckboxState(
+        (e: vscode.TreeCheckboxChangeEvent<BaseTreeItem>) => {
+            e.items.forEach(([elem, state1]) => {
+                const state = state1 === vscode.TreeItemCheckboxState.Checked;
+                switch (elem.command?.command) {
+                    case Commands.ToggleAutoConnect:
+                        Config.setEnableAutoConnect(state).then(SettingsTree.refresh);
+                        break;
+                    case Commands.ToggleAutoStart:
+                        Config.setEnableAutostart(state).then(SettingsTree.refresh);
+                        break;
+                }
+            });
+        },
+    );
 
-export { settingsTreeView, settingsTreeData };
+    return settingsTreeView;
+}
+
+export { registerSettingsTree, SettingsTree as settingsTreeData };
