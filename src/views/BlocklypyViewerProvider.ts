@@ -5,14 +5,13 @@ import {
 } from 'blocklypy';
 import * as vscode from 'vscode';
 import { EXTENSION_KEY } from '../const';
-import { CustomEditorProviderBase } from './CustomEditorProviderBase';
-import { logDebug } from '../extension/debug-channel';
 import {
     setContextContentAvailability,
     setContextCustomViewType,
 } from '../extension/context-utils';
-import { get } from 'http';
+import { logDebug } from '../extension/debug-channel';
 import GraphvizLoader from '../utils/graphviz-helper';
+import { CustomEditorProviderBase } from './CustomEditorProviderBase';
 
 interface BlocklypyViewerContent {
     filename?: string;
@@ -102,27 +101,31 @@ export class BlocklypyViewerProvider
         _webviewPanel: vscode.WebviewPanel,
         forced = false,
     ) {
-        const state = this.documents.get(document.uri);
-        if (!state) return;
+        try {
+            const state = this.documents.get(document.uri);
+            if (!state) return;
 
-        if (this.activeUri === document.uri || forced) {
-            state.uriLastModified = (
-                await vscode.workspace.fs.stat(document.uri)
-            ).mtime;
+            if (this.activeUri === document.uri || forced) {
+                state.uriLastModified = (
+                    await vscode.workspace.fs.stat(document.uri)
+                ).mtime;
 
-            state.content = await this.convertFileToPython(document.uri);
-            state.contentAvailability = {
-                preview: !!state.content.preview,
-                pseudo: !!state.content.pseudo,
-                pycode: !!state.content.pycode,
-                graph: !!state.content.graph,
-            } satisfies BlocklypyViewerContentAvailabilityMap;
-            setContextContentAvailability(state.contentAvailability);
+                state.content = await this.convertFileToPython(document.uri);
+                state.contentAvailability = {
+                    preview: !!state.content.preview,
+                    pseudo: !!state.content.pseudo,
+                    pycode: !!state.content.pycode,
+                    graph: !!state.content.graph,
+                } satisfies BlocklypyViewerContentAvailabilityMap;
+                setContextContentAvailability(state.contentAvailability);
 
-            this.showView(this.guardViewType(state, state.viewtype));
-            state.dirty = false;
-        } else {
-            state.dirty = true; // Mark as dirty, don't refresh yet
+                this.showView(this.guardViewType(state, state.viewtype));
+                state.dirty = false;
+            } else {
+                state.dirty = true; // Mark as dirty, don't refresh yet
+            }
+        } catch (error) {
+            console.error('Error in refreshWebview:', error);
         }
     }
 
@@ -284,7 +287,6 @@ export class BlocklypyViewerProvider
             <html lang="en">
             <head>
             <meta charset="UTF-8">
-            <title>${state.content?.filename}</title>
             <link rel="preload" href="${imageUri}" as="image">
             <style>
             html, body, #container, #editor {

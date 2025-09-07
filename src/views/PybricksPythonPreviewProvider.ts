@@ -1,9 +1,9 @@
 import { convertProjectToPython } from 'blocklypy';
 import * as vscode from 'vscode';
 import { EXTENSION_KEY } from '../const';
+import GraphvizLoader from '../utils/graphviz-helper';
 import { collectPythonModules } from './collectPythonModules';
 import { CustomEditorProviderBase } from './CustomEditorProviderBase';
-import GraphvizLoader from '../utils/graphviz-helper';
 
 interface DocumentState {
     document: vscode.CustomDocument;
@@ -69,35 +69,39 @@ export class PybricksPythonPreviewProvider
         webviewPanel: vscode.WebviewPanel,
         _forced = false,
     ) {
-        const state = this.documents.get(document.uri);
-        if (!state) return;
+        try {
+            const state = this.documents.get(document.uri);
+            if (!state) return;
 
-        // Collect all modules and generate the dependency graph
-        const modules = await collectPythonModules(
-            PybricksPythonPreviewProvider.decodeUri(document.uri),
-        );
-        const encoder = new TextEncoder();
-        const files = modules.map((m) => ({
-            name: m.path.split('/').pop()!, // Use only the filename
-            buffer: encoder.encode(m.content).buffer,
-        }));
-        const result = await convertProjectToPython(files, {});
-        const dependencygraph = result.dependencygraph;
-        let content = '';
-        if (dependencygraph) {
-            const graphviz = await GraphvizLoader();
-            content = await graphviz.dot(dependencygraph);
+            // Collect all modules and generate the dependency graph
+            const modules = await collectPythonModules(
+                PybricksPythonPreviewProvider.decodeUri(document.uri),
+            );
+            const encoder = new TextEncoder();
+            const files = modules.map((m) => ({
+                name: m.path.split('/').pop()!, // Use only the filename
+                buffer: encoder.encode(m.content).buffer,
+            }));
+            const result = await convertProjectToPython(files, {});
+            const dependencygraph = result.dependencygraph;
+            let content = '';
+            if (dependencygraph) {
+                const graphviz = await GraphvizLoader();
+                content = await graphviz.dot(dependencygraph);
+            }
+
+            this.setContent(content, webviewPanel);
+
+            // Set up file change monitoring (re-do every time to catch new imports)
+            await this.monitorFileChanges(
+                document,
+                webviewPanel,
+                async () => await this.refreshWebview(document, webviewPanel),
+                new Set<string>(modules.map((m) => m.path)),
+            );
+        } catch (error) {
+            console.error('Error in refreshWebview:', error);
         }
-
-        this.setContent(content, webviewPanel);
-
-        // Set up file change monitoring (re-do every time to catch new imports)
-        await this.monitorFileChanges(
-            document,
-            webviewPanel,
-            async () => await this.refreshWebview(document, webviewPanel),
-            new Set<string>(modules.map((m) => m.path)),
-        );
     }
 
     protected async activateWithoutRefresh(
@@ -126,6 +130,7 @@ export class PybricksPythonPreviewProvider
             <!DOCTYPE html>
             <html>
             <head>
+            <meta charset="UTF-8">
             <style>
             html, body, #graph-container {
                 height: 100%;

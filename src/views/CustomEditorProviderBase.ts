@@ -13,7 +13,7 @@ export abstract class CustomEditorProviderBase<TState extends DocumentState>
     implements vscode.CustomReadonlyEditorProvider
 {
     private static providerByType = new Map<
-        Function, // typeof
+        Function,
         CustomEditorProviderBase<DocumentState>
     >();
     protected documents = new Map<vscode.Uri | undefined, TState>();
@@ -22,7 +22,9 @@ export abstract class CustomEditorProviderBase<TState extends DocumentState>
     constructor(protected readonly context: vscode.ExtensionContext) {
         super();
 
-        const providerType = this.constructor as Function;
+        const providerType = this.constructor as new (
+            context: vscode.ExtensionContext,
+        ) => CustomEditorProviderBase<DocumentState>;
         CustomEditorProviderBase.providerByType.set(providerType, this);
     }
 
@@ -100,13 +102,6 @@ export abstract class CustomEditorProviderBase<TState extends DocumentState>
             if (this.activeUri === document.uri) {
                 this.activeUri = undefined;
             }
-
-            // // Serialize state and store it
-            // const state = this.serializeState();
-            // this.context.workspaceState.update(
-            //     `blocklypyViewerState:${this.currentDocument?.uri.toString()}`,
-            //     state,
-            // );
         });
 
         webviewPanel.webview.options = { enableScripts: true };
