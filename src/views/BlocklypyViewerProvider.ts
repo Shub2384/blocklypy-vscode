@@ -5,7 +5,7 @@ import {
 } from 'blocklypy';
 import * as vscode from 'vscode';
 import { EXTENSION_KEY } from '../const';
-import { CustomEditorFileWatcherBase } from './CustomEditorFileWatcherBase';
+import { CustomEditorProviderBase } from './CustomEditorProviderBase';
 import { logDebug } from '../extension/debug-channel';
 import {
     setContextContentAvailability,
@@ -46,54 +46,22 @@ interface DocumentState {
 }
 
 export class BlocklypyViewerProvider
-    extends CustomEditorFileWatcherBase
+    extends CustomEditorProviderBase<DocumentState>
     implements vscode.CustomReadonlyEditorProvider
 {
-    private static providerInstance: BlocklypyViewerProvider | undefined = undefined;
-    private documents = new Map<vscode.Uri | undefined, DocumentState>();
-    private activeUri?: vscode.Uri;
+    public static get Get(): BlocklypyViewerProvider | undefined {
+        const provider = BlocklypyViewerProvider.getProviderByType(
+            BlocklypyViewerProvider.prototype.constructor as Function,
+        );
+        return provider as BlocklypyViewerProvider | undefined;
+    }
 
-    public static get viewType() {
+    public static get TypeKey() {
         return EXTENSION_KEY + '.blocklypyViewer';
     }
 
-    public static register(context: vscode.ExtensionContext): vscode.Disposable {
-        const provider = new BlocklypyViewerProvider(context);
-        BlocklypyViewerProvider.providerInstance = provider;
-        return vscode.window.registerCustomEditorProvider(
-            BlocklypyViewerProvider.viewType,
-            provider,
-            {
-                webviewOptions: { retainContextWhenHidden: true },
-                supportsMultipleEditorsPerDocument: false,
-            },
-        );
-    }
-
-    public static get Provider(): BlocklypyViewerProvider | undefined {
-        return BlocklypyViewerProvider.providerInstance;
-    }
-
-    constructor(private readonly context: vscode.ExtensionContext) {
-        super();
-    }
-
-    async openCustomDocument(
-        uri: vscode.Uri,
-        openContext: { backupId?: string },
-        _token: vscode.CancellationToken,
-    ): Promise<vscode.CustomDocument> {
-        const document = {
-            uri,
-            dispose: () => {
-                this.documents.delete(uri);
-                if (this.activeUri === uri) {
-                    this.activeUri = undefined;
-                }
-            },
-        };
-
-        const state = {
+    protected createDocumentState(document: vscode.CustomDocument): DocumentState {
+        return {
             document,
             viewtype: ViewType.Loading,
             content: undefined,
@@ -101,12 +69,7 @@ export class BlocklypyViewerProvider
             dirty: false,
             uriLastModified: 0,
             panel: undefined,
-        } satisfies DocumentState;
-
-        this.documents.set(uri, state);
-        this.activeUri = uri;
-
-        return document;
+        };
     }
 
     async resolveCustomEditor(
@@ -114,94 +77,31 @@ export class BlocklypyViewerProvider
         webviewPanel: vscode.WebviewPanel,
         _token: vscode.CancellationToken,
     ): Promise<void> {
-        // find the current state
-        this.activeUri = document.uri;
+        await super.resolveCustomEditor(document, webviewPanel, _token);
 
+        // refresh of data is done in refreshWebview super.resolveCustomEditor
         const state = this.documents.get(document.uri);
-        if (!state) throw new Error('No document state found');
-        state.panel = webviewPanel;
-
-        webviewPanel.onDidChangeViewState(
-            async (e: vscode.WebviewPanelOnDidChangeViewStateEvent) => {
-                // find the matching uri and state
-                const state = this.documents.get(document.uri);
-                if (webviewPanel.active) {
-                    this.activeUri = document.uri;
-                    if (state?.dirty) {
-                        await this.refreshWebview(document, true);
-                        // setContextContentAvailability is called in refreshWebview
-                    } else {
-                        setContextContentAvailability(state?.contentAvailability);
-                    }
-                } else if (this.activeUri === document.uri) {
-                    this.activeUri = undefined;
-                }
-            },
+        this.showView(this.guardViewType(state, state?.viewtype));
+        logDebug(
+            state?.content
+                ? `Successfully converted ${document.uri.path} to Python (${state.content.pycode?.length} bytes).`
+                : `Failed to convert ${document.uri.path} to Python.`,
         );
-
-        webviewPanel.onDidDispose(() => {
-            this.documents.delete(document.uri);
-            if (this.activeUri === document.uri) {
-                this.activeUri = undefined;
-            }
-
-            // // Serialize state and store it
-            // const state = this.serializeState();
-            // this.context.workspaceState.update(
-            //     `blocklypyViewerState:${this.currentDocument?.uri.toString()}`,
-            //     state,
-            // );
-        });
-
-        webviewPanel.webview.options = {
-            enableScripts: true,
-        };
-
-        webviewPanel.webview.html = this.getHtmlForWebview(webviewPanel);
-        // this.showView(undefined);
-
-        // const fileStat = await vscode.workspace.fs.stat(document.uri);
-        // this.uriLastModified = fileStat.mtime;
-
-        // Try to restore state from workspace storage
-        // const storedState = (await this.context.workspaceState.get(
-        //     `blocklypyViewerState:${document.uri.toString()}`,
-        // )) as BlocklypyViewerState | undefined;
-        // if (storedState && storedState.lastModified === this.uriLastModified) {
-        //     this.restoreState(storedState);
-        //     webviewPanel.webview.html = this.getHtmlForWebview();
-        //     setTimeout(() => {
-        //         this.showView(this.availableView(this.currentView));
-        //     }, 100);
-        //     logDebug(`Restored state for ${document.uri.path}.`);
-        //     return;
-        // } else
-        {
-            setTimeout(async () => {
-                await this.refreshWebview(document, true);
-
-                setTimeout(() => {
-                    const state = this.documents.get(document.uri);
-                    this.showView(this.guardViewType(state, state?.viewtype));
-                    logDebug(
-                        state?.content
-                            ? `Successfully converted ${document.uri.path} to Python (${state.content.pycode?.length} bytes).`
-                            : `Failed to convert ${document.uri.path} to Python.`,
-                    );
-                }, 100);
-            }, 0);
-        }
 
         // Set up file change monitoring
         await this.monitorFileChanges(
             document,
             webviewPanel,
-            async () => await this.refreshWebview(document),
+            async () => await this.refreshWebview(document, webviewPanel),
             undefined, // or pass a Set<string> of watched URIs if needed
         );
     }
 
-    public async refreshWebview(document: vscode.CustomDocument, forced = false) {
+    protected async refreshWebview(
+        document: vscode.CustomDocument,
+        _webviewPanel: vscode.WebviewPanel,
+        forced = false,
+    ) {
         const state = this.documents.get(document.uri);
         if (!state) return;
 
@@ -224,6 +124,17 @@ export class BlocklypyViewerProvider
         } else {
             state.dirty = true; // Mark as dirty, don't refresh yet
         }
+    }
+
+    protected activateWithoutRefresh(
+        _document: vscode.CustomDocument,
+        _webviewPanel: vscode.WebviewPanel,
+    ): Promise<void> {
+        const state = this.documents.get(this.activeUri);
+        if (!state) return Promise.resolve();
+
+        setContextContentAvailability(state.contentAvailability);
+        return Promise.resolve();
     }
 
     private async convertFileToPython(uri: vscode.Uri) {
@@ -337,7 +248,7 @@ export class BlocklypyViewerProvider
         });
     }
 
-    private getHtmlForWebview(webviewPanel: vscode.WebviewPanel): string {
+    protected getHtmlForWebview(webviewPanel: vscode.WebviewPanel): string {
         const state = this.documents.get(this.activeUri);
         if (!state) throw new Error('No active document state');
 
@@ -440,25 +351,4 @@ export class BlocklypyViewerProvider
         const state = this.documents.get(this.activeUri);
         return state?.content?.filename;
     }
-
-    // public serializeState(): any {
-    //     if (!this.currentDocument?.uri) {
-    //         return undefined;
-    //     }
-
-    //     return {
-    //         uri: this.currentDocument?.uri.toString(),
-    //         currentView: this.currentView,
-    //         content: this.content,
-    //         lastModified: this.uriLastModified,
-    //     } satisfies BlocklypyViewerState;
-    // }
-
-    // public restoreState(state: BlocklypyViewerState) {
-    //     if (state) {
-    //         this.currentView = state.currentView;
-    //         this.content = state.content;
-    //         this.showView(this.currentView);
-    //     }
-    // }
 }

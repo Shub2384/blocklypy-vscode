@@ -17,8 +17,16 @@ import { BlocklypyViewerProvider, ViewType } from './views/BlocklypyViewerProvid
 import { PybricksPythonPreviewProvider } from './views/PybricksPythonPreviewProvider';
 
 export function activate(context: vscode.ExtensionContext) {
-    BlocklypyViewerProvider.register(context);
-    PybricksPythonPreviewProvider.register(context);
+    BlocklypyViewerProvider.register(
+        context,
+        BlocklypyViewerProvider,
+        BlocklypyViewerProvider.TypeKey,
+    );
+    PybricksPythonPreviewProvider.register(
+        context,
+        PybricksPythonPreviewProvider,
+        PybricksPythonPreviewProvider.TypeKey,
+    );
 
     registerCommandsTree(context);
     registerSettingsTree(context);
@@ -50,30 +58,30 @@ export function activate(context: vscode.ExtensionContext) {
         [
             Commands.DisplayNextView,
             async () => {
-                BlocklypyViewerProvider.Provider?.rotateViews(true);
+                BlocklypyViewerProvider.Get?.rotateViews(true);
             },
         ],
         [
             Commands.DisplayPreviousView,
             async () => {
-                BlocklypyViewerProvider.Provider?.rotateViews(false);
+                BlocklypyViewerProvider.Get?.rotateViews(false);
             },
         ],
         [
             Commands.DisplayPreview,
-            async () => BlocklypyViewerProvider.Provider?.showView(ViewType.Preview),
+            async () => BlocklypyViewerProvider.Get?.showView(ViewType.Preview),
         ],
         [
             Commands.DisplayPycode,
-            async () => BlocklypyViewerProvider.Provider?.showView(ViewType.Pycode),
+            async () => BlocklypyViewerProvider.Get?.showView(ViewType.Pycode),
         ],
         [
             Commands.DisplayPseudo,
-            async () => BlocklypyViewerProvider.Provider?.showView(ViewType.Pseudo),
+            async () => BlocklypyViewerProvider.Get?.showView(ViewType.Pseudo),
         ],
         [
             Commands.DisplayGraph,
-            async () => BlocklypyViewerProvider.Provider?.showView(ViewType.Graph),
+            async () => BlocklypyViewerProvider.Get?.showView(ViewType.Graph),
         ],
         [
             Commands.ShowPythonPreview,
@@ -83,8 +91,11 @@ export function activate(context: vscode.ExtensionContext) {
                     await vscode.commands.executeCommand(
                         'vscode.openWith',
                         PybricksPythonPreviewProvider.encodeUri(editor.document.uri),
-                        PybricksPythonPreviewProvider.viewType,
-                        vscode.ViewColumn.Beside,
+                        PybricksPythonPreviewProvider.TypeKey,
+                        {
+                            viewColumn: vscode.ViewColumn.Beside,
+                            preview: true,
+                        },
                     );
                 } else {
                     vscode.window.showInformationMessage(

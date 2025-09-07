@@ -22,7 +22,7 @@ function getPythonCode(): { content: string; folder?: string } | undefined {
     }
 
     // TODO: if not in editor it will have a problem!
-    const customViewer = BlocklypyViewerProvider.Provider;
+    const customViewer = BlocklypyViewerProvider.Get;
     if (customViewer && customViewer.pycode) {
         const content = customViewer.pycode;
         return { content };

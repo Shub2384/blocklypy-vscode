@@ -2,7 +2,7 @@ import { convertProjectToPython } from 'blocklypy';
 import * as vscode from 'vscode';
 import { EXTENSION_KEY } from '../const';
 import { collectPythonModules } from './collectPythonModules';
-import { CustomEditorFileWatcherBase } from './CustomEditorFileWatcherBase';
+import { CustomEditorProviderBase } from './CustomEditorProviderBase';
 import GraphvizLoader from '../utils/graphviz-helper';
 
 interface DocumentState {
@@ -14,37 +14,18 @@ interface DocumentState {
 }
 
 export class PybricksPythonPreviewProvider
-    extends CustomEditorFileWatcherBase
+    extends CustomEditorProviderBase<DocumentState>
     implements vscode.CustomReadonlyEditorProvider
 {
-    private static providerInstance: PybricksPythonPreviewProvider | undefined =
-        undefined;
-    private documents = new Map<vscode.Uri | undefined, DocumentState>();
-    private activeUri?: vscode.Uri;
-
-    public static get viewType() {
-        return EXTENSION_KEY + '.pythonPreview';
-    }
-
-    public static register(context: vscode.ExtensionContext): vscode.Disposable {
-        const provider = new PybricksPythonPreviewProvider(context);
-        PybricksPythonPreviewProvider.providerInstance = provider;
-        return vscode.window.registerCustomEditorProvider(
-            PybricksPythonPreviewProvider.viewType,
-            provider,
-            {
-                webviewOptions: { retainContextWhenHidden: true },
-                supportsMultipleEditorsPerDocument: false,
-            },
-        );
-    }
-
     public static get Get(): PybricksPythonPreviewProvider | undefined {
-        return PybricksPythonPreviewProvider.providerInstance;
+        const provider = PybricksPythonPreviewProvider.getProviderByType(
+            PybricksPythonPreviewProvider.prototype.constructor as Function,
+        );
+        return provider as PybricksPythonPreviewProvider | undefined;
     }
 
-    constructor(private readonly context: vscode.ExtensionContext) {
-        super();
+    public static get TypeKey() {
+        return EXTENSION_KEY + '.pythonPreview';
     }
 
     /**
@@ -73,79 +54,17 @@ export class PybricksPythonPreviewProvider
         });
     }
 
-    async openCustomDocument(
-        uri: vscode.Uri,
-        openContext: { backupId?: string },
-        _token: vscode.CancellationToken,
-    ): Promise<vscode.CustomDocument> {
-        const document = {
-            uri,
-            dispose: () => {
-                this.documents.delete(uri);
-                if (this.activeUri === uri) {
-                    this.activeUri = undefined;
-                }
-            },
-        };
-
-        const state: DocumentState = {
+    protected createDocumentState(document: vscode.CustomDocument): DocumentState {
+        return {
             document,
             content: undefined,
             dirty: false,
             uriLastModified: 0,
             panel: undefined,
         };
-        this.documents.set(uri, state);
-        this.activeUri = uri;
-
-        return document;
     }
 
-    async resolveCustomEditor(
-        document: vscode.CustomDocument,
-        webviewPanel: vscode.WebviewPanel,
-        _token: vscode.CancellationToken,
-    ): Promise<void> {
-        this.activeUri = document.uri;
-
-        const state = this.documents.get(document.uri);
-        if (!state) throw new Error('Document state not found');
-        state.panel = webviewPanel;
-
-        webviewPanel.onDidChangeViewState(
-            (e: vscode.WebviewPanelOnDidChangeViewStateEvent) => {
-                // find the matching uri and state
-                const state = this.documents.get(document.uri);
-                if (webviewPanel.active) {
-                    this.activeUri = document.uri;
-                    if (state?.dirty) {
-                        this.refreshWebview(document, webviewPanel, true);
-                    }
-                } else if (this.activeUri === document.uri) {
-                    this.activeUri = undefined;
-                }
-            },
-        );
-
-        webviewPanel.onDidDispose(() => {
-            this.documents.delete(document.uri);
-            if (this.activeUri === document.uri) {
-                this.activeUri = undefined;
-            }
-        });
-
-        webviewPanel.webview.options = {
-            enableScripts: true,
-        };
-
-        webviewPanel.webview.html = this.getHtmlForWebview(webviewPanel);
-
-        // setTimeout(() => {
-        this.refreshWebview(document, webviewPanel);
-        // });
-    }
-
-    public async refreshWebview(
+    protected async refreshWebview(
         document: vscode.CustomDocument,
         webviewPanel: vscode.WebviewPanel,
         _forced = false,
@@ -181,6 +100,13 @@ export class PybricksPythonPreviewProvider
         );
     }
 
+    protected async activateWithoutRefresh(
+        _document: vscode.CustomDocument,
+        _webviewPanel: vscode.WebviewPanel,
+    ) {
+        // do nothing
+    }
+
     private setContent(content: string, webviewPanel: vscode.WebviewPanel) {
         webviewPanel.webview.postMessage({
             command: 'setContent',
@@ -188,7 +114,7 @@ export class PybricksPythonPreviewProvider
         });
     }
 
-    private getHtmlForWebview(webviewPanel: vscode.WebviewPanel): string {
+    protected getHtmlForWebview(webviewPanel: vscode.WebviewPanel): string {
         const scriptUri = webviewPanel.webview.asWebviewUri(
             vscode.Uri.joinPath(
                 this.context.extensionUri,
@@ -220,9 +146,5 @@ export class PybricksPythonPreviewProvider
             </body>
             </html>
         `;
-    }
-
-    public get ActiveUri(): vscode.Uri | undefined {
-        return this?.activeUri;
     }
 }
