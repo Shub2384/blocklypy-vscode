@@ -1,6 +1,6 @@
 # BlocklyPy Commander for VSCode
 
-[![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/visual-studio-marketplace/v/afarago.blocklypy-vscode?label=VS%20Marketplace)](https://marketplace.visualstudio.com/items?itemName=afarago.blocklypy-vscode)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 A Visual Studio Code extension to interact with LEGO® Hubs running the Pybricks firmware.
