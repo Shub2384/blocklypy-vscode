@@ -57,8 +57,10 @@ window.addEventListener('message', (event) => {
     } else if (command === 'setErrorLine') {
         const { line, message } = event.data || {};
         if (monacoInstance && typeof line === 'number' && line >= 0) {
-            const selection = new monaco.Selection(line, 0, line, -1);
-            monacoInstance.revealLineInCenter(line + 1); // Monaco is 1-based
+            const line1 = line + 1; // Convert to 0-based
+            const lineLen = monacoInstance.getModel()?.getLineMaxColumn(line1) ?? 1;
+            const selection = new monaco.Selection(line1, 0, line1, lineLen);
+            monacoInstance.revealLineInCenter(line1); // Monaco is 1-based
             monacoInstance.setSelection(selection);
 
             // Create or update diagnostics decorations
