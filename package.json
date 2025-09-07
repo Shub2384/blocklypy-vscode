@@ -316,6 +316,12 @@
           "dark": "asset/file-lego.svg"
         }
       }
+    ],
+    "snippets": [
+      {
+        "language": "python",
+        "path": "./snippets/spikehub1.json"
+      }
     ]
   },
   "scripts": {

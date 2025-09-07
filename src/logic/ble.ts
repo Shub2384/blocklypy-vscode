@@ -19,6 +19,7 @@ import {
 } from '../pybricks/protocol';
 import { retryWithTimeout } from '../utils/async';
 import Config from '../utils/config';
+import { ToCapialized } from '../extension/utils';
 
 export enum BLEStatus {
     Disconnected = 'disconnected',
@@ -317,9 +318,14 @@ class BLE {
         this.status = newStatus;
 
         // update status
-        const isConnected = newStatus === BLEStatus.Connected;
-        setStatusBarItem(isConnected, Device.Name, `Connected to ${Device.Name} hub.`);
-        setContextIsConnected(isConnected);
+        const isDisconnected = newStatus === BLEStatus.Disconnected;
+        setStatusBarItem(
+            !isDisconnected,
+            (Device.Name ? Device.Name + ' ' : '') + ToCapialized(newStatus),
+            `Connected to ${Device.Name} hub.`,
+        );
+        // vscode.window.setStatusBarMessage(`Connected to ${Device.Name} hub.`, 3000);
+        setContextIsConnected(isDisconnected);
 
         if (newStatus === BLEStatus.Error) {
             // showError('An error occurred with the Bluetooth connection.');
@@ -333,7 +339,7 @@ class BLE {
     }
 
     public get Name() {
-        return this.Current?.advertisement.localName ?? 'No Device Connected';
+        return this.Current?.advertisement.localName;
     }
 
     public get IsProgramRunning() {
