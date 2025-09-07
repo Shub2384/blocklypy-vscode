@@ -7,7 +7,6 @@ import {
 import { disconnectDeviceAsync } from './commands/disconnect-device';
 import { startUserProgramAsync } from './commands/start-user-program';
 import { stopUserProgramAsync } from './commands/stop-user-program';
-import { MAGIC_AUTOSTART } from './const';
 import { Commands } from './extension/commands';
 import { registerCommandsTree } from './extension/tree-commands';
 import { registerSettingsTree, settingsTreeData } from './extension/tree-settings';
@@ -123,15 +122,6 @@ export function activate(context: vscode.ExtensionContext) {
         ),
     );
 
-    // autoconnect to last connected device
-    if (Config.enableAutoConnect) {
-        if (Config.lastConnectedDevice) {
-            vscode.commands.executeCommand(Commands.ConnectDeviceLastConnected);
-        } else {
-            vscode.commands.executeCommand(Commands.ConnectDevice);
-        }
-    }
-
     context.subscriptions.push(
         vscode.workspace.onDidSaveTextDocument(
             onActiveEditorSaveCallback,
@@ -140,25 +130,14 @@ export function activate(context: vscode.ExtensionContext) {
         ),
     );
 
-    // context.subscriptions.push(
-    //     vscode.window.registerWebviewPanelSerializer(EXTENSION_KEY'.blocklypyViewer', {
-    //         async deserializeWebviewPanel(webviewPanel, state) {
-    //             const uri = vscode.Uri.parse((state as any).uri);
-    //             await blocklypyViewerProvider.activeViewer?.resolveCustomEditor(
-    //                 { uri } as vscode.CustomDocument,
-    //                 webviewPanel,
-    //                 {} as vscode.CancellationToken,
-    //             );
-    //             // Retrieve stored state
-    //             const storedState = await context.workspaceState.get(
-    //                 `blocklypyViewerState:${uri.toString()}`,
-    //             );
-    //             blocklypyViewerProvider.activeViewer?.restoreState(
-    //                 (storedState ?? state) as any,
-    //             );
-    //         },
-    //     }),
-    // );
+    // autoconnect to last connected device
+    if (Config.enableAutoConnect) {
+        if (Config.lastConnectedDevice) {
+            vscode.commands.executeCommand(Commands.ConnectDeviceLastConnected);
+        } else {
+            vscode.commands.executeCommand(Commands.ConnectDevice);
+        }
+    }
 }
 
 export async function deactivate() {
@@ -173,7 +152,9 @@ function onActiveEditorSaveCallback(document: vscode.TextDocument) {
         if (Config.enableAutostart && document.languageId === 'python') {
             // check if file is python and has magic header
             const line1 = document.lineAt(0).text;
-            if (new RegExp(`\\b${MAGIC_AUTOSTART}\\b`).test(line1)) {
+            const regex = new RegExp(/^#\s*LEGO\b.*\bautostart\b/i);
+            console.log('Checking for autostart header:', line1, regex);
+            if (regex.test(line1)) {
                 console.log('AutoStart detected, compiling and running...');
                 vscode.commands.executeCommand(Commands.CompileAndRun);
             }
