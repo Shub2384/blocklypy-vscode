@@ -44,7 +44,7 @@ const extensionConfig = {
             },
         ],
     },
-    devtool: 'nosources-source-map',
+    // devtool: 'nosources-source-map',
     infrastructureLogging: {
         level: 'log',
     },
@@ -65,6 +65,11 @@ const extensionConfig = {
             ],
         }),
     ],
+    optimization: {
+        minimize: true,
+        runtimeChunk: false,
+        splitChunks: false,
+    },
 };
 
 const webviewConfig = {
@@ -111,12 +116,15 @@ const webviewConfig = {
         new MonacoWebpackPlugin({
             languages: ['python', 'less'],
             globalAPI: true,
+            filename: 'monaco.[name].worker.js', // bundle workers with predictable names
         }),
     ],
-    // optimization: {
-    //     minimize: false,
-    // },
-    devtool: 'nosources-source-map',
+    optimization: {
+        minimize: true,
+        runtimeChunk: false,
+        splitChunks: false,
+    },
+    // devtool: 'nosources-source-map',
     infrastructureLogging: {
         level: 'log',
     },
