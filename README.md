@@ -40,14 +40,14 @@ This extension opens, displays, analyzes, and converts most major LEGO robotics 
 
 ### Platforms & File Types
 
-**SPIKE Prime / Essentials / Robot Inventor:**
+#### SPIKE Prime / Essentials / Robot Inventor platform
 
 SPIKE Prime ([45678](https://www.lego.com/en-us/product/lego-education-spike-prime-set-45678)) and SPIKE Essentials ([45345](https://www.lego.com/en-us/product/lego-education-spike-essential-set-45345)) kit and Robot Inventor ([51515](https://www.lego.com/en-us/product/robot-inventor-51515)) kit for **word-blocks** and **icon-blocks**.
 
 - SPIKE v2 (`.llsp`) and v3 (`.llsp3`)
 - Robot Inventor (`.lms`)
 
-**EV3 Mindstorms:**
+#### EV3 Mindstorms platform
 
 LEGO® MINDSTORMS® EV3 ([31313](https://www.lego.com/en-us/product/lego-mindstorms-ev3-31313)) **graphical-blocks** and **compiled-binary**.
 
@@ -56,7 +56,13 @@ LEGO® MINDSTORMS® EV3 ([31313](https://www.lego.com/en-us/product/lego-mindsto
 - EV3 iPad (`.ev3m`)
 - EV3 Lab Compiled Binary (`.rbf`)
 
-**Pybricks Python:**
+#### WeDo 2.0 platform
+
+LEGO® WeDo 2.0 ([45300](https://education.lego.com/en-us/products/lego-education-wedo-2-0-core-set/45300/)) **graphical-blocks**.
+
+- LEGO WeDo 2.0 project files (`.proj`)
+
+#### Pybricks platform
 
 - Pybricks Python (`.py`), supports multiple files.
 

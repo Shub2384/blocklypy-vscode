@@ -4,6 +4,30 @@ All notable changes to the "blocklypy-vscode" extension will be documented in th
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
-## [Unreleased]
+## [0.1.3] - 2025-09-07
+
+### Added
+
+- WeDo 2.0 receives screenshot
+
+## [0.1.2] - 2025-09-06
+
+### Added
+
+- Icon theming for light and dark
+- Content-aware display modes (preview, pycode, pseudocode, graph)
+- Improved readme and screenshot
+
+### Fixed
+
+- Document handling to support multiple LEGO documents
+
+## [0.1.1] - 2025-09-05
+
+### Added
 
 - Initial release
+- Pybricks BLE connection and compilation
+- BlocklyPy files opening
+
+## [Unreleased]

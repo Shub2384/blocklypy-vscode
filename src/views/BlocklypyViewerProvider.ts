@@ -13,6 +13,7 @@ import {
 import { logDebug } from '../extension/debug-channel';
 import GraphvizLoader from '../utils/graphviz-helper';
 import { CustomEditorProviderBase } from './CustomEditorProviderBase';
+import { checkExtraFilesForConversion } from '../blocklypy/collectfiles';
 
 interface BlocklypyViewerContent {
     filename?: string;
@@ -149,10 +150,14 @@ export class BlocklypyViewerProvider
             name: uri.path.split('/').pop() || 'project',
             buffer: fileUint8Array.buffer as ArrayBuffer,
         };
+
+        // collect additional extra files, such as image for .proj file followig the wedo 2.0 app approach <filewithoutextension\LobbyPreview.jpg>
+        const allFiles = await checkExtraFilesForConversion(uri, file);
+
         const options = {
-            output: { 'blockly.svg': true },
+            output: { 'blockly.svg': true, 'wedo2.preview': true },
         } satisfies IPyConverterOptions;
-        const result = await convertProjectToPython([file], options);
+        const result = await convertProjectToPython(allFiles, options);
         const filename = Array.isArray(result.name)
             ? result.name.join(', ')
             : result.name || 'Unknown';
@@ -163,7 +168,8 @@ export class BlocklypyViewerProvider
 
         const pseudo: string | undefined = result.plaincode;
 
-        const preview: string | undefined = result.extra?.['blockly.svg'];
+        const preview: string | undefined =
+            result.extra?.['blockly.svg'] || result.extra?.['wedo2.preview'];
 
         const graphviz = await GraphvizLoader();
 
@@ -315,10 +321,13 @@ export class BlocklypyViewerProvider
             #preview, #graph {
                 padding: 20px;
             }
-            #preview svg, #graph svg {
+            #preview svg, #preview img, #graph svg {
                 width: 100%;
                 height: 100%;
                 display: block;
+            }
+            #preview img {
+                object-fit: contain;
             }
             #loading {
                 height: 50%;

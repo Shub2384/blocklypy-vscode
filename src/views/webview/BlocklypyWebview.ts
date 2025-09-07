@@ -83,12 +83,22 @@ function showView(view: string, content: string) {
     } else if (view === ViewType.Preview || view === ViewType.Graph) {
         const element = document.getElementById(view);
         if (element) {
-            element.innerHTML = content ?? '';
-            // requestAnimationFrame schedules a callback to run after the browser has painted the changes.
-            requestAnimationFrame(() => {
-                getPanZoom(false, element); // clear cache and re-init
-                panzoomFitCenter();
-            });
+            // if content is svg do this, if it is base64 image do that
+            // Detect if content is SVG or base64 image
+            if (typeof content === 'string' && content.trim().startsWith('<svg')) {
+                element.innerHTML = content ?? '';
+                requestAnimationFrame(() => {
+                    getPanZoom(false, element); // clear cache and re-init
+                    panzoomFitCenter();
+                });
+            } else if (
+                typeof content === 'string' &&
+                content.trim().startsWith('data:image')
+            ) {
+                element.innerHTML = `<img src="${content}" style="max-width:100%;max-height:100%;" />`;
+            } else {
+                element.innerHTML = content ?? '';
+            }
         }
     } else if (view === 'loading') {
         // Do nothing, just show the loading image

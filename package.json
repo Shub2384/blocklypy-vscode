@@ -174,11 +174,13 @@
       "blocklyPyVSCodeCommander": [
         {
           "id": "blocklypy-vscode-commands",
-          "name": "Commands"
+          "name": "Commands",
+          "icon": "asset/icon.svg"
         },
         {
           "id": "blocklypy-vscode-settings",
-          "name": "Settings"
+          "name": "Settings",
+          "icon": "asset/icon.svg"
         }
       ]
     },
@@ -355,8 +357,8 @@
   },
   "scripts": {
     "vscode:prepublish": "npm run package",
-    "compile": "webpack",
-    "watch": "webpack --watch",
+    "compile": "NODE_ENV=development webpack",
+    "watch": "NODE_ENV=development webpack --watch",
     "package": "webpack --mode production --devtool hidden-source-map",
     "compile-tests": "tsc -p . --outDir out",
     "watch-tests": "tsc -p . -w --outDir out",
@@ -365,7 +367,7 @@
     "test": "vscode-test",
     "postinstall": "patch-package",
     "package-extension": "npx vsce package",
-    "publish-extension": "npx vsce publish"
+    "publish-extension": "npx vsce publish minor"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.10",

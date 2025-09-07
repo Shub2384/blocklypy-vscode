@@ -9,6 +9,8 @@ const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
 //@ts-check
 /** @typedef {import('webpack').Configuration} WebpackConfig **/
 
+const isDevelopment = process.env.NODE_ENV === 'development';
+
 /** @type WebpackConfig */
 const extensionConfig = {
     target: 'node',
@@ -45,6 +47,7 @@ const extensionConfig = {
         ],
     },
     // devtool: 'nosources-source-map',
+    devtool: isDevelopment ? 'source-map' : false,
     infrastructureLogging: {
         level: 'log',
     },
@@ -125,6 +128,7 @@ const webviewConfig = {
         splitChunks: false,
     },
     // devtool: 'nosources-source-map',
+    devtool: isDevelopment ? 'source-map' : false,
     infrastructureLogging: {
         level: 'log',
     },
