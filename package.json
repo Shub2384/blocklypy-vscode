@@ -22,7 +22,6 @@
     "robotics",
     "micropython",
     "python",
-    "blockly",
     "visual programming",
     "first lego league",
     "fll",
@@ -54,12 +53,18 @@
       {
         "command": "blocklypy-vscode.connectDevice",
         "title": "BlocklyPy: Connect Device",
-        "icon": "asset/hub-small.svg"
+        "icon": {
+          "light": "asset/hub-small-light.svg",
+          "dark": "asset/hub-small-dark.svg"
+        }
       },
       {
         "command": "blocklypy-vscode.connectDeviceLastConnected",
         "title": "BlocklyPy: Connect Last Connected Device",
-        "icon": "asset/hub-small-fav.svg"
+        "icon": {
+          "light": "asset/hub-small-fav-light.svg",
+          "dark": "asset/hub-small-fav-dark.svg"
+        }
       },
       {
         "command": "blocklypy-vscode.disconnectDevice",
@@ -112,27 +117,42 @@
       {
         "command": "blocklypy-vscode.blocklypyViewer.displayPycode",
         "title": "BlocklyPy: Show Python Code",
-        "icon": "asset/display-py.svg"
+        "icon": {
+          "light": "asset/display-py-light.svg",
+          "dark": "asset/display-py-dark.svg"
+        }
       },
       {
         "command": "blocklypy-vscode.blocklypyViewer.displayPseudo",
         "title": "BlocklyPy: Show Pseudo Code",
-        "icon": "asset/display-pseudo.svg"
+        "icon": {
+          "light": "asset/display-pseudo-light.svg",
+          "dark": "asset/display-pseudo-dark.svg"
+        }
       },
       {
         "command": "blocklypy-vscode.blocklypyViewer.displayPreview",
         "title": "BlocklyPy: Show Preview",
-        "icon": "asset/display-preview.svg"
+        "icon": {
+          "light": "asset/display-preview-light.svg",
+          "dark": "asset/display-preview-dark.svg"
+        }
       },
       {
         "command": "blocklypy-vscode.blocklypyViewer.displayGraph",
         "title": "BlocklyPy: Show Dependency Graph",
-        "icon": "asset/display-graph.svg"
+        "icon": {
+          "light": "asset/display-graph-light.svg",
+          "dark": "asset/display-graph-dark.svg"
+        }
       },
       {
         "command": "blocklypy-vscode.showPythonPreview",
         "title": "Show Python Dependency Preview",
-        "icon": "asset/display-graph.svg"
+        "icon": {
+          "light": "asset/display-graph-light.svg",
+          "dark": "asset/display-graph-dark.svg"
+        }
       },
       {
         "command": "blocklypy-vscode.pythonPreview.showSource",
@@ -153,13 +173,11 @@
       "blocklyPyVSCodeCommander": [
         {
           "id": "blocklypy-vscode-commands",
-          "name": "Commands",
-          "icon": "asset/icon.svg"
+          "name": "Commands"
         },
         {
           "id": "blocklypy-vscode-settings",
-          "name": "Settings",
-          "icon": "asset/commands.svg"
+          "name": "Settings"
         }
       ]
     },
@@ -278,7 +296,10 @@
       {
         "viewType": "blocklypy-vscode.blocklypyViewer",
         "displayName": "BlocklyPy Viewer",
-        "icon": "asset/file-lego.svg",
+        "icon": {
+          "light": "asset/file-lego-light.svg",
+          "dark": "asset/file-lego-dark.svg"
+        },
         "selector": [
           {
             "filenamePattern": "*.{llsp3,llsp,lms,lmsp,ev3,ev3m,rbf,proj}"
@@ -290,7 +311,10 @@
         "viewType": "blocklypy-vscode.pythonPreview",
         "displayName": "Python Dependency Graph Preview",
         "priority": "option",
-        "icon": "asset/display-graph.svg",
+        "icon": {
+          "light": "asset/display-graph-light.svg",
+          "dark": "asset/display-graph-dark.svg"
+        },
         "selector": [
           {
             "filenamePattern": "*.py"
@@ -316,8 +340,8 @@
           "lego"
         ],
         "icon": {
-          "light": "asset/file-lego.svg",
-          "dark": "asset/file-lego.svg"
+          "light": "asset/file-lego-light.svg",
+          "dark": "asset/file-lego-dark.svg"
         }
       }
     ],

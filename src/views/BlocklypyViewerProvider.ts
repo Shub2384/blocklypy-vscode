@@ -3,6 +3,7 @@ import {
     IPyConverterFile,
     IPyConverterOptions,
 } from 'blocklypy';
+import path from 'path';
 import * as vscode from 'vscode';
 import { EXTENSION_KEY } from '../const';
 import {
@@ -81,10 +82,11 @@ export class BlocklypyViewerProvider
         // refresh of data is done in refreshWebview super.resolveCustomEditor
         const state = this.documents.get(document.uri);
         this.showView(this.guardViewType(state, state?.viewtype));
+        const filename = path.basename(document.uri.path);
         logDebug(
             state?.content
-                ? `Successfully converted ${document.uri.path} to Python (${state.content.pycode?.length} bytes).`
-                : `Failed to convert ${document.uri.path} to Python.`,
+                ? `Successfully converted ${filename} to Python (${state.content.pycode?.length} bytes).`
+                : `Failed to convert ${filename} to Python.`,
         );
 
         // Set up file change monitoring

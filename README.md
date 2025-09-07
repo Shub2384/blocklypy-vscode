@@ -66,6 +66,31 @@ LEGO® MINDSTORMS® EV3 ([31313](https://www.lego.com/en-us/product/lego-mindsto
 - Package structures and relative imports are **not** currently supported
 - Runtime error locations may be inaccurate after changing tabs
 
+## Guide: Fun First Things to Explore
+
+- **Connect** to a SPIKE Pybricks Hub via Bluetooth
+- **Reconnect** to the last Pybricks Hub via Bluetooth
+- Check out the **auto-connect** to the last Pybricks Hub via Bluetooth on VSCode start
+- Open a **Pybricks Python file**, compile and upload
+- Use the **auto-start** feature by adding `# LEGO autostart` header
+- Check the feedback for any **runtime error** reported by the hub
+- Check the feedback from any **print statements** reported by the hub
+- **Use imports** from other local python modules
+- Open a **depedency graph** to explore the project call dependencies
+- Open a **SPIKE hub version 3 or version 2** file to check the blockly preview
+- Explore **pseudocode** to see a simplified text representation of the SPIKE code
+- Check the **converted Pybricks Python** code, compile and run it directly
+- Observe the **dependency call graph** for the SPIKE file
+- Make changes on the SPIKE source file in the LEGO app, and **see instant updates**
+- Open a **Robot Inventor MINDSTORMS App file** and check the above features
+- Open a **SPIKE Essential Iconblocks file** and check the above features
+- Open an **EV3 classic EV3-G file** and check the pseudocode and graph features
+- Check the converted python code for the EV3G file; compile and run it
+- Download a **compiled and running binary (.rbf) file** from your EV3 hub and check the pseudocode, python code and graph features
+- Open an **EV3 iPad file** and check the pseudocode, python and graph features
+- Open an **EV3 classroom file** and check the pseudocode, python and graph features
+- Open a **WeDo 2.0 file** and check the pseudocode and python features
+
 ## Acknowledgements
 
 This project is rooted on the work of Song-Pei Du [dusongpei](https://github.com/dsp05/pybricks-vscode) and on the work of the [Pybricks authors](https://github.com/pybricks), Laurens Valk and David Lechner.
@@ -74,6 +99,6 @@ This project is rooted on the work of Song-Pei Du [dusongpei](https://github.com
 
 This project is licensed under the [MIT License](LICENSE).
 
-<!-- ## Screenshot
+## Screenshot
 
-![Screenshot](./screenshots/1.gif) -->
+![Screenshot](./screenshots/1.gif)
