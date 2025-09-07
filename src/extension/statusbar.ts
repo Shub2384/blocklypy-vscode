@@ -12,3 +12,11 @@ export function setStatusBarItem(show: boolean, text: string, tooltip: string) {
         StatusBarItem.hide();
     }
 }
+
+export function showStatusBarMessage(message: string, hideAfterTimeout?: number) {
+    if (hideAfterTimeout === undefined) {
+        vscode.window.setStatusBarMessage(message);
+    } else {
+        vscode.window.setStatusBarMessage(message, hideAfterTimeout);
+    }
+}

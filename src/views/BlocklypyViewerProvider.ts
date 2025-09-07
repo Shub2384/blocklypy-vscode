@@ -36,18 +36,31 @@ export enum ViewType {
     Loading = 'loading',
 }
 
-interface DocumentState {
-    document: vscode.CustomDocument;
-    viewtype: ViewType;
-    content: BlocklypyViewerContent | undefined;
-    contentAvailability: BlocklypyViewerContentAvailabilityMap | undefined;
-    dirty: boolean;
-    uriLastModified: number;
-    panel: vscode.WebviewPanel | undefined;
+export class BlocklypyViewer {
+    constructor(
+        public document: vscode.CustomDocument,
+        public viewtype: ViewType,
+        public content: BlocklypyViewerContent | undefined,
+        public contentAvailability: BlocklypyViewerContentAvailabilityMap | undefined,
+        public dirty: boolean,
+        public uriLastModified: number,
+        public panel: vscode.WebviewPanel | undefined,
+        public provider: BlocklypyViewerProvider,
+    ) {}
+    public setErrorLine(line: number, message: string) {
+        if (this.viewtype !== ViewType.Pycode) {
+            this.provider.showView(ViewType.Pycode);
+            this.panel?.webview.postMessage({
+                command: 'setErrorLine',
+                line,
+                message,
+            });
+        }
+    }
 }
 
 export class BlocklypyViewerProvider
-    extends CustomEditorProviderBase<DocumentState>
+    extends CustomEditorProviderBase<BlocklypyViewer>
     implements vscode.CustomReadonlyEditorProvider
 {
     public static get Get(): BlocklypyViewerProvider | undefined {
@@ -61,16 +74,27 @@ export class BlocklypyViewerProvider
         return EXTENSION_KEY + '.blocklypyViewer';
     }
 
-    protected createDocumentState(document: vscode.CustomDocument): DocumentState {
-        return {
+    public static get activeBlocklypyViewer(): BlocklypyViewer | undefined {
+        const provider = BlocklypyViewerProvider.Get;
+        return provider?.documents.get(provider.activeUri);
+    }
+
+    constructor(context: vscode.ExtensionContext) {
+        super(context);
+        vscode.languages.onDidChangeDiagnostics(this.handleDiagnosticsChange, this);
+    }
+
+    protected createDocumentState(document: vscode.CustomDocument): BlocklypyViewer {
+        return new BlocklypyViewer(
             document,
-            viewtype: ViewType.Loading,
-            content: undefined,
-            contentAvailability: undefined,
-            dirty: false,
-            uriLastModified: 0,
-            panel: undefined,
-        };
+            ViewType.Loading,
+            undefined,
+            undefined,
+            false,
+            0,
+            undefined,
+            this,
+        );
     }
 
     async resolveCustomEditor(
@@ -199,7 +223,7 @@ export class BlocklypyViewerProvider
     }
 
     private contentForView(
-        state: DocumentState | undefined,
+        state: BlocklypyViewer | undefined,
         view: ViewType | undefined,
     ) {
         if (view === ViewType.Pycode && state?.content?.pycode) {
@@ -216,7 +240,7 @@ export class BlocklypyViewerProvider
     }
 
     private guardViewType(
-        state: DocumentState | undefined,
+        state: BlocklypyViewer | undefined,
         current: ViewType | undefined,
     ): ViewType {
         let effectiveView = current;
@@ -257,6 +281,26 @@ export class BlocklypyViewerProvider
             view: state.viewtype,
             content,
         });
+    }
+
+    private handleDiagnosticsChange() {
+        const state = this.documents.get(this.activeUri);
+        // NOTE: We might get a URI that does not match the current activeUri
+        // in case of multiple open editors with different files.
+        // We would need to find the correct state for that URI and activate it.
+        // However, as LEGO files do not reference external ones (everything is __main__.py),
+        // this is not needed.
+        if (!state || !state.panel) return;
+
+        const diagnostics = vscode.languages.getDiagnostics(state.document.uri);
+        if (diagnostics.length > 0) {
+            const firstError = diagnostics.find(
+                (d) => d.severity === vscode.DiagnosticSeverity.Error,
+            );
+            if (firstError) {
+                state.setErrorLine(firstError.range.start.line, firstError.message);
+            }
+        }
     }
 
     protected getHtmlForWebview(webviewPanel: vscode.WebviewPanel): string {

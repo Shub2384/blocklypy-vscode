@@ -1,27 +1,21 @@
 import * as vscode from 'vscode';
 import { MAIN_MOCULE_PATH } from '../logic/compile';
+import {
+    BlocklypyViewer,
+    BlocklypyViewerProvider,
+} from '../views/BlocklypyViewerProvider';
 
 const DiagnosticsCollection =
     vscode.languages.createDiagnosticCollection('BlocklyPy Pybricks');
 
-const decorationType = vscode.window.createTextEditorDecorationType({
-    isWholeLine: true,
-    borderColor: 'red',
-    borderStyle: 'solid',
-    borderWidth: '0 0 2px 0',
-    overviewRulerColor: 'red',
-    overviewRulerLane: vscode.OverviewRulerLane.Full,
-});
-
 export async function reportPythonError(
-    file: string | vscode.TextEditor,
+    filename: string,
     line: number,
     message: string,
 ) {
-    const editor = typeof file === 'object' ? file : await findEditorForFile(file);
-    if (!editor) {
-        return;
-    }
+    const { editor, blviewer } = await findEditorForFile(filename);
+    const active = editor ?? blviewer;
+    if (!active) return;
 
     const range = new vscode.Range(line, 0, line, 100); // highlight the whole line
     const diagnostic = new vscode.Diagnostic(
@@ -29,28 +23,19 @@ export async function reportPythonError(
         message,
         vscode.DiagnosticSeverity.Error,
     );
-    DiagnosticsCollection.set(editor.document.uri, [diagnostic]);
+    DiagnosticsCollection.set(active.document.uri, [diagnostic]);
 
-    await showEditorErrorDecoration(editor.document.fileName, line, message);
+    if (editor) {
+        editor.revealRange(range, vscode.TextEditorRevealType.InCenter);
+        editor.selection = new vscode.Selection(line, 0, line, 0);
+    } else if (blviewer) {
+        //blviewer.setErrorLine(line, message);
+        // diagnostics change will reveal the line in the editor
+    }
 }
 
 export async function clearPythonErrors() {
     DiagnosticsCollection.clear();
-    await clearEditorErrorDecorations();
-}
-
-async function clearEditorErrorDecorations() {
-    for (const group of vscode.window.tabGroups.all) {
-        group.tabs.forEach((tab) => {
-            if (tab.input instanceof vscode.TabInputText) {
-                const fileName = tab.input.uri.fsPath;
-                const openEditor = vscode.window.visibleTextEditors.find(
-                    (ed) => ed.document.fileName === fileName,
-                );
-                openEditor?.setDecorations(decorationType, []);
-            }
-        });
-    }
 }
 
 async function showEditorErrorDecoration(
@@ -58,22 +43,19 @@ async function showEditorErrorDecoration(
     line: number,
     errorMsg: string,
 ) {
-    const editor = await findEditorForFile(filename);
-    if (!editor) {
-        return;
-    }
-
-    const range = new vscode.Range(line, 0, line, 0);
-    editor.revealRange(range, vscode.TextEditorRevealType.InCenter);
-    editor.selection = new vscode.Selection(line, 0, line, 0);
-    editor.setDecorations(decorationType, [{ range, hoverMessage: errorMsg }]);
+    const { editor, blviewer } = await findEditorForFile(filename);
+    const active = editor ?? blviewer;
+    if (!active) return;
 }
 
 async function findEditorForFile(
     filename: string,
-): Promise<vscode.TextEditor | undefined> {
+): Promise<{ editor?: vscode.TextEditor; blviewer?: BlocklypyViewer }> {
     if (filename === MAIN_MOCULE_PATH) {
-        return vscode.window.activeTextEditor;
+        return {
+            editor: vscode.window.activeTextEditor,
+            blviewer: BlocklypyViewerProvider.activeBlocklypyViewer,
+        };
     } else {
         // Check all open tabs in all tab groups
         for (const group of vscode.window.tabGroups.all) {
@@ -86,21 +68,24 @@ async function findEditorForFile(
                             (ed) => ed.document.fileName === fileName,
                         );
                         if (openEditor) {
-                            return openEditor;
+                            const editor = openEditor;
+                            return { editor };
                         } else {
                             // Open the document if not visible
-                            return await vscode.workspace
+                            const editor = await vscode.workspace
                                 .openTextDocument(tab.input.uri)
                                 .then((doc) =>
                                     vscode.window.showTextDocument(doc, {
                                         preview: false,
                                     }),
                                 );
+                            return { editor };
                         }
                     }
                 }
             }
         }
+        return {};
     }
 }
 

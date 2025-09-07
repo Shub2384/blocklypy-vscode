@@ -1,4 +1,5 @@
 import noble, { Peripheral } from '@abandonware/noble';
+import { debuglog } from 'util';
 import {
     setContextIsConnected,
     setContextIsProgramRunning,
@@ -7,6 +8,7 @@ import { logDebug } from '../extension/debug-channel';
 import { clearPythonErrors, reportPythonError } from '../extension/diagnostics';
 import { setStatusBarItem } from '../extension/statusbar';
 import { TreeCommands } from '../extension/tree-commands';
+import { ToCapialized } from '../extension/utils';
 import {
     EventType,
     getEventType,
@@ -19,7 +21,6 @@ import {
 } from '../pybricks/protocol';
 import { retryWithTimeout } from '../utils/async';
 import Config from '../utils/config';
-import { ToCapialized } from '../extension/utils';
 
 export enum BLEStatus {
     Disconnected = 'disconnected',
@@ -319,16 +320,17 @@ class BLE {
 
         // update status
         const isDisconnected = newStatus === BLEStatus.Disconnected;
+        const isConnected = newStatus === BLEStatus.Connected;
         setStatusBarItem(
             !isDisconnected,
             (Device.Name ? Device.Name + ' ' : '') + ToCapialized(newStatus),
             `Connected to ${Device.Name} hub.`,
         );
         // vscode.window.setStatusBarMessage(`Connected to ${Device.Name} hub.`, 3000);
-        setContextIsConnected(isDisconnected);
+        setContextIsConnected(isConnected);
 
         if (newStatus === BLEStatus.Error) {
-            // showError('An error occurred with the Bluetooth connection.');
+            debuglog('An error occurred with the Bluetooth connection.');
         }
 
         TreeCommands.refresh();

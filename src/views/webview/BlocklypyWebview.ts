@@ -34,11 +34,48 @@ window.addEventListener('DOMContentLoaded', () => {
     resizeHandler();
 });
 
+// TODO: improve this, check why decoration is not working
+const decorationType = {
+    isWholeLine: true,
+    borderColor: 'red',
+    borderStyle: 'solid',
+    borderWidth: '0 0 2px 0',
+    overviewRulerColor: 'red',
+    overviewRulerLane: monaco.editor.OverviewRulerLane.Full,
+    // className: 'errorLineDecoration',
+};
+
+let diagnosticsDecorations: monaco.editor.IEditorDecorationsCollection | undefined =
+    undefined;
+
 window.addEventListener('message', (event) => {
-    const { command, view, content } = event.data || {};
+    const { command } = event.data || {};
     if (command === 'showView') {
+        const { view, content } = event.data || {};
         const effectiveView = view;
         showView(effectiveView, content);
+    } else if (command === 'setErrorLine') {
+        const { line, message } = event.data || {};
+        if (monacoInstance && typeof line === 'number' && line >= 0) {
+            const selection = new monaco.Selection(line, 0, line, -1);
+            monacoInstance.revealLineInCenter(line + 1); // Monaco is 1-based
+            monacoInstance.setSelection(selection);
+
+            // Create or update diagnostics decorations
+            const decorations = [
+                {
+                    range: selection,
+                    options: decorationType,
+                },
+            ];
+
+            if (diagnosticsDecorations) {
+                diagnosticsDecorations.set(decorations);
+            } else {
+                diagnosticsDecorations =
+                    monacoInstance.createDecorationsCollection(decorations);
+            }
+        }
     }
 });
 

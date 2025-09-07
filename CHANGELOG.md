@@ -2,15 +2,18 @@
 
 All notable changes to the "blocklypy-vscode" extension will be documented in this file.
 
-Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
-
-## [0.1.3] - 2025-09-07
+## [0.2.0]() - 2025-09-07
 
 ### Added
 
+- Error display to support LEGO files as well
 - WeDo 2.0 receives screenshot
 
-## [0.1.2] - 2025-09-06
+### Fixed
+
+- fixed title button visibility on connected/disconnected
+
+## [0.1.2]() - 2025-09-06
 
 ### Added
 
@@ -22,7 +25,7 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 - Document handling to support multiple LEGO documents
 
-## [0.1.1] - 2025-09-05
+## [0.1.1]() - 2025-09-05
 
 ### Added
 
@@ -30,4 +33,6 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 - Pybricks BLE connection and compilation
 - BlocklyPy files opening
 
-## [Unreleased]
+## [Unreleased]()
+
+Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.

@@ -1,7 +1,7 @@
-import * as vscode from 'vscode';
-import { parse, walk } from '@pybricks/python-program-analysis';
 import { compile } from '@pybricks/mpy-cross-v6';
+import { parse, walk } from '@pybricks/python-program-analysis';
 import path from 'path';
+import * as vscode from 'vscode';
 import { BlocklypyViewerProvider } from '../views/BlocklypyViewerProvider';
 
 export const MAIN_MOCULE = '__main__';
@@ -21,14 +21,11 @@ function getPythonCode(): { content: string; folder?: string } | undefined {
         return { content, folder };
     }
 
-    // TODO: if not in editor it will have a problem!
-    const customViewer = BlocklypyViewerProvider.Get;
-    if (customViewer && customViewer.pycode) {
-        const content = customViewer.pycode;
+    const customViewer = BlocklypyViewerProvider.activeBlocklypyViewer;
+    if (customViewer) {
+        const content = customViewer?.content?.pycode ?? '';
         return { content };
     }
-
-    return undefined;
 }
 
 export async function compileAsync(): Promise<Blob> {
