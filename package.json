@@ -31,6 +31,10 @@
     "wro"
   ],
   "publisher": "afarago",
+  "sponsor": {
+    "url": "https://www.github.com/sponsors/afarago",
+    "label": "Sponsor"
+  },
   "homepage": "https://attilafarago.hu",
   "repository": {
     "type": "git",
@@ -364,7 +368,7 @@
     "@hpcc-js/wasm-graphviz": "^1.12.0",
     "@pybricks/mpy-cross-v6": "^2.0.0",
     "@pybricks/python-program-analysis": "^2.0.0",
-    "blocklypy": "^0.1.8",
+    "blocklypy": "^0.1.9",
     "resolve": "^1.22.10",
     "svg-pan-zoom": "^3.6.2"
   }

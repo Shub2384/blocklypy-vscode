@@ -3,7 +3,7 @@
 [![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)](CHANGELOG.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-A Visual Studio Code extension to interact with LEGO® Hubs running the Pybricks firmware, inspired by [dusongpei](https://github.com/dsp05/pybricks-vscode)'s work.
+A Visual Studio Code extension to interact with LEGO® Hubs running the Pybricks firmware.
 
 ## Features
 
@@ -20,7 +20,7 @@ Streamline your Pybricks coding experience with:
 
 ## Getting Started
 
-1. **Install** this extension from the [VS Code Marketplace](#).
+1. **Install** this extension from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=afarago.blocklypy-vscode).
 2. **Connect** your LEGO Hub via Bluetooth.
 3. **Open** your Python or LEGO robotics files.
 4. **Use** the command palette (`Ctrl+Shift+P`) to access Pybricks commands.
