@@ -367,7 +367,7 @@
     "test": "vscode-test",
     "postinstall": "patch-package",
     "package-extension": "npx vsce package",
-    "publish-extension": "npx vsce publish minor"
+    "publish-extension": "npx vsce publish"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.10",
