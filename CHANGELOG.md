@@ -2,16 +2,21 @@
 
 All notable changes to the "blocklypy-vscode" extension will be documented in this file.
 
-## [0.2.0]() - 2025-09-07
+## [0.2.1]() - 2025-09-07
 
 ### Added
 
 - Error display to support LEGO files as well
-- WeDo 2.0 receives screenshot
 
 ### Fixed
 
 - fixed title button visibility on connected/disconnected
+
+## [0.2.0]() - 2025-09-07
+
+### Added
+
+- WeDo 2.0 receives screenshot
 
 ## [0.1.2]() - 2025-09-06
 
