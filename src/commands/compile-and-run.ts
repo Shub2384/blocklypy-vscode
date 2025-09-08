@@ -13,12 +13,13 @@ export async function compileAndRunAsync() {
     // clearDebugLog();
     clearPythonErrors();
 
+    const blob = await compileAsync();
+
     if (!Device.Current) {
         throw new Error(
             'No device selected. Please connect to a Pybricks device first.',
         );
     }
-    const blob = await compileAsync();
     const buffer = await Device.readCapabilities();
     const maxWriteSize = buffer?.readUInt16LE(0);
     const maxUserProgramSize = buffer?.readUInt32LE(6);

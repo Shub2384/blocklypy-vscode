@@ -3,6 +3,7 @@ export enum Commands {
     ConnectDevice = 'blocklypy-vscode.connectDevice',
     ConnectDeviceLastConnected = 'blocklypy-vscode.connectDeviceLastConnected',
     DisconnectDevice = 'blocklypy-vscode.disconnectDevice',
+    Compile = 'blocklypy-vscode.compile',
     CompileAndRun = 'blocklypy-vscode.compileAndRun',
     StartUserProgram = 'blocklypy-vscode.startUserProgram',
     StopUserProgram = 'blocklypy-vscode.stopUserProgram',

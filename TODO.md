@@ -11,3 +11,15 @@
 Traceback (most recent call last):
   File "__main__.py", line 25, in <module>
 OSError: [Errno 19] ENODEV:
+
+- consider TextDocumentContentProvider
+// <https://code.visualstudio.com/api/extension-guides/virtual-documents>
+- more: <https://code.visualstudio.com/api/references/vscode-api#FileSystemProvider>
+- ? web extension: <https://code.visualstudio.com/api/extension-guides/web-extensions>
+- AI extensiobility <https://code.visualstudio.com/api/extension-guides/ai/ai-extensibility-overview>
+
+- <https://code.visualstudio.com/api/references/contribution-points>
+
+- option: auto clear debug log
+- debug log input mode
+- clear error on file change (e.g. edit)

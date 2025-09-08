@@ -25,7 +25,11 @@ class CommandsTreeDataProvider extends BaseTreeDataProvider<BaseTreeItem> {
 
     getChildren(element?: BaseTreeItem): vscode.ProviderResult<BaseTreeItem[]> {
         const elems = [] as ITreeItem[];
+        // const isDevelopmentMode = process.env.NODE_ENV === 'development';
         if (!Device.Current) {
+            // if (isDevelopmentMode) {
+            //     elems.push({ command: Commands.Compile });
+            // }
             elems.push({ command: Commands.ConnectDevice });
             if (Config.lastConnectedDevice) {
                 elems.push({ command: Commands.ConnectDeviceLastConnected });

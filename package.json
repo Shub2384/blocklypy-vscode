@@ -73,6 +73,11 @@
         "icon": "$(debug-disconnect)"
       },
       {
+        "command": "blocklypy-vscode.compile",
+        "title": "BlocklyPy: Compile",
+        "icon": "$(compile)"
+      },
+      {
         "command": "blocklypy-vscode.compileAndRun",
         "title": "BlocklyPy: Compile and Run",
         "icon": "$(debug-start)"
@@ -202,22 +207,22 @@
       },
       {
         "command": "blocklypy-vscode.blocklypyViewer.displayNextView",
-        "key": "f2",
+        "key": "f7",
         "when": "activeCustomEditorId == blocklypy-vscode.blocklypyViewer"
       },
       {
         "command": "blocklypy-vscode.blocklypyViewer.displayPreviousView",
-        "key": "Shift+f2",
+        "key": "Shift+f7",
         "when": "activeCustomEditorId == blocklypy-vscode.blocklypyViewer"
       },
       {
         "command": "blocklypy-vscode.showPythonPreview",
-        "key": "f2",
+        "key": "f7",
         "when": "editorLangId == python"
       },
       {
         "command": "blocklypy-vscode.pythonPreview.showSource",
-        "key": "f2",
+        "key": "f7",
         "when": "activeCustomEditorId == blocklypy-vscode.pythonPreview"
       }
     ],
@@ -357,8 +362,8 @@
   },
   "scripts": {
     "vscode:prepublish": "npm run package",
-    "compile": "NODE_ENV=development webpack",
-    "watch": "NODE_ENV=development webpack --watch",
+    "compile": "webpack",
+    "watch": "webpack --watch",
     "package": "webpack --mode production --devtool hidden-source-map",
     "compile-tests": "tsc -p . --outDir out",
     "watch-tests": "tsc -p . -w --outDir out",

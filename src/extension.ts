@@ -14,6 +14,7 @@ import { openOrActivate, wrapErrorHandling } from './extension/utils';
 import Config from './utils/config';
 import { BlocklypyViewerProvider, ViewType } from './views/BlocklypyViewerProvider';
 import { PybricksPythonPreviewProvider } from './views/PybricksPythonPreviewProvider';
+import { compileAsync } from './logic/compile';
 
 export function activate(context: vscode.ExtensionContext) {
     BlocklypyViewerProvider.register(
@@ -35,6 +36,12 @@ export function activate(context: vscode.ExtensionContext) {
         [
             Commands.ConnectDeviceLastConnected,
             async () => await connectDeviceByNameAsync(Config.lastConnectedDevice),
+        ],
+        [
+            Commands.Compile,
+            async () => {
+                await compileAsync();
+            },
         ],
         [Commands.CompileAndRun, compileAndRunAsync],
         [Commands.StartUserProgram, startUserProgramAsync],
