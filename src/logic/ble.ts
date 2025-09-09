@@ -24,6 +24,7 @@ import Config from '../utils/config';
 
 export enum BLEStatus {
     Disconnected = 'disconnected',
+    Scanning = 'scanning',
     Connecting = 'connecting',
     Connected = 'connected',
     Disconnecting = 'disconnecting',
@@ -60,7 +61,9 @@ class BLE {
     }
 
     public async connectAsync(name: string, onChange?: () => void) {
-        if (this.Status !== BLEStatus.Disconnected && this.Status !== BLEStatus.Error) {
+        if (
+            this.Status in [BLEStatus.Disconnected, BLEStatus.Error, BLEStatus.Scanning]
+        ) {
             return;
         }
 
@@ -260,9 +263,9 @@ class BLE {
         this.allDevices = {};
         noble.on('discover', (peripheral) => {
             const { localName, serviceUuids } = peripheral.advertisement;
-            if (!localName || localName in this.allDevices) {
-                return;
-            }
+            // if (!localName || localName in this.allDevices) {
+            //     return;
+            // }
 
             if (
                 !serviceUuids ||
@@ -282,6 +285,9 @@ class BLE {
             }
         });
         await noble.startScanningAsync([], true);
+        if (this.Status === BLEStatus.Disconnected) {
+            this.Status = BLEStatus.Scanning;
+        }
 
         while (Object.keys(this.allDevices).length === 0 && this.isScanning) {
             await new Promise((resolve) => setTimeout(resolve, 500));
@@ -294,6 +300,10 @@ class BLE {
             noble.removeAllListeners('discover');
             noble.stopScanning();
             this.isScanning = false;
+
+            if (this.Status === BLEStatus.Scanning) {
+                this.Status = BLEStatus.Disconnected;
+            }
         }
     }
 
@@ -319,12 +329,11 @@ class BLE {
         this.status = newStatus;
 
         // update status
-        const isDisconnected = newStatus === BLEStatus.Disconnected;
         const isConnected = newStatus === BLEStatus.Connected;
         setStatusBarItem(
-            !isDisconnected,
-            (Device.Name ? Device.Name + ' ' : '') + ToCapialized(newStatus),
-            `Connected to ${Device.Name} hub.`,
+            isConnected,
+            (this.Name ? this.Name + ' ' : '') + ToCapialized(newStatus),
+            `Connected to ${this.Name} hub.`,
         );
         // vscode.window.setStatusBarMessage(`Connected to ${Device.Name} hub.`, 3000);
         setContextIsConnected(isConnected);
@@ -347,6 +356,7 @@ class BLE {
     public get IsProgramRunning() {
         return this.isProgramRunning;
     }
+
     public get IsScanning() {
         return this.isScanning;
     }

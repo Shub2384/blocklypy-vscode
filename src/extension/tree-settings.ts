@@ -6,17 +6,27 @@ import { BaseTreeDataProvider, BaseTreeItem } from './tree-base';
 
 class SettingsTreeDataProvider extends BaseTreeDataProvider<BaseTreeItem> {
     getChildren(element?: BaseTreeItem): vscode.ProviderResult<BaseTreeItem[]> {
+        if (element) return [];
+
         const elems = [
             {
                 command: Commands.ToggleAutoConnect,
-                check: Config.enableAutoConnect,
+                check: Config.autoConnect === true,
             },
             {
                 command: Commands.ToggleAutoStart,
-                check: Config.enableAutostart,
+                check: Config.autostart === true,
+            },
+            {
+                command: Commands.ToggleAutoClearTerminal,
+                check: Config.autoClearTerminal === true,
             },
         ];
         return this.expandChildren(elems);
+    }
+
+    getTreeItem(element: BaseTreeItem): BaseTreeItem {
+        return element;
     }
 }
 
@@ -34,10 +44,13 @@ function registerSettingsTree(context: vscode.ExtensionContext) {
                 const state = state1 === vscode.TreeItemCheckboxState.Checked;
                 switch (elem.command?.command) {
                     case Commands.ToggleAutoConnect:
-                        Config.setEnableAutoConnect(state).then(SettingsTree.refresh);
+                        Config.setAutoConnect(state).then(SettingsTree.refresh);
                         break;
                     case Commands.ToggleAutoStart:
-                        Config.setEnableAutostart(state).then(SettingsTree.refresh);
+                        Config.setAutostart(state).then(SettingsTree.refresh);
+                        break;
+                    case Commands.ToggleAutoClearTerminal:
+                        Config.setAutoClearTerminal(state).then(SettingsTree.refresh);
                         break;
                 }
             });

@@ -4,8 +4,9 @@ import { EXTENSION_KEY } from '../const';
 const CONFIG_BASEKEY = EXTENSION_KEY + '.';
 const enum ConfigKeys {
     LastConnectedDevice = 'lastConnectedDevice',
-    EnableAutoConnect = 'autoConnect',
-    EnableAutostart = 'autoStart',
+    AutoConnect = 'autoConnect',
+    AutoStartProgram = 'autoStart',
+    AutoClearTerminal = 'autoClearTerminal',
 }
 
 export function getConfig<T>(key: string) {
@@ -34,17 +35,23 @@ class Config {
     public static async setLastConnectedDevice(value: string) {
         await this.write(ConfigKeys.LastConnectedDevice, value);
     }
-    public static get enableAutoConnect() {
-        return this.read(ConfigKeys.EnableAutoConnect);
+    public static get autoConnect() {
+        return this.read(ConfigKeys.AutoConnect);
     }
-    public static async setEnableAutoConnect(value: boolean) {
-        await this.write(ConfigKeys.EnableAutoConnect, value);
+    public static async setAutoConnect(value: boolean) {
+        await this.write(ConfigKeys.AutoConnect, value);
     }
-    public static get enableAutostart() {
-        return this.read(ConfigKeys.EnableAutostart);
+    public static get autostart() {
+        return this.read(ConfigKeys.AutoStartProgram);
     }
-    public static async setEnableAutostart(value: boolean) {
-        await this.write(ConfigKeys.EnableAutostart, value);
+    public static async setAutostart(value: boolean) {
+        await this.write(ConfigKeys.AutoStartProgram, value);
+    }
+    public static get autoClearTerminal() {
+        return this.read(ConfigKeys.AutoClearTerminal);
+    }
+    public static async setAutoClearTerminal(value: boolean) {
+        await this.write(ConfigKeys.AutoClearTerminal, value);
     }
 }
 export default Config;

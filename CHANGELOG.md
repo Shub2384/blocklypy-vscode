@@ -2,6 +2,17 @@
 
 All notable changes to the "blocklypy-vscode" extension will be documented in this file.
 
+## [0.2.4]() - 2025-09-09
+
+### Added
+
+- Improved connection logic
+- BLE Signal strength display
+
+### Fixed
+
+- Fixed incorrect settings handling
+
 ## [0.2.1]() - 2025-09-07
 
 ### Added

@@ -24,6 +24,8 @@ class CommandsTreeDataProvider extends BaseTreeDataProvider<BaseTreeItem> {
     }
 
     getChildren(element?: BaseTreeItem): vscode.ProviderResult<BaseTreeItem[]> {
+        if (element) return [];
+
         const elems = [] as ITreeItem[];
         // const isDevelopmentMode = process.env.NODE_ENV === 'development';
         if (!Device.Current) {

@@ -1,4 +1,4 @@
-import { logDebug } from '../extension/debug-channel';
+import { clearDebugLog, logDebug } from '../extension/debug-channel';
 import { clearPythonErrors } from '../extension/diagnostics';
 import { Device } from '../logic/ble';
 import { compileAsync } from '../logic/compile';
@@ -8,10 +8,13 @@ import {
     createWriteUserProgramMetaCommand,
     createWriteUserRamCommand,
 } from '../pybricks/protocol';
+import Config from '../utils/config';
 
 export async function compileAndRunAsync() {
-    // clearDebugLog();
     clearPythonErrors();
+    if (Config.autoClearTerminal) {
+        clearDebugLog();
+    }
 
     const blob = await compileAsync();
 

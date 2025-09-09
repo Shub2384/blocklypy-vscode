@@ -34,10 +34,10 @@ export async function openOrActivate(uri: vscode.Uri) {
     // await vscode.commands.executeCommand('vscode.open', uri, vscode.ViewColumn.Beside);
 }
 
-export function wrapErrorHandling(fn: () => Promise<void>) {
-    return async () => {
+export function wrapErrorHandling(fn: (...args: any) => Promise<void>) {
+    return async (...args: any) => {
         try {
-            await fn();
+            await fn(args);
         } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
             showError(message);

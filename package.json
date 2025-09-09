@@ -105,6 +105,12 @@
         "category": "blocklypy-vscode.Settings"
       },
       {
+        "command": "blocklypy-vscode.toggleAutoClearTerminal",
+        "title": "BlocklyPy: Toggle Auto-Clear Terminal",
+        "icon": "$(clear-all)",
+        "category": "blocklypy-vscode.Settings"
+      },
+      {
         "command": "blocklypy-vscode.statusPlaceholder",
         "title": "BlocklyPy: Status",
         "icon": "$(debug-stackframe)",
@@ -243,6 +249,11 @@
           "type": "boolean",
           "default": false,
           "description": "Automatically start the user program after connecting to a device."
+        },
+        "blocklypy-vscode.autoClearTerminal": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically clear the terminal before compiling and running a program."
         }
       }
     },

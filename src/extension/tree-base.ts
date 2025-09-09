@@ -15,12 +15,10 @@ export class BaseTreeItem extends vscode.TreeItem {
         label: string,
         command: string,
         icon: string,
-        collapsibleState: vscode.TreeItemCollapsibleState = vscode
-            .TreeItemCollapsibleState.None,
         context?: vscode.ExtensionContext,
         checkboxState?: vscode.TreeItemCheckboxState,
     ) {
-        super(label, collapsibleState);
+        super(label);
         if (checkboxState !== undefined) {
             this.checkboxState = checkboxState;
         }
@@ -78,7 +76,7 @@ export abstract class BaseTreeDataProvider<T extends BaseTreeItem>
     async init(context: vscode.ExtensionContext) {
         this.context = context;
         this.commands = context.extension.packageJSON.contributes.commands;
-        this.refresh();
+        // this.refresh();
     }
 
     getTreeItem(element: T): T {
@@ -97,11 +95,10 @@ export abstract class BaseTreeDataProvider<T extends BaseTreeItem>
             cmd.title = cmd.title?.replace(PACKAGEJSON_COMMAND_PREFIX, '') ?? '';
 
             const elem = new BaseTreeItem(
-                cmd.title ?? '',
-                cmd.title ?? '',
+                cmd.title ?? cmd.command ?? '',
+                cmd.title ?? cmd.command ?? '',
                 cmd.command ?? '',
                 cmd.icon ?? '',
-                vscode.TreeItemCollapsibleState.None,
                 this.context,
                 e.check === undefined
                     ? undefined

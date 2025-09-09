@@ -16,10 +16,12 @@ OSError: [Errno 19] ENODEV:
 // <https://code.visualstudio.com/api/extension-guides/virtual-documents>
 - more: <https://code.visualstudio.com/api/references/vscode-api#FileSystemProvider>
 - ? web extension: <https://code.visualstudio.com/api/extension-guides/web-extensions>
-- AI extensiobility <https://code.visualstudio.com/api/extension-guides/ai/ai-extensibility-overview>
+- AI extensibility <https://code.visualstudio.com/api/extension-guides/ai/ai-extensibility-overview>
 
 - <https://code.visualstudio.com/api/references/contribution-points>
 
 - option: auto clear debug log
 - debug log input mode
 - clear error on file change (e.g. edit)
+
+- implement pybricks auto complete for the pybricks python language
