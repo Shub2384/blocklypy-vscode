@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
 
 import { compileAndRunAsync } from '../commands/compile-and-run';
-import { connectDeviceAsync } from '../commands/connect-device';
 import { disconnectDeviceAsync } from '../commands/disconnect-device';
 import { startUserProgramAsync } from '../commands/start-user-program';
 import { stopUserProgramAsync } from '../commands/stop-user-program';
@@ -11,11 +10,11 @@ import { BlocklypyViewerProvider, ViewType } from '../views/BlocklypyViewerProvi
 import { PybricksPythonPreviewProvider } from '../views/PybricksPythonPreviewProvider';
 import { settingsTreeData } from './tree-settings';
 import { openOrActivate } from './utils';
+import { connectDeviceAsync } from '../commands/connect-device';
 
 // Define the BlocklyPyCommand enum for all command strings
 export enum Commands {
     ConnectDevice = 'blocklypy-vscode.connectDevice',
-    ConnectDeviceLastConnected = 'blocklypy-vscode.connectDeviceLastConnected',
     DisconnectDevice = 'blocklypy-vscode.disconnectDevice',
     Compile = 'blocklypy-vscode.compile',
     CompileAndRun = 'blocklypy-vscode.compileAndRun',
@@ -36,16 +35,7 @@ export enum Commands {
 }
 
 export const commandHandlers: Map<Commands, (...args: any) => Promise<void>> = new Map([
-    [
-        Commands.ConnectDevice,
-        async (name: any) => {
-            await connectDeviceAsync(name);
-        },
-    ],
-    [
-        Commands.ConnectDeviceLastConnected,
-        async () => await connectDeviceAsync(Config.lastConnectedDevice),
-    ],
+    [Commands.ConnectDevice, connectDeviceAsync],
     [
         Commands.Compile,
         async () => {

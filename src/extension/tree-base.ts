@@ -2,11 +2,12 @@ import * as vscode from 'vscode';
 
 const PACKAGEJSON_COMMAND_PREFIX = 'BlocklyPy: ';
 
-export interface ITreeItem {
+export interface TreeItemData {
     command: string;
     title?: string;
     icon?: string;
     check?: boolean;
+    commandArguments?: any[];
 }
 
 export class BaseTreeItem extends vscode.TreeItem {
@@ -14,9 +15,10 @@ export class BaseTreeItem extends vscode.TreeItem {
         title: string,
         label: string,
         command: string,
-        icon: string,
+        icon: string | { light: string; dark: string },
         context?: vscode.ExtensionContext,
         checkboxState?: vscode.TreeItemCheckboxState,
+        commandArguments?: any[],
     ) {
         super(label);
         if (checkboxState !== undefined) {
@@ -24,9 +26,10 @@ export class BaseTreeItem extends vscode.TreeItem {
         }
         if (command) {
             this.command = {
-                command: command,
-                title: title,
-            };
+                command,
+                title,
+                arguments: commandArguments,
+            } as vscode.Command;
         }
         if (icon) {
             this.processIcon(icon, context);
@@ -63,7 +66,7 @@ export class BaseTreeItem extends vscode.TreeItem {
     }
 }
 
-export abstract class BaseTreeDataProvider<T extends BaseTreeItem>
+export abstract class BaseTreeDataProvider<T extends TreeItemData>
     implements vscode.TreeDataProvider<T>
 {
     protected _onDidChangeTreeData: vscode.EventEmitter<T | undefined | void> =
@@ -73,14 +76,35 @@ export abstract class BaseTreeDataProvider<T extends BaseTreeItem>
     protected context?: vscode.ExtensionContext;
     protected commands: { command?: string; title?: string; icon?: string }[] = [];
 
+    private itemMap = new Map<string, T>();
     async init(context: vscode.ExtensionContext) {
         this.context = context;
         this.commands = context.extension.packageJSON.contributes.commands;
         // this.refresh();
     }
 
-    getTreeItem(element: T): T {
-        return element;
+    getTreeItem(element: T): vscode.TreeItem {
+        let cmd = {
+            ...this.commands?.find((c) => c.command === element.command),
+            ...element,
+        };
+        const title =
+            element.title ?? cmd.title?.replace(PACKAGEJSON_COMMAND_PREFIX, '') ?? '';
+        const icon = element.icon ?? cmd.icon ?? '';
+
+        return new BaseTreeItem(
+            title,
+            title,
+            element.command ?? '',
+            icon,
+            this.context,
+            element.check === undefined
+                ? undefined
+                : element.check
+                ? vscode.TreeItemCheckboxState.Checked
+                : vscode.TreeItemCheckboxState.Unchecked,
+            element.commandArguments,
+        );
     }
     abstract getChildren(element?: T): vscode.ProviderResult<T[]>;
 
@@ -88,26 +112,7 @@ export abstract class BaseTreeDataProvider<T extends BaseTreeItem>
         this._onDidChangeTreeData.fire();
     }
 
-    protected expandChildren(elems: ITreeItem[]) {
-        const elems2 = [] as BaseTreeItem[];
-        for (const e of elems) {
-            let cmd = { ...this.commands?.find((c) => c.command === e.command), ...e };
-            cmd.title = cmd.title?.replace(PACKAGEJSON_COMMAND_PREFIX, '') ?? '';
-
-            const elem = new BaseTreeItem(
-                cmd.title ?? cmd.command ?? '',
-                cmd.title ?? cmd.command ?? '',
-                cmd.command ?? '',
-                cmd.icon ?? '',
-                this.context,
-                e.check === undefined
-                    ? undefined
-                    : e.check
-                    ? vscode.TreeItemCheckboxState.Checked
-                    : vscode.TreeItemCheckboxState.Unchecked,
-            );
-            elems2.push(elem);
-        }
-        return elems2;
+    refreshItem(item: T) {
+        this._onDidChangeTreeData.fire(item);
     }
 }

@@ -2,10 +2,10 @@ import * as vscode from 'vscode';
 import { EXTENSION_KEY } from '../const';
 import Config from '../utils/config';
 import { Commands } from './commands';
-import { BaseTreeDataProvider, BaseTreeItem } from './tree-base';
+import { BaseTreeDataProvider, BaseTreeItem, TreeItemData } from './tree-base';
 
-class SettingsTreeDataProvider extends BaseTreeDataProvider<BaseTreeItem> {
-    getChildren(element?: BaseTreeItem): vscode.ProviderResult<BaseTreeItem[]> {
+class SettingsTreeDataProvider extends BaseTreeDataProvider<TreeItemData> {
+    getChildren(element?: TreeItemData): vscode.ProviderResult<TreeItemData[]> {
         if (element) return [];
 
         const elems = [
@@ -22,11 +22,7 @@ class SettingsTreeDataProvider extends BaseTreeDataProvider<BaseTreeItem> {
                 check: Config.autoClearTerminal === true,
             },
         ];
-        return this.expandChildren(elems);
-    }
-
-    getTreeItem(element: BaseTreeItem): BaseTreeItem {
-        return element;
+        return elems;
     }
 }
 
@@ -39,10 +35,10 @@ function registerSettingsTree(context: vscode.ExtensionContext) {
     });
 
     settingsTreeView.onDidChangeCheckboxState(
-        (e: vscode.TreeCheckboxChangeEvent<BaseTreeItem>) => {
+        (e: vscode.TreeCheckboxChangeEvent<TreeItemData>) => {
             e.items.forEach(([elem, state1]) => {
                 const state = state1 === vscode.TreeItemCheckboxState.Checked;
-                switch (elem.command?.command) {
+                switch (elem.command) {
                     case Commands.ToggleAutoConnect:
                         Config.setAutoConnect(state).then(SettingsTree.refresh);
                         break;

@@ -37,7 +37,7 @@ export async function openOrActivate(uri: vscode.Uri) {
 export function wrapErrorHandling(fn: (...args: any) => Promise<void>) {
     return async (...args: any) => {
         try {
-            await fn(args);
+            await fn(...args);
         } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
             showError(message);

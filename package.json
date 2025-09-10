@@ -60,14 +60,6 @@
         }
       },
       {
-        "command": "blocklypy-vscode.connectDeviceLastConnected",
-        "title": "BlocklyPy: Connect Last Connected Device",
-        "icon": {
-          "light": "asset/hub-small-fav-light.svg",
-          "dark": "asset/hub-small-fav-dark.svg"
-        }
-      },
-      {
         "command": "blocklypy-vscode.disconnectDevice",
         "title": "BlocklyPy: Disconnect Device",
         "icon": "$(debug-disconnect)"
@@ -186,6 +178,11 @@
         {
           "id": "blocklypy-vscode-commands",
           "name": "Commands",
+          "icon": "asset/icon.svg"
+        },
+        {
+          "id": "blocklypy-vscode-devices",
+          "name": "Devices",
           "icon": "asset/icon.svg"
         },
         {
@@ -374,10 +371,10 @@
   "scripts": {
     "vscode:prepublish": "npm run package",
     "compile": "webpack",
-    "watch": "webpack --watch",
+    "watch": "webpack --watch --config-node-env development --devtool source-map",
     "package": "webpack --mode production --devtool hidden-source-map",
     "compile-tests": "tsc -p . --outDir out",
-    "watch-tests": "tsc -p . -w --outDir out",
+    "watch-tests": "NODE_ENV=development tsc -p . -w --outDir out",
     "pretest": "npm run compile-tests && npm run compile && npm run lint",
     "lint": "eslint src",
     "test": "vscode-test",

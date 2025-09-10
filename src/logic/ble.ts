@@ -24,7 +24,6 @@ import Config from '../utils/config';
 
 export enum BLEStatus {
     Disconnected = 'disconnected',
-    Scanning = 'scanning',
     Connecting = 'connecting',
     Connected = 'connected',
     Disconnecting = 'disconnecting',
@@ -61,11 +60,7 @@ class BLE {
     }
 
     public async connectAsync(name: string, onChange?: () => void) {
-        if (
-            this.Status in [BLEStatus.Disconnected, BLEStatus.Error, BLEStatus.Scanning]
-        ) {
-            return;
-        }
+        if (this.Status in [BLEStatus.Disconnected, BLEStatus.Error]) return;
 
         const peripheral = this.allDevices[name];
         if (!peripheral) {
@@ -230,80 +225,82 @@ class BLE {
         }
     }
 
-    public async startScanningAsync(onDiscover?: (peripheral: Peripheral) => void) {
-        this.allDevices = {};
-        await retryWithTimeout(
-            async () => {
-                await this.startScanningOnceAsync(onDiscover);
-            },
-            async () => {
-                try {
-                    await this.stopScanningAsync();
-                } catch (error) {
-                    console.error(error);
-                }
-            },
-        );
-    }
+    // public async startScanningAsync(onDiscover?: (peripheral: Peripheral) => void) {
+    //     this.allDevices = {};
+    //     await retryWithTimeout(
+    //         async () => {
+    //             await this.startScanningOnceAsync(onDiscover);
+    //         },
+    //         async () => {
+    //             try {
+    //                 await this.stopScanningAsync();
+    //             } catch (error) {
+    //                 console.error(error);
+    //             }
+    //         },
+    //     );
+    // }
 
-    private async startScanningOnceAsync(
-        onDiscover?: (peripheral: Peripheral) => void,
-    ) {
-        if (this.isScanning) {
-            await this.stopScanningAsync();
-        }
-
+    public async startScanning() {
         this.isScanning = true;
-        if (
-            this.Status === BLEStatus.Connecting ||
-            this.Status === BLEStatus.Disconnecting
-        ) {
-            return;
-        }
         this.allDevices = {};
+        await noble.startScanningAsync([], true);
         noble.on('discover', (peripheral) => {
             const { localName, serviceUuids } = peripheral.advertisement;
-            // if (!localName || localName in this.allDevices) {
-            //     return;
-            // }
-
             if (
-                !serviceUuids ||
-                !serviceUuids.some(
+                serviceUuids?.some(
                     (uuid) =>
                         uuid.replace(/-/g, '').toLowerCase() ===
                         pybricksServiceUUID.replace(/-/g, '').toLowerCase(),
                 )
             ) {
-                return;
-            }
-
-            this.allDevices[localName] = peripheral;
-
-            if (onDiscover) {
-                onDiscover(peripheral);
+                this.allDevices[localName] = peripheral;
+                this.listeners.forEach((fn) => fn(peripheral));
             }
         });
-        await noble.startScanningAsync([], true);
-        if (this.Status === BLEStatus.Disconnected) {
-            this.Status = BLEStatus.Scanning;
-        }
-
-        while (Object.keys(this.allDevices).length === 0 && this.isScanning) {
-            await new Promise((resolve) => setTimeout(resolve, 500));
-        }
-        // keep scanning for a while to find more devices?
     }
+
+    // add listeners here and not on noble
+    private listeners: ((peripheral: Peripheral) => void)[] = [];
+    public addListener(fn: (peripheral: Peripheral) => void) {
+        if (this.listeners.indexOf(fn) === -1) {
+            this.listeners.push(fn);
+        }
+    }
+    public removeListener(fn: (peripheral: Peripheral) => void) {
+        const idx = this.listeners.indexOf(fn);
+        if (idx !== -1) {
+            this.listeners.splice(idx, 1);
+        }
+    }
+
+    // private async startScanningOnceAsync(
+    //     onDiscover?: (peripheral: Peripheral) => void,
+    // ) {
+    //     if (this.isScanning) {
+    //         await this.stopScanningAsync();
+    //     }
+
+    //     this.isScanning = true;
+    //     if (
+    //         this.Status === BLEStatus.Connecting ||
+    //         this.Status === BLEStatus.Disconnecting
+    //     ) {
+    //         return;
+    //     }
+    //     this.startScanning();
+    //     await noble.startScanningAsync([], true);
+
+    //     while (Object.keys(this.allDevices).length === 0 && this.isScanning) {
+    //         await new Promise((resolve) => setTimeout(resolve, 500));
+    //     }
+    // }
 
     public async stopScanningAsync() {
         if (this.isScanning) {
             noble.removeAllListeners('discover');
             noble.stopScanning();
             this.isScanning = false;
-
-            if (this.Status === BLEStatus.Scanning) {
-                this.Status = BLEStatus.Disconnected;
-            }
         }
     }
 

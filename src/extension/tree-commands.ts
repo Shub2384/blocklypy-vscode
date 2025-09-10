@@ -1,53 +1,42 @@
 import * as vscode from 'vscode';
 import { EXTENSION_KEY } from '../const';
 import { Device } from '../logic/ble';
-import Config from '../utils/config';
 import { Commands } from './commands';
-import { BaseTreeDataProvider, BaseTreeItem, ITreeItem } from './tree-base';
+import { BaseTreeDataProvider, TreeItemData } from './tree-base';
 import { ToCapialized } from './utils';
 
-class CommandsTreeDataProvider extends BaseTreeDataProvider<BaseTreeItem> {
-    getTreeItem(element: BaseTreeItem): BaseTreeItem {
-        if (element.command?.command === Commands.DisconnectDevice) {
-            element.label = Device.Current
+class CommandsTreeDataProvider extends BaseTreeDataProvider<TreeItemData> {
+    getTreeItem(element: TreeItemData): vscode.TreeItem {
+        const retval = super.getTreeItem(element);
+
+        // customize label for some commands
+        if (element.command === Commands.DisconnectDevice) {
+            retval.label = Device.Current
                 ? `Disconnect from ${Device.Current.advertisement.localName}`
                 : 'Disconnect';
-        } else if (element.command?.command === Commands.ConnectDeviceLastConnected) {
-            element.label = Config.lastConnectedDevice
-                ? `Connect to ${Config.lastConnectedDevice}`
-                : 'Connect Last Connected Device';
-        } else if (element.command?.command === Commands.StatusPlaceHolder) {
-            element.label =
+        } else if (element.command === Commands.StatusPlaceHolder) {
+            retval.label =
                 'Status: ' + ToCapialized(Device.Status ?? 'No Device Connected');
         }
-        return element;
+        return retval;
     }
 
-    getChildren(element?: BaseTreeItem): vscode.ProviderResult<BaseTreeItem[]> {
+    getChildren(element?: TreeItemData): vscode.ProviderResult<TreeItemData[]> {
         if (element) return [];
 
-        const elems = [] as ITreeItem[];
-        // const isDevelopmentMode = process.env.NODE_ENV === 'development';
-        if (!Device.Current) {
-            // if (isDevelopmentMode) {
-            //     elems.push({ command: Commands.Compile });
-            // }
-            elems.push({ command: Commands.ConnectDevice });
-            if (Config.lastConnectedDevice) {
-                elems.push({ command: Commands.ConnectDeviceLastConnected });
-            }
-        } else {
-            elems.push({ command: Commands.DisconnectDevice });
+        const elems = [] as TreeItemData[];
+        if (Device.Current) {
             elems.push({ command: Commands.CompileAndRun });
-            if (!Device.IsProgramRunning) {
-                elems.push({ command: Commands.StartUserProgram });
-            } else {
-                elems.push({ command: Commands.StopUserProgram });
-            }
+            elems.push({
+                command: Device.IsProgramRunning
+                    ? Commands.StopUserProgram
+                    : Commands.StartUserProgram,
+            });
+            elems.push({ command: Commands.DisconnectDevice });
         }
         elems.push({ command: Commands.StatusPlaceHolder });
 
-        return this.expandChildren(elems);
+        return elems;
     }
 }
 
