@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { EXTENSION_KEY } from '../const';
 import Config from '../utils/config';
 import { Commands } from './commands';
-import { BaseTreeDataProvider, BaseTreeItem, TreeItemData } from './tree-base';
+import { BaseTreeDataProvider, TreeItemData } from './tree-base';
 
 class SettingsTreeDataProvider extends BaseTreeDataProvider<TreeItemData> {
     getChildren(element?: TreeItemData): vscode.ProviderResult<TreeItemData[]> {

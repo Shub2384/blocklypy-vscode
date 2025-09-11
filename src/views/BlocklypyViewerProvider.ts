@@ -5,6 +5,7 @@ import {
 } from 'blocklypy';
 import path from 'path';
 import * as vscode from 'vscode';
+import { checkExtraFilesForConversion } from '../blocklypy/collectfiles';
 import { EXTENSION_KEY } from '../const';
 import {
     setContextContentAvailability,
@@ -13,7 +14,6 @@ import {
 import { logDebug } from '../extension/debug-channel';
 import GraphvizLoader from '../utils/graphviz-helper';
 import { CustomEditorProviderBase } from './CustomEditorProviderBase';
-import { checkExtraFilesForConversion } from '../blocklypy/collectfiles';
 
 interface BlocklypyViewerContent {
     filename?: string;

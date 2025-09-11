@@ -4,8 +4,8 @@
  * See tsconfig.webview.json and .vscode/tasks.json.
  */
 
-import svgPanZoom from 'svg-pan-zoom';
 import * as monaco from 'monaco-editor';
+import svgPanZoom from 'svg-pan-zoom';
 
 declare const acquireVsCodeApi: any;
 const vscode = acquireVsCodeApi();

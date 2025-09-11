@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 
 import { compileAndRunAsync } from '../commands/compile-and-run';
+import { connectDeviceAsync } from '../commands/connect-device';
 import { disconnectDeviceAsync } from '../commands/disconnect-device';
 import { startUserProgramAsync } from '../commands/start-user-program';
 import { stopUserProgramAsync } from '../commands/stop-user-program';
@@ -10,7 +11,6 @@ import { BlocklypyViewerProvider, ViewType } from '../views/BlocklypyViewerProvi
 import { PybricksPythonPreviewProvider } from '../views/PybricksPythonPreviewProvider';
 import { settingsTreeData } from './tree-settings';
 import { openOrActivate } from './utils';
-import { connectDeviceAsync } from '../commands/connect-device';
 
 // Define the BlocklyPyCommand enum for all command strings
 export enum Commands {

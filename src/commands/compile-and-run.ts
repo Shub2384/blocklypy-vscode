@@ -4,8 +4,6 @@ import { Device } from '../logic/ble';
 import { compileAsync } from '../logic/compile';
 import { setState, StateProp } from '../logic/state';
 import {
-    createLegacyStartUserProgramCommand,
-    createStopUserProgramCommand,
     createWriteUserProgramMetaCommand,
     createWriteUserRamCommand,
 } from '../pybricks/protocol';

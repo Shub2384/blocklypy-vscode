@@ -1,10 +1,10 @@
 import * as vscode from 'vscode';
 import { EXTENSION_KEY } from '../const';
 import { Device } from '../logic/ble';
+import { hasState, StateProp } from '../logic/state';
 import { Commands } from './commands';
 import { BaseTreeDataProvider, TreeItemData } from './tree-base';
 import { ToCapialized } from './utils';
-import { hasState, StateProp } from '../logic/state';
 
 class CommandsTreeDataProvider extends BaseTreeDataProvider<TreeItemData> {
     getTreeItem(element: TreeItemData): vscode.TreeItem {

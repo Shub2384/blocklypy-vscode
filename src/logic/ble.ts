@@ -21,7 +21,7 @@ import {
     pybricksDecodeBleBroadcastData,
     PybricksDecodedBleBroadcast,
 } from '../pybricks/protocol-ble-broadcast';
-import { retryWithTimeout, withTimeout } from '../utils/async';
+import { withTimeout } from '../utils/async';
 import Config from '../utils/config';
 import { setState, StateProp } from './state';
 import { handlePythonError } from './stdout-helper';

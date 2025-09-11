@@ -1,4 +1,3 @@
-import * as vscode from 'vscode';
 import { Device } from '../logic/ble';
 import { createStopUserProgramCommand } from '../pybricks/protocol';
 

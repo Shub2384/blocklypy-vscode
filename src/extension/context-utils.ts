@@ -5,8 +5,8 @@ import {
     BlocklypyViewerContentAvailabilityMap,
     ViewType,
 } from '../views/BlocklypyViewerProvider';
-import { ToCapialized } from './utils';
 import { TreeCommands } from './tree-commands';
+import { ToCapialized } from './utils';
 
 const CONTEXT_BASE = EXTENSION_KEY + '.';
 

@@ -1,6 +1,6 @@
-import * as vscode from 'vscode';
 import { parse, walk } from '@pybricks/python-program-analysis';
 import path from 'path';
+import * as vscode from 'vscode';
 
 type Module = {
     name: string;
