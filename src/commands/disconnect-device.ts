@@ -2,7 +2,7 @@ import { TreeCommands } from '../extension/tree-commands';
 import { Device } from '../logic/ble';
 
 export async function disconnectDeviceAsync() {
-    if (!Device.Current) {
+    if (!Device.current) {
         throw new Error('No device is currently connected.');
     }
 

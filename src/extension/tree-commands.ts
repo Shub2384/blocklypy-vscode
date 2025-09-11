@@ -11,12 +11,12 @@ class CommandsTreeDataProvider extends BaseTreeDataProvider<TreeItemData> {
 
         // customize label for some commands
         if (element.command === Commands.DisconnectDevice) {
-            retval.label = Device.Current
-                ? `Disconnect from ${Device.Current.advertisement.localName}`
+            retval.label = Device.current
+                ? `Disconnect from ${Device.current.peripheral.advertisement.localName}`
                 : 'Disconnect';
         } else if (element.command === Commands.StatusPlaceHolder) {
             retval.label =
-                'Status: ' + ToCapialized(Device.Status ?? 'No Device Connected');
+                'Status: ' + ToCapialized(Device.status ?? 'No Device Connected');
         }
         return retval;
     }
@@ -25,10 +25,10 @@ class CommandsTreeDataProvider extends BaseTreeDataProvider<TreeItemData> {
         if (element) return [];
 
         const elems = [] as TreeItemData[];
-        if (Device.Current) {
+        if (Device.current) {
             elems.push({ command: Commands.CompileAndRun });
             elems.push({
-                command: Device.IsProgramRunning
+                command: Device.isProgramRunning
                     ? Commands.StopUserProgram
                     : Commands.StartUserProgram,
             });
@@ -41,13 +41,15 @@ class CommandsTreeDataProvider extends BaseTreeDataProvider<TreeItemData> {
 }
 
 export const TreeCommands = new CommandsTreeDataProvider();
-export function registerCommandsTree(context: vscode.ExtensionContext) {
-    vscode.window.registerTreeDataProvider(EXTENSION_KEY + '-commands', TreeCommands);
+export function registerCommandsTree(
+    context: vscode.ExtensionContext,
+): vscode.Disposable {
+    // vscode.window.registerTreeDataProvider(EXTENSION_KEY + '-commands', TreeCommands);
     TreeCommands.init(context);
 
-    // const commandsTreeView = vscode.window.createTreeView(EXTENSION_KEY+'-commands', {
-    //     treeDataProvider: TreeCommands,
-    // });
+    const treeview = vscode.window.createTreeView(EXTENSION_KEY + '-commands', {
+        treeDataProvider: TreeCommands,
+    });
 
-    // return commandsTreeView;
+    return vscode.Disposable.from(treeview);
 }

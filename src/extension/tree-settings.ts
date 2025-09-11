@@ -27,14 +27,14 @@ class SettingsTreeDataProvider extends BaseTreeDataProvider<TreeItemData> {
 }
 
 const SettingsTree = new SettingsTreeDataProvider();
-function registerSettingsTree(context: vscode.ExtensionContext) {
+function registerSettingsTree(context: vscode.ExtensionContext): vscode.Disposable {
     SettingsTree.init(context);
 
-    const settingsTreeView = vscode.window.createTreeView(EXTENSION_KEY + '-settings', {
+    const treeview = vscode.window.createTreeView(EXTENSION_KEY + '-settings', {
         treeDataProvider: SettingsTree,
     });
 
-    settingsTreeView.onDidChangeCheckboxState(
+    treeview.onDidChangeCheckboxState(
         (e: vscode.TreeCheckboxChangeEvent<TreeItemData>) => {
             e.items.forEach(([elem, state1]) => {
                 const state = state1 === vscode.TreeItemCheckboxState.Checked;
@@ -53,7 +53,7 @@ function registerSettingsTree(context: vscode.ExtensionContext) {
         },
     );
 
-    return settingsTreeView;
+    return vscode.Disposable.from(treeview);
 }
 
 export { registerSettingsTree, SettingsTree as settingsTreeData };

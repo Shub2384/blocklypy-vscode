@@ -10,9 +10,25 @@ export const pybricksServiceUUID = 'c5f50001-8280-46da-89f4-6d8051e4aeef';
 /** Pybricks control/event characteristic UUID. */
 export const pybricksControlEventCharacteristicUUID =
     'c5f50002-8280-46da-89f4-6d8051e4aeef';
+
 /** Pybricks hub capabilities characteristic UUID. */
 export const pybricksHubCapabilitiesCharacteristicUUID =
     'c5f50003-8280-46da-89f4-6d8051e4aeef';
+
+/** Bluetooth Device Information Service UUID. */
+export const pbio_gatt_device_info_service_uuid = 0x180a;
+
+/** Bluetooth Device Name Characteristic UUID. */
+export const pbio_gatt_device_name_char_uuid = 0x2a00;
+
+/** Bluetooth Firmware Version Characteristic UUID. */
+export const pbio_gatt_firmware_version_char_uuid = 0x2a26;
+
+/** Bluetooth Software Version Characteristic UUID (Pybricks protocol version). */
+export const pbio_gatt_software_version_char_uuid = 0x2a28;
+
+/** Bluetooth PnP ID Characteristic UUID. */
+export const pbio_gatt_pnp_id_char_uuid = 0x2a50;
 
 /** Commands are instructions sent to the hub. */
 export enum CommandType {

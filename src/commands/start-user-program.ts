@@ -3,7 +3,7 @@ import { Device } from '../logic/ble';
 import { createLegacyStartUserProgramCommand } from '../pybricks/protocol';
 
 export async function startUserProgramAsync() {
-    if (!Device.Current) {
+    if (!Device.current) {
         throw new Error(
             'No device selected. Please connect to a Pybricks device first.',
         );

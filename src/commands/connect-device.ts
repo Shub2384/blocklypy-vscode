@@ -5,7 +5,7 @@ import { BLEStatus, Device } from '../logic/ble';
 const items: vscode.QuickPickItem[] = [];
 
 async function _connect(name: string) {
-    if (Device.Status !== BLEStatus.Disconnected && Device.Status !== BLEStatus.Error) {
+    if (Device.status !== BLEStatus.Disconnected && Device.status !== BLEStatus.Error) {
         await Device.disconnectAsync();
     }
 
@@ -23,7 +23,7 @@ export async function connectDeviceAsync(name: string) {
         throw new Error('No device name provided to connect to.');
     }
 
-    if (Device.Status !== BLEStatus.Disconnected && Device.Status !== BLEStatus.Error) {
+    if (Device.status !== BLEStatus.Disconnected && Device.status !== BLEStatus.Error) {
         await Device.disconnectAsync();
     }
 

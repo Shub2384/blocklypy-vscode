@@ -25,3 +25,4 @@ OSError: [Errno 19] ENODEV:
 - clear error on file change (e.g. edit)
 
 - implement pybricks auto complete for the pybricks python language
+-

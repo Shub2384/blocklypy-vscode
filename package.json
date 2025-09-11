@@ -39,14 +39,23 @@
     "type": "git",
     "url": "https://github.com/afarago/blocklypy-vscode.git"
   },
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/afarago/blocklypy-vscode/issues"
+  },
   "icon": "icon.png",
-  "activationEvents": [],
+  "activationEvents": [
+    "onStartupFinished",
+    "onLanguage:python",
+    "onLanguage:lego",
+    "onWebviewPanel:blocklypy-vscode.blocklypyViewer",
+    "onWebviewPanel:blocklypy-vscode.pythonPreview"
+  ],
   "main": "./dist/extension.js",
   "packageManager": "yarn@1.22.19",
   "files": [
     "dist",
     "asset/",
-    "src/assets/",
     "screenshot/"
   ],
   "contributes": {
@@ -194,13 +203,13 @@
     },
     "keybindings": [
       {
-        "command": "blocklypy-vscode.connectDeviceLastConnected",
-        "key": "f12",
-        "when": "editorLangId == python || view == blocklyPyVSCodeCommander"
-      },
-      {
         "command": "blocklypy-vscode.compileAndRun",
         "key": "f5",
+        "when": "editorLangId == python || activeCustomEditorId == blocklypy-vscode.blocklypyViewer"
+      },
+      {
+        "command": "blocklypy-vscode.compile",
+        "key": "shift+f5",
         "when": "editorLangId == python || activeCustomEditorId == blocklypy-vscode.blocklypyViewer"
       },
       {
@@ -215,7 +224,7 @@
       },
       {
         "command": "blocklypy-vscode.blocklypyViewer.displayPreviousView",
-        "key": "Shift+f7",
+        "key": "shift+f7",
         "when": "activeCustomEditorId == blocklypy-vscode.blocklypyViewer"
       },
       {
@@ -383,6 +392,7 @@
     "publish-extension": "npx vsce publish"
   },
   "devDependencies": {
+    "@types/lodash": "^4.17.20",
     "@types/mocha": "^10.0.10",
     "@types/node": "20.x",
     "@types/resolve": "^1.20.6",
@@ -409,6 +419,7 @@
     "@pybricks/mpy-cross-v6": "^2.0.0",
     "@pybricks/python-program-analysis": "^2.0.0",
     "blocklypy": "^0.1.9",
+    "lodash": "^4.17.21",
     "resolve": "^1.22.10",
     "svg-pan-zoom": "^3.6.2"
   }

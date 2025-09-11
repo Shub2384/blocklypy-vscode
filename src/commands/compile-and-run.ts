@@ -18,7 +18,7 @@ export async function compileAndRunAsync() {
 
     const blob = await compileAsync();
 
-    if (!Device.Current) {
+    if (!Device.current) {
         throw new Error(
             'No device selected. Please connect to a Pybricks device first.',
         );

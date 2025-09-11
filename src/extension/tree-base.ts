@@ -3,37 +3,48 @@ import * as vscode from 'vscode';
 const PACKAGEJSON_COMMAND_PREFIX = 'BlocklyPy: ';
 
 export interface TreeItemData {
+    id?: string;
     command: string;
     title?: string;
+    description?: string;
     icon?: string;
     check?: boolean;
     commandArguments?: any[];
+    collapsibleState?: vscode.TreeItemCollapsibleState;
 }
 
 export class BaseTreeItem extends vscode.TreeItem {
     constructor(
-        title: string,
+        id: string | undefined,
         label: string,
         command: string,
         icon: string | { light: string; dark: string },
         context?: vscode.ExtensionContext,
         checkboxState?: vscode.TreeItemCheckboxState,
         commandArguments?: any[],
+        description?: string,
+        collapsibleState: vscode.TreeItemCollapsibleState = vscode
+            .TreeItemCollapsibleState.None,
     ) {
         super(label);
+        this.id = id;
+        // this.contextValue = id;
+        // this.tooltip = label;
         if (checkboxState !== undefined) {
             this.checkboxState = checkboxState;
         }
         if (command) {
             this.command = {
                 command,
-                title,
+                title: label,
                 arguments: commandArguments,
             } as vscode.Command;
         }
         if (icon) {
             this.processIcon(icon, context);
         }
+        this.description = description;
+        this.collapsibleState = collapsibleState;
     }
 
     processIcon(
@@ -93,7 +104,7 @@ export abstract class BaseTreeDataProvider<T extends TreeItemData>
         const icon = element.icon ?? cmd.icon ?? '';
 
         return new BaseTreeItem(
-            title,
+            element.id,
             title,
             element.command ?? '',
             icon,
@@ -104,6 +115,8 @@ export abstract class BaseTreeDataProvider<T extends TreeItemData>
                 ? vscode.TreeItemCheckboxState.Checked
                 : vscode.TreeItemCheckboxState.Unchecked,
             element.commandArguments,
+            element.description,
+            element.collapsibleState,
         );
     }
     abstract getChildren(element?: T): vscode.ProviderResult<T[]>;

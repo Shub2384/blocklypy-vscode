@@ -14,26 +14,33 @@ import { registerDevicesTree } from './extension/tree-devices';
 export const EXTENSION_ID = 'afarago.blocklypy-vscode';
 
 export function activate(context: vscode.ExtensionContext) {
-    BlocklypyViewerProvider.register(
-        context,
-        BlocklypyViewerProvider,
-        BlocklypyViewerProvider.TypeKey,
-    );
-    PybricksPythonPreviewProvider.register(
-        context,
-        PybricksPythonPreviewProvider,
-        PybricksPythonPreviewProvider.TypeKey,
-    );
-
-    registerCommandsTree(context);
-    registerDevicesTree(context);
-    registerSettingsTree(context);
-
+    // First, register all commands explicitly
     context.subscriptions.push(
         ...Array.from(commandHandlers).map(([name, command]) =>
             vscode.commands.registerCommand(name, wrapErrorHandling(command)),
         ),
     );
+
+    // register webview providers
+    context.subscriptions.push(
+        BlocklypyViewerProvider.register(
+            context,
+            BlocklypyViewerProvider,
+            BlocklypyViewerProvider.TypeKey,
+        ),
+    );
+    context.subscriptions.push(
+        PybricksPythonPreviewProvider.register(
+            context,
+            PybricksPythonPreviewProvider,
+            PybricksPythonPreviewProvider.TypeKey,
+        ),
+    );
+
+    // register tree views
+    context.subscriptions.push(registerCommandsTree(context));
+    context.subscriptions.push(registerDevicesTree(context));
+    context.subscriptions.push(registerSettingsTree(context));
 
     context.subscriptions.push(
         vscode.workspace.onDidSaveTextDocument(
@@ -43,8 +50,11 @@ export function activate(context: vscode.ExtensionContext) {
         ),
     );
 
+    // const telemetry = new TelemetryReporter('blocklypy-vscode', '0.2.4');
+    // context.subscriptions.push(telemetry);
+
     // Start BLE scanning at startup and keep it running
-    setTimeout(async () => {
+    const startScanningAndAutoConnect = async () => {
         await Device.startScanning();
 
         // autoconnect to last connected device
@@ -54,15 +64,22 @@ export function activate(context: vscode.ExtensionContext) {
                     Commands.ConnectDevice,
                     Config.lastConnectedDevice,
                 );
-            }, 1000);
+            }, 500);
         }
-    }, 500);
+    };
+    startScanningAndAutoConnect().catch((err) =>
+        console.error('Error starting BLE scan:', err),
+    );
 }
 
 export async function deactivate() {
-    await wrapErrorHandling(stopUserProgramAsync);
-    await wrapErrorHandling(disconnectDeviceAsync);
-    await Device.stopScanningAsync();
+    try {
+        await wrapErrorHandling(stopUserProgramAsync);
+        await wrapErrorHandling(disconnectDeviceAsync);
+        await Device.stopScanningAsync();
+    } catch (err) {
+        console.error('Error during deactivation:', err);
+    }
 }
 
 function onActiveEditorSaveCallback(document: vscode.TextDocument) {
@@ -92,3 +109,5 @@ function onActiveEditorSaveCallback(document: vscode.TextDocument) {
 //     // Optionally show a VS Code error message:
 //     // vscode.window.showErrorMessage('Unhandled Rejection: ' + String(reason));
 // });
+
+// isDevelopmentMode = context.extensionMode === vscode.ExtensionMode.Development

@@ -1,69 +1,106 @@
-import { Peripheral } from '@abandonware/noble';
 import * as vscode from 'vscode';
 import { EXTENSION_KEY } from '../const';
-import { Device } from '../logic/ble';
-import { BaseTreeDataProvider, BaseTreeItem, TreeItemData } from './tree-base';
-import { get } from 'http';
-import path from 'path';
-import { title } from 'process';
+import { Device, DeviceMetadata } from '../logic/ble';
 import { Commands } from './commands';
+import { BaseTreeDataProvider, TreeItemData } from './tree-base';
 
-interface IDeviceLocalCacheItem extends TreeItemData {
-    name: string;
-    rssi: number;
+const DEVICE_VISIBILITY_TIMEOUT = 30000; // milliseconds
+const DEVICE_VISIBILITY_CHECK_INTERVAL = 10000; // milliseconds
+
+export interface TreeItemDeviceData extends TreeItemData {
+    lastSeen?: number;
 }
-const deviceMap = new Map<string, IDeviceLocalCacheItem>();
 
-class DevicesTreeDataProvider extends BaseTreeDataProvider<IDeviceLocalCacheItem> {
+class DevicesTreeDataProvider extends BaseTreeDataProvider<TreeItemDeviceData> {
+    public deviceMap = new Map<string, TreeItemDeviceData>();
+
     getChildren(
-        element?: IDeviceLocalCacheItem,
-    ): vscode.ProviderResult<IDeviceLocalCacheItem[]> {
-        if (element) return [];
+        element?: TreeItemDeviceData,
+    ): vscode.ProviderResult<TreeItemDeviceData[]> {
+        if (element) {
+            return [];
+        }
 
-        return Array.from(deviceMap.values());
+        if (this.deviceMap.size > 0) return Array.from(this.deviceMap.values());
+        else {
+            return [
+                {
+                    title: 'No devices found',
+                    command: '',
+                },
+            ];
+        }
     }
 }
 
 const DevicesTree = new DevicesTreeDataProvider();
-function registerDevicesTree(context: vscode.ExtensionContext) {
+function registerDevicesTree(context: vscode.ExtensionContext): vscode.Disposable {
+    // vscode.window.registerTreeDataProvider(EXTENSION_KEY + '-devices', DevicesTree);
     DevicesTree.init(context);
 
-    const treeView = vscode.window.createTreeView(EXTENSION_KEY + '-devices', {
+    const treeview = vscode.window.createTreeView(EXTENSION_KEY + '-devices', {
         treeDataProvider: DevicesTree,
     });
 
-    const addDevice = (peripheral: Peripheral) => {
+    const addDevice = (device: DeviceMetadata) => {
+        const peripheral = device.peripheral;
         const name = peripheral.advertisement.localName;
         if (!name) return;
 
-        if (deviceMap.has(name)) {
-            const item = deviceMap.get(name)!;
-            item.rssi = peripheral.rssi;
-            item.icon = getSignalIcon(peripheral.rssi);
-            DevicesTree.refreshItem(item);
-        } else {
-            const item = {
-                name,
-                rssi: peripheral.rssi,
-                command: 'blocklypy-vscode.connectDevice',
-                title: name,
-                icon: getSignalIcon(peripheral.rssi),
-                commandArguments: [name],
-            } satisfies IDeviceLocalCacheItem;
-            deviceMap.set(name, item);
+        const item = DevicesTree.deviceMap.get(name) ?? ({} as TreeItemDeviceData);
+        const isNew = item.command === undefined;
+        Object.assign(item, {
+            name,
+            title: name,
+            command: Commands.ConnectDevice,
+            commandArguments: [name],
+            icon: getSignalIcon(peripheral.rssi),
+            description: device.lastBroadcast
+                ? `${device.lastBroadcast.data} on ch:${device.lastBroadcast.channel}`
+                : '',
+            lastSeen: Date.now(),
+        } as TreeItemDeviceData);
+
+        if (isNew) {
+            DevicesTree.deviceMap.set(name, item);
             DevicesTree.refresh();
+        } else {
+            DevicesTree.refreshItem(item);
         }
     };
     Device.addListener(addDevice);
 
-    return treeView;
+    // Periodically remove devices not seen for X seconds
+    const timer = setInterval(() => {
+        const now = Date.now();
+        let changed = false;
+        for (const [name, item] of DevicesTree.deviceMap.entries()) {
+            const lastSeen = item.lastSeen as number | undefined;
+            if (lastSeen && now - lastSeen > DEVICE_VISIBILITY_TIMEOUT) {
+                DevicesTree.deviceMap.delete(name);
+                changed = true;
+            }
+        }
+        if (changed) {
+            DevicesTree.refresh();
+        }
+    }, DEVICE_VISIBILITY_CHECK_INTERVAL);
+
+    return vscode.Disposable.from(
+        treeview,
+        new vscode.Disposable(() => {
+            Device.removeListener(addDevice);
+            clearInterval(timer);
+        }),
+    );
 }
 
-function getSignalIcon(rssi: number) {
+function getSignalIcon(rssi?: number) {
+    if (rssi === undefined) return '';
     const levels = [-85, -70, -60, -45];
     const idx = levels.findIndex((level) => rssi <= level);
     const icon = `asset/signal-${idx === -1 ? 4 : idx}.svg`;
     return icon;
 }
 
-export { registerDevicesTree, DevicesTree };
+export { DevicesTree, registerDevicesTree };
