@@ -16,6 +16,8 @@ import { PybricksPythonPreviewProvider } from './views/PybricksPythonPreviewProv
 export const EXTENSION_ID = 'afarago.blocklypy-vscode';
 
 export function activate(context: vscode.ExtensionContext) {
+    isDevelopmentMode = context.extensionMode === vscode.ExtensionMode.Development;
+
     // First, register all commands explicitly
     context.subscriptions.push(
         ...Array.from(commandHandlers).map(([name, command]) =>
@@ -101,16 +103,16 @@ export function delay(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-// process.on('uncaughtException', (err) => {
-//     console.error('Uncaught Exception:', err);
-//     // Optionally show a VS Code error message:
-//     // vscode.window.showErrorMessage('Uncaught Exception: ' + err.message);
-// });
+export let isDevelopmentMode: boolean;
 
-// process.on('unhandledRejection', (reason, promise) => {
-//     console.error('Unhandled Rejection:', reason);
-//     // Optionally show a VS Code error message:
-//     // vscode.window.showErrorMessage('Unhandled Rejection: ' + String(reason));
-// });
+process.on('uncaughtException', (err) => {
+    if (isDevelopmentMode) console.error('Uncaught Exception:', err);
+    // Optionally show a VS Code error message:
+    // vscode.window.showErrorMessage('Uncaught Exception: ' + err.message);
+});
 
-// isDevelopmentMode = context.extensionMode === vscode.ExtensionMode.Development
+process.on('unhandledRejection', (reason, promise) => {
+    if (isDevelopmentMode) console.error('Unhandled Rejection:', reason);
+    // Optionally show a VS Code error message:
+    // vscode.window.showErrorMessage('Unhandled Rejection: ' + String(reason));
+});

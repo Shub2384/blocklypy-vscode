@@ -2,6 +2,7 @@ import { compile } from '@pybricks/mpy-cross-v6';
 import { parse, walk } from '@pybricks/python-program-analysis';
 import path from 'path';
 import * as vscode from 'vscode';
+import { logDebug } from '../extension/debug-channel';
 import { BlocklypyViewerProvider } from '../views/BlocklypyViewerProvider';
 import { setState, StateProp } from './state';
 
@@ -75,6 +76,7 @@ export async function compileAsync(): Promise<Blob> {
                 }
             }
 
+            // compile module
             const compiled = await compile(
                 module.path,
                 module.content,
@@ -91,6 +93,8 @@ export async function compileAsync(): Promise<Blob> {
 
             checkedModules.add(module.name);
         }
+    } catch (e) {
+        logDebug(`Error compiling: ${e}`);
     } finally {
         setState(StateProp.Compiling, false);
     }

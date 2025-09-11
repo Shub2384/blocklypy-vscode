@@ -1,6 +1,6 @@
 import noble, { Peripheral } from '@abandonware/noble';
 import _ from 'lodash';
-import { delay } from '../extension';
+import { delay, isDevelopmentMode } from '../extension';
 import { logDebug } from '../extension/debug-channel';
 import { clearPythonErrors } from '../extension/diagnostics';
 import { setStatusBarItem } from '../extension/statusbar';
@@ -55,7 +55,10 @@ class BLE {
     constructor() {
         noble.on('stateChange', async (state) => {
             // state = <"unknown" | "resetting" | "unsupported" | "unauthorized" | "poweredOff" | "poweredOn">
-            console.log('Noble state changed to:', state);
+            if (isDevelopmentMode) {
+                logDebug(`Noble state changed to: ${state}`);
+            }
+
             if (state === 'scanStart') {
                 this._isScanning = true;
                 setState(StateProp.Scanning, true);
