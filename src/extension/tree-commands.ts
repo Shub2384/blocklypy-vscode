@@ -4,6 +4,7 @@ import { Device } from '../logic/ble';
 import { Commands } from './commands';
 import { BaseTreeDataProvider, TreeItemData } from './tree-base';
 import { ToCapialized } from './utils';
+import { hasState, StateProp } from '../logic/state';
 
 class CommandsTreeDataProvider extends BaseTreeDataProvider<TreeItemData> {
     getTreeItem(element: TreeItemData): vscode.TreeItem {
@@ -28,7 +29,7 @@ class CommandsTreeDataProvider extends BaseTreeDataProvider<TreeItemData> {
         if (Device.current) {
             elems.push({ command: Commands.CompileAndRun });
             elems.push({
-                command: Device.isProgramRunning
+                command: hasState(StateProp.Running)
                     ? Commands.StopUserProgram
                     : Commands.StartUserProgram,
             });

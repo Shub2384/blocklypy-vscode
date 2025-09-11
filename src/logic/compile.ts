@@ -3,6 +3,7 @@ import { parse, walk } from '@pybricks/python-program-analysis';
 import path from 'path';
 import * as vscode from 'vscode';
 import { BlocklypyViewerProvider } from '../views/BlocklypyViewerProvider';
+import { setState, StateProp } from './state';
 
 export const MAIN_MOCULE = '__main__';
 export const MAIN_MOCULE_PATH = '__main__.py';
@@ -31,62 +32,67 @@ function getPythonCode(): { content: string; folder?: string } | undefined {
 export async function compileAsync(): Promise<Blob> {
     await vscode.commands.executeCommand('workbench.action.files.saveAll');
 
-    const pycode = getPythonCode();
-    if (!pycode) {
-        throw new Error('No Python code available to compile.');
-    }
-
     const parts: BlobPart[] = [];
 
-    const modules: Module[] = [
-        {
-            name: MAIN_MOCULE,
-            path: MAIN_MOCULE_PATH,
-            content: pycode.content,
-        },
-    ];
-
-    const checkedModules = new Set<string>();
-
-    while (modules.length > 0) {
-        const module = modules.pop()!;
-        if (checkedModules.has(module.name)) {
-            continue;
+    setState(StateProp.Compiling, true);
+    try {
+        const pycode = getPythonCode();
+        if (!pycode) {
+            throw new Error('No Python code available to compile.');
         }
-        checkedModules.add(module.name);
 
-        // console.log(`Compiling module: ${module.name} (${module.path})`);
-        const importedModules = findImportedModules(module.content);
-        for (const importedModule of importedModules) {
-            if (checkedModules.has(importedModule) || !pycode.folder) {
+        const modules: Module[] = [
+            {
+                name: MAIN_MOCULE,
+                path: MAIN_MOCULE_PATH,
+                content: pycode.content,
+            },
+        ];
+
+        const checkedModules = new Set<string>();
+
+        while (modules.length > 0) {
+            const module = modules.pop()!;
+            if (checkedModules.has(module.name)) {
                 continue;
             }
-            const resolvedModule = await resolveModuleAsync(
-                pycode.folder,
-                importedModule,
-            );
-            if (resolvedModule) {
-                modules.push(resolvedModule);
-            } else {
-                checkedModules.add(importedModule);
+            checkedModules.add(module.name);
+
+            // console.log(`Compiling module: ${module.name} (${module.path})`);
+            const importedModules = findImportedModules(module.content);
+            for (const importedModule of importedModules) {
+                if (checkedModules.has(importedModule) || !pycode.folder) {
+                    continue;
+                }
+                const resolvedModule = await resolveModuleAsync(
+                    pycode.folder,
+                    importedModule,
+                );
+                if (resolvedModule) {
+                    modules.push(resolvedModule);
+                } else {
+                    checkedModules.add(importedModule);
+                }
             }
+
+            const compiled = await compile(
+                module.path,
+                module.content,
+                undefined,
+                undefined,
+            );
+            if (compiled.status !== 0 || !compiled.mpy) {
+                throw new Error(`Failed to compile ${module.name}`);
+            }
+
+            parts.push(encodeUInt32LE(compiled.mpy.length));
+            parts.push(cString(module.name) as BlobPart);
+            parts.push(compiled.mpy as BlobPart);
+
+            checkedModules.add(module.name);
         }
-
-        const compiled = await compile(
-            module.path,
-            module.content,
-            undefined,
-            undefined,
-        );
-        if (compiled.status !== 0 || !compiled.mpy) {
-            throw new Error(`Failed to compile ${module.name}`);
-        }
-
-        parts.push(encodeUInt32LE(compiled.mpy.length));
-        parts.push(cString(module.name) as BlobPart);
-        parts.push(compiled.mpy as BlobPart);
-
-        checkedModules.add(module.name);
+    } finally {
+        setState(StateProp.Compiling, false);
     }
 
     return new Blob(parts);

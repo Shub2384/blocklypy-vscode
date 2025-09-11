@@ -1,32 +1,17 @@
 import * as vscode from 'vscode';
 import { TreeCommands } from '../extension/tree-commands';
-import { BLEStatus, Device } from '../logic/ble';
+import { Device } from '../logic/ble';
+import { StateProp, withState } from '../logic/state';
 
 const items: vscode.QuickPickItem[] = [];
 
-async function _connect(name: string) {
-    if (Device.status !== BLEStatus.Disconnected && Device.status !== BLEStatus.Error) {
-        await Device.disconnectAsync();
-    }
-
-    // await Device.startScanningAsync();
-    await Device.connectAsync(name, TreeCommands.refresh.bind(TreeCommands));
-    // .finally(
-    //     () => {
-    //         Device.stopScanningAsync();
-    //     },
-    // );
-}
-
 export async function connectDeviceAsync(name: string) {
-    if (name.length === 0) {
-        throw new Error('No device name provided to connect to.');
-    }
+    if (name.length === 0) throw new Error('No device name provided to connect to.');
 
-    if (Device.status !== BLEStatus.Disconnected && Device.status !== BLEStatus.Error) {
+    await withState(StateProp.Connected, async () => {
         await Device.disconnectAsync();
-    }
+    })();
 
     // if a name is provided, connect directly
-    await _connect(name);
+    await Device.connectAsync(name, TreeCommands.refresh.bind(TreeCommands));
 }

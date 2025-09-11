@@ -1,10 +1,6 @@
 import noble, { Peripheral } from '@abandonware/noble';
 import _ from 'lodash';
-import { debuglog } from 'util';
-import {
-    setContextIsConnected,
-    setContextIsProgramRunning,
-} from '../extension/context-utils';
+import { delay } from '../extension';
 import { logDebug } from '../extension/debug-channel';
 import { clearPythonErrors } from '../extension/diagnostics';
 import { setStatusBarItem } from '../extension/statusbar';
@@ -25,8 +21,9 @@ import {
     pybricksDecodeBleBroadcastData,
     PybricksDecodedBleBroadcast,
 } from '../pybricks/protocol-ble-broadcast';
-import { withTimeout } from '../utils/async';
+import { retryWithTimeout, withTimeout } from '../utils/async';
 import Config from '../utils/config';
+import { setState, StateProp } from './state';
 import { handlePythonError } from './stdout-helper';
 
 export enum BLEStatus {
@@ -34,7 +31,6 @@ export enum BLEStatus {
     Connecting = 'connecting',
     Connected = 'connected',
     Disconnecting = 'disconnecting',
-    Error = 'error',
 }
 
 const _pybricksServiceUUID = pybricksServiceUUID.replace(/-/g, '').toLowerCase();
@@ -51,7 +47,6 @@ class BLE {
     private pybricksHubCapabilitiesChar: noble.Characteristic | null = null;
     private _status: BLEStatus = BLEStatus.Disconnected;
     private _allDevices = new Map<string, DeviceMetadata>();
-    private _isProgramRunning: boolean = false;
     private _isScanning: boolean = false;
     private exitStack: (() => Promise<void>)[] = [];
     private stdoutBuffer: string = '';
@@ -61,8 +56,13 @@ class BLE {
         noble.on('stateChange', async (state) => {
             // state = <"unknown" | "resetting" | "unsupported" | "unauthorized" | "poweredOff" | "poweredOn">
             console.log('Noble state changed to:', state);
-            if (state === 'scanStart') this._isScanning = true;
-            if (state === 'scanStop') this._isScanning = false;
+            if (state === 'scanStart') {
+                this._isScanning = true;
+                setState(StateProp.Scanning, true);
+            } else if (state === 'scanStop') {
+                this._isScanning = false;
+                setState(StateProp.Scanning, false);
+            }
         });
         noble.on('discover', (peripheral) => {
             // Deep copy the advertisement object to avoid mutation issues
@@ -123,7 +123,7 @@ class BLE {
             this.status = BLEStatus.Disconnected;
         } catch (error) {
             logDebug(`Error during disconnectAsync: ${error}`);
-            this.status = BLEStatus.Error;
+            this.status = BLEStatus.Disconnected;
         }
 
         //await this.restartScanning();
@@ -215,7 +215,7 @@ class BLE {
             const connectedName = peripheral.advertisement.localName;
             await Config.setLastConnectedDevice(connectedName);
         } catch (error) {
-            this.status = BLEStatus.Error;
+            this.status = BLEStatus.Disconnected;
             await this.runExitStack();
             // restart scanning to make sure the device shows up again
             await this.restartScanning();
@@ -224,8 +224,8 @@ class BLE {
     }
 
     private async restartScanning() {
-        await Device.stopScanningAsync();
-        await Device.startScanning();
+        await this.stopScanningAsync();
+        await this.startScanning();
     }
 
     private async flushStdoutBuffer() {
@@ -252,11 +252,7 @@ class BLE {
                         const value =
                             (status.flags & statusToFlag(Status.UserProgramRunning)) !==
                             0;
-                        if (this._isProgramRunning !== value) {
-                            setContextIsProgramRunning(value);
-                            TreeCommands.refresh();
-                        }
-                        this._isProgramRunning = value;
+                        setState(StateProp.Running, value);
                     }
                 }
                 break;
@@ -300,6 +296,37 @@ class BLE {
         }
     }
 
+    public async waitTillDeviceAppearsAsync(
+        name: string,
+        timeout: number = 10000,
+    ): Promise<string> {
+        const start = Date.now();
+        return new Promise<string>((resolve, reject) => {
+            if (this._allDevices.has(name)) {
+                resolve(name);
+                return;
+            }
+
+            withTimeout(
+                new Promise<string>((res, rej) => {
+                    const listener = (device: DeviceMetadata) => {
+                        if (device.peripheral.advertisement.localName === name) {
+                            this.removeListener(listener);
+                            res(name);
+                        } else if (Date.now() - start > timeout) {
+                            this.removeListener(listener);
+                            rej(new Error('Timeout waiting for device'));
+                        }
+                    };
+                    this.addListener(listener);
+                }),
+                timeout,
+            )
+                .then((value) => resolve(value as string))
+                .catch(reject);
+        });
+    }
+
     public async stopScanningAsync() {
         noble.stopScanning();
     }
@@ -316,6 +343,9 @@ class BLE {
     }
 
     private set status(newStatus: BLEStatus) {
+        setState(StateProp.Connected, newStatus === BLEStatus.Connected);
+        setState(StateProp.Connecting, newStatus === BLEStatus.Connecting);
+
         if (this._status === newStatus) return;
         this._status = newStatus;
 
@@ -326,12 +356,8 @@ class BLE {
             (this.name ? this.name + ' ' : '') + ToCapialized(newStatus),
             `Connected to ${this.name} hub.`,
         );
-        // vscode.window.setStatusBarMessage(`Connected to ${Device.Name} hub.`, 3000);
-        setContextIsConnected(isConnected);
-
-        if (newStatus === BLEStatus.Error) {
-            debuglog('An error occurred with the Bluetooth connection.');
-        }
+        // vscode.window.setStatusBarMessage(`Connected to ${this.Name} hub.`, 3000);
+        // setContextIsConnected(isConnected); // TODO: make this automatic when the status characteristic changes
 
         TreeCommands.refresh();
     }
@@ -342,10 +368,6 @@ class BLE {
 
     public get name() {
         return this.current?.peripheral.advertisement.localName;
-    }
-
-    public get isProgramRunning() {
-        return this._isProgramRunning;
     }
 
     public get isScanning() {
@@ -362,6 +384,3 @@ class BLE {
 }
 
 export const Device = new BLE();
-function delay(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-}

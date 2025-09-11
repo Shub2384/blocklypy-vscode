@@ -1,15 +1,17 @@
 import * as vscode from 'vscode';
+import { connectDeviceAsync } from './commands/connect-device';
 import { disconnectDeviceAsync } from './commands/disconnect-device';
 import { stopUserProgramAsync } from './commands/stop-user-program';
 import { commandHandlers, Commands } from './extension/commands';
+import { registerContextUtils } from './extension/context-utils';
 import { registerCommandsTree } from './extension/tree-commands';
+import { registerDevicesTree } from './extension/tree-devices';
 import { registerSettingsTree } from './extension/tree-settings';
 import { wrapErrorHandling } from './extension/utils';
+import { Device } from './logic/ble';
 import Config from './utils/config';
 import { BlocklypyViewerProvider } from './views/BlocklypyViewerProvider';
 import { PybricksPythonPreviewProvider } from './views/PybricksPythonPreviewProvider';
-import { Device } from './logic/ble';
-import { registerDevicesTree } from './extension/tree-devices';
 
 export const EXTENSION_ID = 'afarago.blocklypy-vscode';
 
@@ -50,26 +52,23 @@ export function activate(context: vscode.ExtensionContext) {
         ),
     );
 
-    // const telemetry = new TelemetryReporter('blocklypy-vscode', '0.2.4');
-    // context.subscriptions.push(telemetry);
+    // listen to state changes and update contexts
+    context.subscriptions.push(registerContextUtils());
 
     // Start BLE scanning at startup and keep it running
     const startScanningAndAutoConnect = async () => {
-        await Device.startScanning();
+        Device.startScanning();
+
+        // await delay(1000); // wait a bit for initial scan results
+        // wait with timeout until device comes in
 
         // autoconnect to last connected device
         if (Config.autoConnect && Config.lastConnectedDevice) {
-            setTimeout(async () => {
-                vscode.commands.executeCommand(
-                    Commands.ConnectDevice,
-                    Config.lastConnectedDevice,
-                );
-            }, 500);
+            await Device.waitTillDeviceAppearsAsync(Config.lastConnectedDevice, 10000);
+            await connectDeviceAsync(Config.lastConnectedDevice);
         }
     };
-    startScanningAndAutoConnect().catch((err) =>
-        console.error('Error starting BLE scan:', err),
-    );
+    startScanningAndAutoConnect().catch((err) => console.error(err));
 }
 
 export async function deactivate() {
@@ -96,6 +95,10 @@ function onActiveEditorSaveCallback(document: vscode.TextDocument) {
             }
         }
     }
+}
+
+export function delay(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 // process.on('uncaughtException', (err) => {
