@@ -59,7 +59,8 @@ export function activate(context: vscode.ExtensionContext) {
 
     // Start BLE scanning at startup and keep it running
     const startScanningAndAutoConnect = async () => {
-        Device.startScanning();
+        await Device.waitForReadyAsync();
+        await Device.startScanning();
 
         // await delay(1000); // wait a bit for initial scan results
         // wait with timeout until device comes in

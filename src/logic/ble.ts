@@ -299,6 +299,19 @@ class BLE {
         }
     }
 
+    public async waitForReadyAsync(timeout: number = 10000) {
+        return withTimeout(
+            new Promise<void>(async (resolve, reject) => {
+                noble.once('stateChange', (state) => {
+                    if (state === 'poweredOn') {
+                        resolve();
+                    }
+                });
+            }),
+            timeout,
+        );
+    }
+
     public async waitTillDeviceAppearsAsync(
         name: string,
         timeout: number = 10000,
