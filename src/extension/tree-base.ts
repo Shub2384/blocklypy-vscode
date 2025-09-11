@@ -6,6 +6,7 @@ export interface TreeItemData {
     id?: string;
     command: string;
     title?: string;
+    tooltip?: string;
     description?: string;
     icon?: string;
     check?: boolean;
@@ -15,12 +16,13 @@ export interface TreeItemData {
 
 export class BaseTreeItem extends vscode.TreeItem {
     constructor(
-        id: string | undefined,
         label: string,
-        command: string,
-        icon: string | { light: string; dark: string },
+        id?: string,
+        tooltip?: string,
+        command?: string,
+        icon?: string | { light: string; dark: string },
         context?: vscode.ExtensionContext,
-        checkboxState?: vscode.TreeItemCheckboxState,
+        check?: boolean,
         commandArguments?: any[],
         description?: string,
         collapsibleState: vscode.TreeItemCollapsibleState = vscode
@@ -28,10 +30,13 @@ export class BaseTreeItem extends vscode.TreeItem {
     ) {
         super(label);
         this.id = id;
+        this.tooltip = tooltip;
         // this.contextValue = id;
         // this.tooltip = label;
-        if (checkboxState !== undefined) {
-            this.checkboxState = checkboxState;
+        if (check !== undefined) {
+            this.checkboxState = check
+                ? vscode.TreeItemCheckboxState.Checked
+                : vscode.TreeItemCheckboxState.Unchecked;
         }
         if (command) {
             this.command = {
@@ -87,36 +92,31 @@ export abstract class BaseTreeDataProvider<T extends TreeItemData>
     protected context?: vscode.ExtensionContext;
     protected commands: { command?: string; title?: string; icon?: string }[] = [];
 
-    private itemMap = new Map<string, T>();
     async init(context: vscode.ExtensionContext) {
         this.context = context;
         this.commands = context.extension.packageJSON.contributes.commands;
-        // this.refresh();
     }
 
     getTreeItem(element: T): vscode.TreeItem {
+        // read the commands from the extension package.json
         let cmd = {
             ...this.commands?.find((c) => c.command === element.command),
             ...element,
         };
         const title =
             element.title ?? cmd.title?.replace(PACKAGEJSON_COMMAND_PREFIX, '') ?? '';
-        const icon = element.icon ?? cmd.icon ?? '';
 
         return new BaseTreeItem(
-            element.id,
             title,
-            element.command ?? '',
-            icon,
+            element.id,
+            cmd.tooltip,
+            cmd.command,
+            cmd.icon,
             this.context,
-            element.check === undefined
-                ? undefined
-                : element.check
-                ? vscode.TreeItemCheckboxState.Checked
-                : vscode.TreeItemCheckboxState.Unchecked,
-            element.commandArguments,
-            element.description,
-            element.collapsibleState,
+            cmd.check,
+            cmd.commandArguments,
+            cmd.description,
+            cmd.collapsibleState,
         );
     }
     abstract getChildren(element?: T): vscode.ProviderResult<T[]>;

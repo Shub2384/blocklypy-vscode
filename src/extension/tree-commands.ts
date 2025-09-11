@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { EXTENSION_KEY } from '../const';
 import { Device } from '../logic/ble';
-import { hasState, StateProp } from '../logic/state';
+import { getStateString, hasState, StateProp } from '../logic/state';
 import { Commands } from './commands';
 import { BaseTreeDataProvider, TreeItemData } from './tree-base';
 import { ToCapialized } from './utils';
@@ -16,8 +16,7 @@ class CommandsTreeDataProvider extends BaseTreeDataProvider<TreeItemData> {
                 ? `Disconnect from ${Device.current.peripheral.advertisement.localName}`
                 : 'Disconnect';
         } else if (element.command === Commands.StatusPlaceHolder) {
-            retval.label =
-                'Status: ' + ToCapialized(Device.status ?? 'No Device Connected');
+            retval.label = 'Status: ' + ToCapialized(getStateString());
         }
         return retval;
     }

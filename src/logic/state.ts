@@ -57,3 +57,13 @@ export function setState(stateProp: StateProp, value: boolean) {
         stateChangeEmitter.fire({ prop: stateProp, value });
     }
 }
+
+export function getStateString() {
+    if (hasState(StateProp.Running)) return StateProp.Running;
+    if (hasState(StateProp.Compiling)) return StateProp.Compiling;
+    if (hasState(StateProp.Uploading)) return StateProp.Uploading;
+    if (hasState(StateProp.Connected)) return StateProp.Connected;
+    if (hasState(StateProp.Connecting)) return StateProp.Connecting;
+    if (hasState(StateProp.Scanning)) return StateProp.Scanning;
+    return 'idle';
+}

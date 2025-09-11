@@ -25,7 +25,8 @@ class DevicesTreeDataProvider extends BaseTreeDataProvider<TreeItemDeviceData> {
         else {
             return [
                 {
-                    title: 'No devices found',
+                    title: 'Scanning for devices...',
+                    icon: '$(loading~spin)',
                     command: '',
                 },
             ];
@@ -71,10 +72,13 @@ function registerDevicesTree(context: vscode.ExtensionContext): vscode.Disposabl
     Device.addListener(addDevice);
 
     // Periodically remove devices not seen for X seconds
+    // Except for currently connected device, that will not broadcast, yet it should stay in the list
     const timer = setInterval(() => {
         const now = Date.now();
         let changed = false;
         for (const [name, item] of DevicesTree.deviceMap.entries()) {
+            if (Device.name === name) continue;
+
             const lastSeen = item.lastSeen as number | undefined;
             if (lastSeen && now - lastSeen > DEVICE_VISIBILITY_TIMEOUT) {
                 DevicesTree.deviceMap.delete(name);

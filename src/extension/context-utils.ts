@@ -1,11 +1,12 @@
 import * as vscode from 'vscode';
 import { EXTENSION_KEY } from '../const';
+import { Device } from '../logic/ble';
 import { onStateChange, setState, StateChangeEvent, StateProp } from '../logic/state';
 import {
     BlocklypyViewerContentAvailabilityMap,
     ViewType,
 } from '../views/BlocklypyViewerProvider';
-import { TreeCommands } from './tree-commands';
+import { setStatusBarItem } from './statusbar';
 import { ToCapialized } from './utils';
 
 const CONTEXT_BASE = EXTENSION_KEY + '.';
@@ -21,7 +22,13 @@ export function registerContextUtils(): vscode.Disposable {
                 );
                 setState(StateProp.Connecting, false);
                 setState(StateProp.Running, false);
-                TreeCommands.refresh();
+
+                const msg =
+                    (Device.name ? Device.name + ' ' : '') + event.value
+                        ? 'Connected'
+                        : 'Disconnected';
+                setStatusBarItem(event.value, msg, msg);
+
                 break;
             case StateProp.Running:
                 vscode.commands.executeCommand(
@@ -29,7 +36,6 @@ export function registerContextUtils(): vscode.Disposable {
                     EXTENSION_KEY + '.isProgramRunning',
                     event.value,
                 );
-                TreeCommands.refresh();
                 break;
         }
     };

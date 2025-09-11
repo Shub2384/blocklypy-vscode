@@ -4,11 +4,13 @@ import { disconnectDeviceAsync } from './commands/disconnect-device';
 import { stopUserProgramAsync } from './commands/stop-user-program';
 import { commandHandlers, Commands } from './extension/commands';
 import { registerContextUtils } from './extension/context-utils';
-import { registerCommandsTree } from './extension/tree-commands';
+import { clearPythonErrors } from './extension/diagnostics';
+import { registerCommandsTree, TreeCommands } from './extension/tree-commands';
 import { registerDevicesTree } from './extension/tree-devices';
 import { registerSettingsTree } from './extension/tree-settings';
 import { wrapErrorHandling } from './extension/utils';
 import { Device } from './logic/ble';
+import { onStateChange } from './logic/state';
 import Config from './utils/config';
 import { BlocklypyViewerProvider } from './views/BlocklypyViewerProvider';
 import { PybricksPythonPreviewProvider } from './views/PybricksPythonPreviewProvider';
@@ -46,6 +48,7 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(registerDevicesTree(context));
     context.subscriptions.push(registerSettingsTree(context));
 
+    // listen to file saves
     context.subscriptions.push(
         vscode.workspace.onDidSaveTextDocument(
             onActiveEditorSaveCallback,
@@ -54,24 +57,34 @@ export function activate(context: vscode.ExtensionContext) {
         ),
     );
 
+    // clear python errors on document change
+    vscode.workspace.onDidChangeTextDocument(async (e) => {
+        if (e.document.languageId === 'python') {
+            await clearPythonErrors();
+        }
+    });
+
     // listen to state changes and update contexts
     context.subscriptions.push(registerContextUtils());
 
+    // refresh commands tree on state change
+    context.subscriptions.push(
+        onStateChange(() => {
+            TreeCommands.refresh();
+        }),
+    );
+
     // Start BLE scanning at startup and keep it running
-    const startScanningAndAutoConnect = async () => {
+    setTimeout(async () => {
         await Device.waitForReadyAsync();
         await Device.startScanning();
-
-        // await delay(1000); // wait a bit for initial scan results
-        // wait with timeout until device comes in
 
         // autoconnect to last connected device
         if (Config.autoConnect && Config.lastConnectedDevice) {
             await Device.waitTillDeviceAppearsAsync(Config.lastConnectedDevice, 10000);
             await connectDeviceAsync(Config.lastConnectedDevice);
         }
-    };
-    startScanningAndAutoConnect().catch((err) => console.error(err));
+    }, 500);
 }
 
 export async function deactivate() {

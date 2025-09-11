@@ -11,14 +11,18 @@ class SettingsTreeDataProvider extends BaseTreeDataProvider<TreeItemData> {
         const elems = [
             {
                 command: Commands.ToggleAutoConnect,
+                tooltip: 'Auto-connect to last device.',
                 check: Config.autoConnect === true,
             },
             {
                 command: Commands.ToggleAutoStart,
+                tooltip:
+                    "Auto-start user program on save with '# LEGO autostart' in first line.",
                 check: Config.autostart === true,
             },
             {
                 command: Commands.ToggleAutoClearTerminal,
+                tooltip: 'Auto-clear terminal before running.',
                 check: Config.autoClearTerminal === true,
             },
         ];

@@ -299,12 +299,20 @@ class BLE {
         }
     }
 
-    public async waitForReadyAsync(timeout: number = 10000) {
+    public waitForReadyAsync(timeout: number = 10000) {
         return withTimeout(
-            new Promise<void>(async (resolve, reject) => {
+            new Promise<void>((resolve, reject) => {
+                if (noble._state === 'poweredOn') {
+                    resolve();
+                    return;
+                }
                 noble.once('stateChange', (state) => {
                     if (state === 'poweredOn') {
                         resolve();
+                    } else {
+                        reject(
+                            new Error(`BLE state changed to ${state}, not poweredOn`),
+                        );
                     }
                 });
             }),
