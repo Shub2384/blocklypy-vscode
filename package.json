@@ -221,6 +221,11 @@
         "when": "editorLangId == python || activeCustomEditorId == blocklypy-vscode.blocklypyViewer"
       },
       {
+        "command": "blocklypy-vscode.stopUserProgram",
+        "key": "shift+f5",
+        "when": "editorLangId == python || activeCustomEditorId == blocklypy-vscode.blocklypyViewer"
+      },
+      {
         "command": "blocklypy-vscode.blocklypyViewer.displayNextView",
         "key": "f7",
         "when": "activeCustomEditorId == blocklypy-vscode.blocklypyViewer"

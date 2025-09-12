@@ -49,8 +49,8 @@ class DebugTerminal implements vscode.Pseudoterminal {
         this.closeCallback = cb;
     }
 
-    public show() {
-        this.terminal?.show();
+    public show(preserveFocus?: boolean) {
+        this.terminal?.show(preserveFocus);
     }
 
     public handleHubOutput(message: string, addNewLine = true) {
@@ -75,7 +75,7 @@ export function registerDebugTerminal(
 ) {
     debugTerminal = new DebugTerminal(context);
     debugTerminal.onUserInput = onUserInput;
-    debugTerminal.show();
+    debugTerminal.show(false);
     // vscode.window.activeTerminal = debugTerminal.terminal;
 
     // Return a disposable that closes the terminal when disposed
@@ -93,9 +93,9 @@ export function clearDebugLog() {
     debugTerminal?.handleHubOutput('\x1bc', false); // ANSI escape code to clear terminal
 }
 
-export function logDebug(message: string, linebreak = true, show: boolean = true) {
+export function logDebug(message: string, linebreak = true, show: boolean = false) {
     if (debugTerminal) {
-        if (show) debugTerminal.show();
+        if (show) debugTerminal.show(false);
         debugTerminal.handleHubOutput(message, linebreak);
     }
 }

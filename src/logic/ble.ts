@@ -263,7 +263,7 @@ class BLE {
                 {
                     const text = data.toString('utf8', 1, data.length);
 
-                    logDebug(text, false);
+                    logDebug(text, false, false);
 
                     this.stdoutBuffer += text;
                     if (this.stdoutTimer) {
