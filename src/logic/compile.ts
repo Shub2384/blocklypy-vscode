@@ -2,7 +2,6 @@ import { compile } from '@pybricks/mpy-cross-v6';
 import { parse, walk } from '@pybricks/python-program-analysis';
 import path from 'path';
 import * as vscode from 'vscode';
-import { logDebug } from '../extension/debug-channel';
 import { BlocklypyViewerProvider } from '../views/BlocklypyViewerProvider';
 import { setState, StateProp } from './state';
 
@@ -38,9 +37,7 @@ export async function compileAsync(): Promise<Blob> {
     setState(StateProp.Compiling, true);
     try {
         const pycode = getPythonCode();
-        if (!pycode) {
-            throw new Error('No Python code available to compile.');
-        }
+        if (!pycode) throw new Error('No Python code available to compile.');
 
         const modules: Module[] = [
             {
@@ -93,8 +90,6 @@ export async function compileAsync(): Promise<Blob> {
 
             checkedModules.add(module.name);
         }
-    } catch (e) {
-        logDebug(`Error compiling: ${e}`);
     } finally {
         setState(StateProp.Compiling, false);
     }

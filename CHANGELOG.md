@@ -2,6 +2,11 @@
 
 All notable changes to the "blocklypy-vscode" extension will be documented in this file.
 
+## Unreleased
+
+- add conversion warnings to the debug channel
+- empty workspace, can compile and upload with 0 bytes
+
 ## [0.3.0]() - 2025-09-12
 
 ### Added

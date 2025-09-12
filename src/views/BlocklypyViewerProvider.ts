@@ -180,7 +180,17 @@ export class BlocklypyViewerProvider
 
         const options = {
             output: { 'blockly.svg': true, 'wedo2.preview': true },
+            debug: {
+                showExplainingComments: true,
+            },
+            log: {
+                callback: (level, ...args: unknown[]) => {
+                    const line = Array.isArray(args) ? args.join(' ') : String(args);
+                    logDebug(line);
+                },
+            },
         } satisfies IPyConverterOptions;
+
         const result = await convertProjectToPython(allFiles, options);
         const filename = Array.isArray(result.name)
             ? result.name.join(', ')

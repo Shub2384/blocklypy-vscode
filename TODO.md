@@ -12,6 +12,10 @@
 - AI extensibility <https://code.visualstudio.com/api/extension-guides/ai/ai-extensibility-overview>
 - debug log / channel input mode
 - implement pybricks auto complete for the pybricks python language
+- characteristic.broadcast(broadcast[, callback(error)]); // broadcast is true|false
+- characteristic.discoverDescriptors([callback(error, descriptors)]);
+
+## TO-FIX
 
 ## Reference
 
