@@ -11,7 +11,7 @@ import { ToCapialized } from './utils';
 
 const CONTEXT_BASE = EXTENSION_KEY + '.';
 
-export function registerContextUtils(): vscode.Disposable {
+export function registerContextUtils(context: vscode.ExtensionContext) {
     const handleStateChange = (event: StateChangeEvent) => {
         switch (event.prop) {
             case StateProp.Connected:
@@ -39,7 +39,8 @@ export function registerContextUtils(): vscode.Disposable {
                 break;
         }
     };
-    return onStateChange(handleStateChange);
+
+    context.subscriptions.push(onStateChange(handleStateChange));
 }
 
 // export function setContextIsProgramRunning(value: boolean) {

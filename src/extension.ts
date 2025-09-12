@@ -46,9 +46,9 @@ export function activate(context: vscode.ExtensionContext) {
     );
 
     // register tree views
-    context.subscriptions.push(registerCommandsTree(context));
-    context.subscriptions.push(registerDevicesTree(context));
-    context.subscriptions.push(registerSettingsTree(context));
+    registerCommandsTree(context);
+    registerDevicesTree(context);
+    registerSettingsTree(context);
 
     // listen to file saves
     context.subscriptions.push(
@@ -60,14 +60,16 @@ export function activate(context: vscode.ExtensionContext) {
     );
 
     // clear python errors on document change
-    vscode.workspace.onDidChangeTextDocument(async (e) => {
-        if (e.document.languageId === 'python') {
-            await clearPythonErrors();
-        }
-    });
+    context.subscriptions.push(
+        vscode.workspace.onDidChangeTextDocument(async (e) => {
+            if (e.document.languageId === 'python') {
+                await clearPythonErrors();
+            }
+        }),
+    );
 
     // listen to state changes and update contexts
-    context.subscriptions.push(registerContextUtils());
+    registerContextUtils(context);
     // context.subscriptions.push(registerDebugTerminal(sendDataToHubStdin));
     registerDebugTerminal(context, sendDataToHubStdin);
 

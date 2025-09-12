@@ -31,7 +31,7 @@ class SettingsTreeDataProvider extends BaseTreeDataProvider<TreeItemData> {
 }
 
 const SettingsTree = new SettingsTreeDataProvider();
-function registerSettingsTree(context: vscode.ExtensionContext): vscode.Disposable {
+function registerSettingsTree(context: vscode.ExtensionContext) {
     SettingsTree.init(context);
 
     const treeview = vscode.window.createTreeView(EXTENSION_KEY + '-settings', {
@@ -57,7 +57,7 @@ function registerSettingsTree(context: vscode.ExtensionContext): vscode.Disposab
         },
     );
 
-    return vscode.Disposable.from(treeview);
+    context.subscriptions.push(treeview);
 }
 
 export { registerSettingsTree, SettingsTree as settingsTreeData };

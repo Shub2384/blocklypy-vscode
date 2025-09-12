@@ -65,7 +65,6 @@ class DebugTerminal implements vscode.Pseudoterminal {
         const color = nocolor ? '' : userinput ? '\x1b[32m' : '\x1b[36m'; // green for user, cyan for hub
         const reset = nocolor ? '' : '\x1b[0m';
 
-        console.warn('write:', message);
         this.writeEmitter.fire(color + message + reset);
     }
 }

@@ -35,7 +35,7 @@ class DevicesTreeDataProvider extends BaseTreeDataProvider<TreeItemDeviceData> {
 }
 
 const DevicesTree = new DevicesTreeDataProvider();
-function registerDevicesTree(context: vscode.ExtensionContext): vscode.Disposable {
+function registerDevicesTree(context: vscode.ExtensionContext) {
     // vscode.window.registerTreeDataProvider(EXTENSION_KEY + '-devices', DevicesTree);
     DevicesTree.init(context);
 
@@ -89,7 +89,7 @@ function registerDevicesTree(context: vscode.ExtensionContext): vscode.Disposabl
         }
     }, DEVICE_VISIBILITY_CHECK_INTERVAL);
 
-    return vscode.Disposable.from(
+    context.subscriptions.push(
         treeview,
         new vscode.Disposable(() => {
             Device.removeListener(addDevice);
