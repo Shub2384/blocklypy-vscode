@@ -4,6 +4,7 @@ import { disconnectDeviceAsync } from './commands/disconnect-device';
 import { stopUserProgramAsync } from './commands/stop-user-program';
 import { commandHandlers, Commands } from './extension/commands';
 import { registerContextUtils } from './extension/context-utils';
+import { logDebug, registerDebugTerminal } from './extension/debug-channel';
 import { clearPythonErrors } from './extension/diagnostics';
 import { registerCommandsTree, TreeCommands } from './extension/tree-commands';
 import { registerDevicesTree } from './extension/tree-devices';
@@ -11,6 +12,7 @@ import { registerSettingsTree } from './extension/tree-settings';
 import { wrapErrorHandling } from './extension/utils';
 import { Device } from './logic/ble';
 import { onStateChange } from './logic/state';
+import { sendDataToHubStdin } from './logic/stdin-helper';
 import Config from './utils/config';
 import { BlocklypyViewerProvider } from './views/BlocklypyViewerProvider';
 import { PybricksPythonPreviewProvider } from './views/PybricksPythonPreviewProvider';
@@ -66,6 +68,8 @@ export function activate(context: vscode.ExtensionContext) {
 
     // listen to state changes and update contexts
     context.subscriptions.push(registerContextUtils());
+    // context.subscriptions.push(registerDebugTerminal(sendDataToHubStdin));
+    registerDebugTerminal(context, sendDataToHubStdin);
 
     // refresh commands tree on state change
     context.subscriptions.push(
@@ -76,6 +80,8 @@ export function activate(context: vscode.ExtensionContext) {
 
     // Start BLE scanning at startup and keep it running
     setTimeout(async () => {
+        logDebug('BlocklyPy Commander started up successfully.', true);
+
         await Device.waitForReadyAsync();
         await Device.startScanning();
 

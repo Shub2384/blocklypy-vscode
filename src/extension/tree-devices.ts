@@ -56,9 +56,8 @@ function registerDevicesTree(context: vscode.ExtensionContext): vscode.Disposabl
             command: Commands.ConnectDevice,
             commandArguments: [name],
             icon: getSignalIcon(peripheral.rssi),
-            description: device.lastBroadcast
-                ? `${device.lastBroadcast.data} on ch:${device.lastBroadcast.channel}`
-                : '',
+            description: device.lastBroadcast ? `⛁ ${device.lastBroadcast.data}` : '',
+            //  on ch:${device.lastBroadcast.channel}
             lastSeen: Date.now(),
         } as TreeItemDeviceData);
 

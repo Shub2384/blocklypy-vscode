@@ -14,6 +14,11 @@
 - implement pybricks auto complete for the pybricks python language
 - characteristic.broadcast(broadcast[, callback(error)]); // broadcast is true|false
 - characteristic.discoverDescriptors([callback(error, descriptors)]);
+- nordic/uart?
+- REPL
+- logging and data export, maybe even graphing???
+- log file activity panel / file
+- create REPL notbook?
 
 ## TO-FIX
 

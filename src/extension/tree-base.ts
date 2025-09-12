@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { getIcon } from './utils';
 
 const PACKAGEJSON_COMMAND_PREFIX = 'BlocklyPy: ';
 
@@ -46,39 +47,10 @@ export class BaseTreeItem extends vscode.TreeItem {
             } as vscode.Command;
         }
         if (icon) {
-            this.processIcon(icon, context);
+            this.iconPath = getIcon(icon, context);
         }
         this.description = description;
         this.collapsibleState = collapsibleState;
-    }
-
-    processIcon(
-        icon: string | { light: string; dark: string },
-        context?: vscode.ExtensionContext,
-    ) {
-        if (typeof icon === 'object') {
-            this.iconPath = {
-                light: this.processIcon1(icon.light, context) as vscode.Uri,
-                dark: this.processIcon1(icon.dark, context) as vscode.Uri,
-            };
-        } else {
-            this.iconPath = this.processIcon1(icon, context);
-        }
-    }
-
-    private processIcon1(
-        icon: string,
-        context?: vscode.ExtensionContext,
-    ): string | vscode.ThemeIcon | vscode.Uri | undefined {
-        if ((icon.endsWith('.svg') || icon.endsWith('.png')) && context) {
-            const iconPath = context.asAbsolutePath(icon);
-            return vscode.Uri.file(iconPath);
-        } else if (icon.startsWith('$(') && icon.endsWith(')')) {
-            const iconName = icon.slice(2, -1);
-            return new vscode.ThemeIcon(iconName);
-        } else {
-            return new vscode.ThemeIcon(icon);
-        }
     }
 }
 

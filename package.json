@@ -176,28 +176,31 @@
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "blocklyPyVSCodeCommander",
+          "id": "blocklypy-vscode-activitybar",
           "title": "BlocklyPy Commander",
           "icon": "asset/icon.svg"
         }
       ]
     },
     "views": {
-      "blocklyPyVSCodeCommander": [
+      "blocklypy-vscode-activitybar": [
         {
           "id": "blocklypy-vscode-commands",
           "name": "Commands",
-          "icon": "asset/icon.svg"
+          "icon": "asset/icon.svg",
+          "initialSize": 10
         },
         {
           "id": "blocklypy-vscode-devices",
           "name": "Devices",
-          "icon": "asset/icon.svg"
+          "icon": "asset/icon.svg",
+          "initialSize": 10
         },
         {
           "id": "blocklypy-vscode-settings",
           "name": "Settings",
-          "icon": "asset/icon.svg"
+          "icon": "asset/icon.svg",
+          "initialSize": 10
         }
       ]
     },

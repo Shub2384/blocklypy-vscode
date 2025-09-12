@@ -45,3 +45,34 @@ export function wrapErrorHandling(fn: (...args: any) => Promise<void>) {
         }
     };
 }
+
+type IconPath = { readonly light: vscode.Uri; readonly dark: vscode.Uri };
+
+export function getIcon(
+    icon: string | { light: string; dark: string },
+    context?: vscode.ExtensionContext,
+): string | vscode.ThemeIcon | vscode.Uri | IconPath | undefined {
+    if (typeof icon === 'object') {
+        return {
+            light: getIconInternal(icon.light, context) as vscode.Uri,
+            dark: getIconInternal(icon.dark, context) as vscode.Uri,
+        };
+    } else {
+        return getIconInternal(icon, context);
+    }
+}
+
+function getIconInternal(
+    icon: string,
+    context?: vscode.ExtensionContext,
+): string | vscode.ThemeIcon | vscode.Uri | undefined {
+    if ((icon.endsWith('.svg') || icon.endsWith('.png')) && context) {
+        const iconPath = context.asAbsolutePath(icon);
+        return vscode.Uri.file(iconPath);
+    } else if (icon.startsWith('$(') && icon.endsWith(')')) {
+        const iconName = icon.slice(2, -1);
+        return new vscode.ThemeIcon(iconName);
+    } else {
+        return new vscode.ThemeIcon(icon);
+    }
+}
