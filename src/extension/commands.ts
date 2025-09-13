@@ -42,7 +42,21 @@ export const commandHandlers: Map<Commands, (...args: any) => Promise<void>> = n
             await compileAsync();
         },
     ],
-    [Commands.CompileAndRun, compileAndRunAsync],
+    [
+        Commands.CompileAndRun,
+        async () => {
+            await vscode.window.withProgress(
+                {
+                    location: vscode.ProgressLocation.Notification,
+                    title: 'Compiling and running...',
+                    cancellable: false,
+                },
+                async () => {
+                    await compileAndRunAsync();
+                },
+            );
+        },
+    ],
     [Commands.StartUserProgram, startUserProgramAsync],
     [Commands.StopUserProgram, stopUserProgramAsync],
     [Commands.DisconnectDevice, disconnectDeviceAsync],
