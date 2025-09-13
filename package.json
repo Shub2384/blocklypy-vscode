@@ -218,12 +218,12 @@
       {
         "command": "blocklypy-vscode.stopUserProgram",
         "key": "f6",
-        "when": "(editorLangId == python || activeCustomEditorId == blocklypy-vscode.blocklypyViewer) && blocklypy-vscode.isConnected && blocklypy-vscode.isProgramRunning"
+        "when": "blocklypy-vscode.isConnected && blocklypy-vscode.isProgramRunning"
       },
       {
         "command": "blocklypy-vscode.stopUserProgram",
         "key": "shift+f5",
-        "when": "(editorLangId == python || activeCustomEditorId == blocklypy-vscode.blocklypyViewer) && blocklypy-vscode.isConnected && blocklypy-vscode.isProgramRunning"
+        "when": "blocklypy-vscode.isConnected && blocklypy-vscode.isProgramRunning"
       },
       {
         "command": "blocklypy-vscode.blocklypyViewer.displayNextView",
