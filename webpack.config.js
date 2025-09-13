@@ -5,6 +5,7 @@
 const path = require('path');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
+const glob = require('glob');
 
 //@ts-check
 /** @typedef {import('webpack').Configuration} WebpackConfig **/
@@ -80,19 +81,10 @@ const webviewConfig = {
     target: 'web',
     mode: 'none',
     entry: {
-        BlocklypyWebview: path.resolve(
-            __dirname,
-            'src/views/webview',
-            'BlocklypyWebview.ts',
-        ),
-        PythonPreviewWebview: path.resolve(
-            __dirname,
-            'src/views/webview',
-            'PythonPreviewWebview.ts',
-        ),
+        main: glob.sync(path.resolve(__dirname, 'src/views/webview/*.ts')),
     },
     output: {
-        filename: '[name].js',
+        filename: 'webviews.js',
         path: path.resolve(__dirname, 'dist'),
     },
     resolve: {
@@ -110,7 +102,6 @@ const webviewConfig = {
                         },
                     },
                 ],
-                // loader: 'ts-loader',
                 exclude: /node_modules/,
             },
             { test: /\.css$/, use: ['style-loader', 'css-loader'] },
@@ -120,7 +111,7 @@ const webviewConfig = {
         new MonacoWebpackPlugin({
             languages: ['python', 'less'],
             globalAPI: true,
-            filename: 'monaco.[name].worker.js', // bundle workers with predictable names
+            filename: 'monaco.[name].worker.js',
         }),
     ],
     optimization: {
@@ -128,7 +119,6 @@ const webviewConfig = {
         runtimeChunk: false,
         splitChunks: false,
     },
-    // devtool: 'nosources-source-map',
     devtool: isDevelopment ? 'eval-source-map' : undefined,
     infrastructureLogging: {
         level: 'log',
