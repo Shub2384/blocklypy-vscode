@@ -37,12 +37,19 @@ class DebugTerminal implements vscode.Pseudoterminal {
         this.closeEmitter.fire();
     }
 
-    handleInput(data: string) {
+    handleInputFromTerminal(data: string) {
         if (!this.onUserInput) return; // ignore input if no callback is set, this is how we send to the BLE device
         if (!hasState(StateProp.Running)) return; // ignore input if user program is not not running
 
         this.onUserInput(data); // send to BLE device
-        this.write(data, true);
+        this.write(data, '\x1b[32m' /* green */);
+    }
+
+    public handleDataFromHubOutput(message: string, addNewLine = true) {
+        this.write(message + (addNewLine ? '\r\n' : ''), '\x1b[36m');
+    }
+    public handleDataFromExtension(message: string) {
+        this.write(message + '\r\n', undefined);
     }
 
     setCloseCallback(cb: () => void) {
@@ -53,19 +60,16 @@ class DebugTerminal implements vscode.Pseudoterminal {
         this.terminal?.show(preserveFocus);
     }
 
-    public handleHubOutput(message: string, addNewLine = true) {
-        this.write(message + (addNewLine ? '\r\n' : ''), false);
-    }
-
-    private write(message: string, userinput?: boolean) {
+    private write(message: string, color: string | undefined) {
         // this.hideInputIndicator();
         message = message.replace(/\r\n?/g, '\r\n');
+        const isempty = message === '\r\n' || message.trim() === '';
 
-        const nocolor = userinput === undefined || message === '\r\n';
-        const color = nocolor ? '' : userinput ? '\x1b[32m' : '\x1b[36m'; // green for user, cyan for hub
-        const reset = nocolor ? '' : '\x1b[0m';
-
-        this.writeEmitter.fire(color + message + reset);
+        this.writeEmitter.fire(
+            (color && !isempty ? color : '') +
+                message +
+                (color && !isempty ? '\x1b[0m' : ''),
+        );
     }
 }
 
@@ -90,14 +94,18 @@ export function registerDebugTerminal(
 
 export function clearDebugLog() {
     // TODO
-    debugTerminal?.handleHubOutput('\x1bc', false); // ANSI escape code to clear terminal
+    debugTerminal?.handleDataFromHubOutput('\x1bc', false); // ANSI escape code to clear terminal
 }
 
-export function logDebug(message: string, linebreak = true, show: boolean = false) {
-    if (debugTerminal) {
-        if (show) debugTerminal.show(false);
-        debugTerminal.handleHubOutput(message, linebreak);
-    }
+export function logDebug(message: string, show: boolean = false) {
+    if (!debugTerminal) return;
+    if (show) debugTerminal.show(false);
+    debugTerminal.handleDataFromExtension(message);
+}
+
+export function logDebugFromHub(message: string, linebreak = true) {
+    if (!debugTerminal) return;
+    debugTerminal.handleDataFromHubOutput(message, linebreak);
 }
 
 let debugTerminal: DebugTerminal | undefined;

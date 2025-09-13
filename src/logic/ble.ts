@@ -1,7 +1,7 @@
 import noble, { Peripheral } from '@abandonware/noble';
 import _ from 'lodash';
 import { delay, isDevelopmentMode } from '../extension';
-import { logDebug } from '../extension/debug-channel';
+import { logDebug, logDebugFromHub } from '../extension/debug-channel';
 import { clearPythonErrors } from '../extension/diagnostics';
 import { setStatusBarItem } from '../extension/statusbar';
 import { TreeCommands } from '../extension/tree-commands';
@@ -24,7 +24,7 @@ import {
 import { withTimeout } from '../utils/async';
 import Config from '../utils/config';
 import { setState, StateProp } from './state';
-import { handlePythonError } from './stdout-helper';
+import { handleStdOutData } from './stdout-helper';
 
 export enum BLEStatus {
     Disconnected = 'disconnected',
@@ -57,6 +57,7 @@ class BLE {
             // state = <"unknown" | "resetting" | "unsupported" | "unauthorized" | "poweredOff" | "poweredOn">
             if (isDevelopmentMode) {
                 logDebug(`Noble state changed to: ${state}`);
+                // TODO: handle disconnect and restart scanning!
             }
 
             if (state === 'scanStart') {
@@ -231,14 +232,35 @@ class BLE {
         await this.startScanning();
     }
 
-    private async flushStdoutBuffer() {
+    private async processStdoutData() {
         if (this.stdoutBuffer.length > 0) {
-            await handlePythonError(this.stdoutBuffer);
+            await handleStdOutData(this.stdoutBuffer);
             this.stdoutBuffer = '';
         }
         if (this.stdoutTimer) {
             clearTimeout(this.stdoutTimer);
             this.stdoutTimer = null;
+        }
+    }
+
+    private handleWriteStdout(text: string) {
+        this.stdoutBuffer += text;
+
+        // Flush after every newline
+        let newlineIndex;
+        while ((newlineIndex = this.stdoutBuffer.indexOf('\n')) !== -1) {
+            const line = this.stdoutBuffer.slice(0, newlineIndex + 1);
+            handleStdOutData(line);
+            this.stdoutBuffer = this.stdoutBuffer.slice(newlineIndex + 1);
+        }
+
+        // Set/reset 500ms timeout for any remaining partial line
+        if (this.stdoutTimer) clearTimeout(this.stdoutTimer);
+        if (this.stdoutBuffer.length > 0) {
+            this.stdoutTimer = setTimeout(() => {
+                this.processStdoutData();
+                this.stdoutTimer = null;
+            }, 500);
         }
     }
 
@@ -248,7 +270,7 @@ class BLE {
         switch (eventType) {
             case EventType.StatusReport:
                 {
-                    this.flushStdoutBuffer();
+                    this.processStdoutData();
 
                     const status = parseStatusReport(dataView);
                     if (status) {
@@ -262,16 +284,8 @@ class BLE {
             case EventType.WriteStdout:
                 {
                     const text = data.toString('utf8', 1, data.length);
-
-                    logDebug(text, false, false);
-
-                    this.stdoutBuffer += text;
-                    if (this.stdoutTimer) {
-                        clearTimeout(this.stdoutTimer);
-                    }
-                    this.stdoutTimer = setTimeout(() => {
-                        this.flushStdoutBuffer();
-                    }, 500);
+                    logDebugFromHub(text, false);
+                    this.handleWriteStdout(text);
                 }
                 break;
             default:

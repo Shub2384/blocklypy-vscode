@@ -1,0 +1,78 @@
+import { parsePythonError } from './stdout-python-error-helper';
+
+const reportPythonError = jest.fn();
+
+describe('parsePythonError', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+        jest.useFakeTimers();
+    });
+
+    afterEach(() => {
+        jest.useRealTimers();
+    });
+
+    it('should not report if no traceback', async () => {
+        await parsePythonError('No error here', reportPythonError);
+        jest.runAllTimers();
+        expect(reportPythonError).not.toHaveBeenCalled();
+    });
+
+    it('should report python error with correct filename, line, and message', async () => {
+        const errorText = `
+    Traceback (most recent call last):
+      File "__main__.py", line 9, in <module>
+      File "test1.py", line 9, in <module>
+    NameError: name 'PrimeHub2' isn't defined
+            `.trim();
+        await parsePythonError(errorText, reportPythonError);
+        jest.runAllTimers();
+        expect(reportPythonError).toHaveBeenCalledWith(
+            'test1.py',
+            8, // line number is 9 - 1
+            "NameError: name 'PrimeHub2' isn't defined",
+        );
+    });
+
+    it('should handle multiple stack frames and pick the last one', async () => {
+        const errorText = `
+    Traceback (most recent call last):
+      File "__main__.py", line 5, in <module>
+      File "test2.py", line 12, in <module>
+      File "test3.py", line 20, in <module>
+    TypeError: unsupported operand type(s)
+            `.trim();
+        await parsePythonError(errorText, reportPythonError);
+        jest.runAllTimers();
+        expect(reportPythonError).toHaveBeenCalledWith(
+            'test3.py',
+            19,
+            'TypeError: unsupported operand type(s)',
+        );
+    });
+
+    it('should not report if error message or filename is missing', async () => {
+        const errorText = `
+    Traceback (most recent call last):
+      File "__main__.py", line 5, in <module>
+            `.trim();
+        await parsePythonError(errorText, reportPythonError);
+        jest.runAllTimers();
+        expect(reportPythonError).not.toHaveBeenCalled();
+    });
+
+    it('should report even if message comes in multiple lines', async () => {
+        const errorText = `
+Traceback (most recent call last):
+  File "__main__.py", line 9, in <module>
+  File "test1.py", line 9, in <module>
+NameError: name 'PrimeHub2' isn't defined
+        `.trim();
+        const lines = errorText.split('\n');
+        lines.forEach(async (line) => {
+            await parsePythonError(line, reportPythonError);
+        });
+        jest.runAllTimers();
+        expect(reportPythonError).toHaveBeenCalled();
+    });
+});

@@ -40,19 +40,8 @@ function registerSettingsTree(context: vscode.ExtensionContext) {
 
     treeview.onDidChangeCheckboxState(
         (e: vscode.TreeCheckboxChangeEvent<TreeItemData>) => {
-            e.items.forEach(([elem, state1]) => {
-                const state = state1 === vscode.TreeItemCheckboxState.Checked;
-                switch (elem.command) {
-                    case Commands.ToggleAutoConnect:
-                        Config.setAutoConnect(state).then(SettingsTree.refresh);
-                        break;
-                    case Commands.ToggleAutoStart:
-                        Config.setAutostart(state).then(SettingsTree.refresh);
-                        break;
-                    case Commands.ToggleAutoClearTerminal:
-                        Config.setAutoClearTerminal(state).then(SettingsTree.refresh);
-                        break;
-                }
+            e.items.forEach(([elem]) => {
+                vscode.commands.executeCommand(elem.command);
             });
         },
     );

@@ -34,8 +34,8 @@ export async function openOrActivate(uri: vscode.Uri) {
     // await vscode.commands.executeCommand('vscode.open', uri, vscode.ViewColumn.Beside);
 }
 
-export function wrapErrorHandling(fn: (...args: any) => Promise<void>) {
-    return async (...args: any) => {
+export function wrapErrorHandling(fn: (...args: any[]) => Thenable<any>) {
+    return async (...args: any[]) => {
         try {
             await fn(...args);
         } catch (error) {

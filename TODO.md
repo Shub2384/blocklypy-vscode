@@ -27,6 +27,10 @@
     print("plot: start")
     print("plot: end")
     timestamp - auto at receive
+- extend import syntax to get from remote
+    from display_advanced import display_text, display_number # import: <>
+- connect to standard LEGO hubs via BT, logging
+- // TODO: handle disconnect and restart scanning!
 
 ## TO-FIX
 

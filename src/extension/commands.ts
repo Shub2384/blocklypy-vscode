@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 
 import { compileAndRunAsync } from '../commands/compile-and-run';
-import { connectDeviceAsync } from '../commands/connect-device';
+import { connectDeviceAsyncAny } from '../commands/connect-device';
 import { disconnectDeviceAsync } from '../commands/disconnect-device';
 import { startUserProgramAsync } from '../commands/start-user-program';
 import { stopUserProgramAsync } from '../commands/stop-user-program';
@@ -34,29 +34,14 @@ export enum Commands {
     ShowSource = 'blocklypy-vscode.pythonPreview.showSource',
 }
 
-export const commandHandlers: Map<Commands, (...args: any) => Promise<void>> = new Map([
-    [Commands.ConnectDevice, connectDeviceAsync],
-    [
-        Commands.Compile,
-        async () => {
-            await compileAsync();
-        },
-    ],
-    [
-        Commands.CompileAndRun,
-        async () => {
-            await vscode.window.withProgress(
-                {
-                    location: vscode.ProgressLocation.Notification,
-                    title: 'Compiling and running...',
-                    cancellable: false,
-                },
-                async () => {
-                    await compileAndRunAsync();
-                },
-            );
-        },
-    ],
+type CommandHandler =
+    | ((...args: any[]) => Promise<any>)
+    | ((...args: any[]) => Thenable<any>);
+
+export const commandHandlers: Map<Commands, CommandHandler> = new Map([
+    [Commands.ConnectDevice, connectDeviceAsyncAny],
+    [Commands.Compile, compileAsync],
+    [Commands.CompileAndRun, compileAndRunAsync],
     [Commands.StartUserProgram, startUserProgramAsync],
     [Commands.StopUserProgram, stopUserProgramAsync],
     [Commands.DisconnectDevice, disconnectDeviceAsync],

@@ -4,7 +4,7 @@ All significant updates to the "blocklypy-vscode" extension are tracked in this 
 
 ## [Unreleased]
 
-N/A
+- Added data logging per "plot: " lines
 
 ## [0.3.1] - 2025-09-13
 

@@ -38,19 +38,22 @@ class Config {
     public static get autoConnect() {
         return this.read(ConfigKeys.AutoConnect);
     }
-    public static async setAutoConnect(value: boolean) {
+    public static async setAutoConnect(value?: boolean) {
+        if (value === undefined) value = !this.autoConnect;
         await this.write(ConfigKeys.AutoConnect, value);
     }
     public static get autostart() {
         return this.read(ConfigKeys.AutoStartProgram);
     }
-    public static async setAutostart(value: boolean) {
+    public static async setAutostart(value?: boolean) {
+        if (value === undefined) value = !this.autostart;
         await this.write(ConfigKeys.AutoStartProgram, value);
     }
     public static get autoClearTerminal() {
         return this.read(ConfigKeys.AutoClearTerminal);
     }
-    public static async setAutoClearTerminal(value: boolean) {
+    public static async setAutoClearTerminal(value?: boolean) {
+        if (value === undefined) value = !this.autoClearTerminal;
         await this.write(ConfigKeys.AutoClearTerminal, value);
     }
 }

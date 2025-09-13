@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { EXTENSION_KEY } from '../const';
 import { Device } from '../logic/ble';
 import { onStateChange, setState, StateChangeEvent, StateProp } from '../logic/state';
+import { clearStdOutDataHelpers } from '../logic/stdout-helper';
 import {
     BlocklypyViewerContentAvailabilityMap,
     ViewType,
@@ -28,14 +29,16 @@ export function registerContextUtils(context: vscode.ExtensionContext) {
                         ? 'Connected'
                         : 'Disconnected';
                 setStatusBarItem(event.value, msg, msg);
-
                 break;
+
             case StateProp.Running:
                 vscode.commands.executeCommand(
                     'setContext',
                     EXTENSION_KEY + '.isProgramRunning',
                     event.value,
                 );
+
+                clearStdOutDataHelpers();
                 break;
         }
     };

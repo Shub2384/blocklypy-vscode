@@ -29,7 +29,7 @@ function getPythonCode(): { content: string; folder?: string } | undefined {
     }
 }
 
-export async function compileAsync(): Promise<Blob> {
+export async function compileAsync(...args: any[]): Promise<Blob> {
     await vscode.commands.executeCommand('workbench.action.files.saveAll');
 
     const parts: BlobPart[] = [];
