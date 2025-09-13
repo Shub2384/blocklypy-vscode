@@ -19,6 +19,14 @@
 - logging and data export, maybe even graphing???
 - log file activity panel / file
 - create REPL notbook?
+- generate svgs simply and show them as base editors?
+- plot:
+    print("plot: sensor1:10")
+    print("plot: 10,20,30")
+    print("plot: def sensor1, sensor2, sensor3")
+    print("plot: start")
+    print("plot: end")
+    timestamp - auto at receive
 
 ## TO-FIX
 

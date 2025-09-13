@@ -208,22 +208,17 @@
       {
         "command": "blocklypy-vscode.compileAndRun",
         "key": "f5",
-        "when": "editorLangId == python || activeCustomEditorId == blocklypy-vscode.blocklypyViewer"
-      },
-      {
-        "command": "blocklypy-vscode.compile",
-        "key": "shift+f5",
-        "when": "editorLangId == python || activeCustomEditorId == blocklypy-vscode.blocklypyViewer"
+        "when": "(editorLangId == python || activeCustomEditorId == blocklypy-vscode.blocklypyViewer) && blocklypy-vscode.isConnected"
       },
       {
         "command": "blocklypy-vscode.stopUserProgram",
         "key": "f6",
-        "when": "editorLangId == python || activeCustomEditorId == blocklypy-vscode.blocklypyViewer"
+        "when": "(editorLangId == python || activeCustomEditorId == blocklypy-vscode.blocklypyViewer) && blocklypy-vscode.isConnected && blocklypy-vscode.isProgramRunning"
       },
       {
         "command": "blocklypy-vscode.stopUserProgram",
         "key": "shift+f5",
-        "when": "editorLangId == python || activeCustomEditorId == blocklypy-vscode.blocklypyViewer"
+        "when": "(editorLangId == python || activeCustomEditorId == blocklypy-vscode.blocklypyViewer) && blocklypy-vscode.isConnected && blocklypy-vscode.isProgramRunning"
       },
       {
         "command": "blocklypy-vscode.blocklypyViewer.displayNextView",
