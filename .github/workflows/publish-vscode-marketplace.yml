@@ -28,7 +28,7 @@ jobs:
               run: yarn --frozen-lockfile
 
             - name: Build the project
-              run: npm run package
+              run: yarn package
 
             - name: Ensure clean working tree
               run: |
@@ -37,7 +37,7 @@ jobs:
                   git clean -fdx
 
             - name: Publish extension
-              run: npx @vscode/vsce publish --no-yarn --pat $VSCE_TOKEN minor
+              run: npx @vscode/vsce publish --pat $VSCE_TOKEN minor
               env:
                   VSCE_TOKEN: ${{ secrets.VSCE_TOKEN }}
                   VSCE_PAT: ${{ secrets.VSCE_TOKEN }}
