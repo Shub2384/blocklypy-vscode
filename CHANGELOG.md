@@ -4,6 +4,10 @@ All significant updates to the "blocklypy-vscode" extension are tracked in this 
 
 ## [Unreleased]
 
+## [0.3.2] - 2025-09-14
+
+### Added
+
 - Added data logging per "plot: " lines
 
 ## [0.3.1] - 2025-09-13

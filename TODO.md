@@ -20,16 +20,11 @@
 - log file activity panel / file
 - create REPL notbook?
 - generate svgs simply and show them as base editors?
-- plot:
-    print("plot: sensor1:10")
-    print("plot: 10,20,30")
-    print("plot: def sensor1, sensor2, sensor3")
-    print("plot: start")
-    print("plot: end")
-    timestamp - auto at receive
+- plot: //
 - extend import syntax to get from remote
     from display_advanced import display_text, display_number # import: <>
 - connect to standard LEGO hubs via BT, logging
+    <https://lego.github.io/lego-ble-wireless-protocol-docs/>
 - // TODO: handle disconnect and restart scanning!
 
 ## TO-FIX
