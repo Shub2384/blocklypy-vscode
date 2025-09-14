@@ -3,9 +3,8 @@ import _ from 'lodash';
 import { delay, isDevelopmentMode } from '../extension';
 import { logDebug, logDebugFromHub } from '../extension/debug-channel';
 import { clearPythonErrors } from '../extension/diagnostics';
-import { setStatusBarItem } from '../extension/statusbar';
-import { TreeCommands } from '../extension/tree-commands';
-import { ToCapialized } from '../extension/utils';
+import { CommandsTree } from '../extension/tree-commands';
+import { DevicesTree } from '../extension/tree-devices';
 import {
     EventType,
     getEventType,
@@ -42,7 +41,7 @@ export interface DeviceMetadata {
 }
 
 class BLE {
-    private device: DeviceMetadata | null = null;
+    device: DeviceMetadata | null = null;
     private pybricksControlChar: noble.Characteristic | null = null;
     private pybricksHubCapabilitiesChar: noble.Characteristic | null = null;
     private _status: BLEStatus = BLEStatus.Disconnected;
@@ -56,17 +55,20 @@ class BLE {
         noble.on('stateChange', async (state) => {
             // state = <"unknown" | "resetting" | "unsupported" | "unauthorized" | "poweredOff" | "poweredOn">
             if (isDevelopmentMode) {
-                logDebug(`Noble state changed to: ${state}`);
+                console.log(`Noble state changed to: ${state}`);
                 // TODO: handle disconnect and restart scanning!
             }
-
-            if (state === 'scanStart') {
-                this._isScanning = true;
-                setState(StateProp.Scanning, true);
-            } else if (state === 'scanStop') {
-                this._isScanning = false;
-                setState(StateProp.Scanning, false);
+            if (state === 'poweredOn') {
+                await this.restartScanning();
             }
+        });
+        noble.on('scanStart', () => {
+            this._isScanning = true;
+            setState(StateProp.Scanning, true);
+        });
+        noble.on('scanStop', () => {
+            this._isScanning = false;
+            setState(StateProp.Scanning, false);
         });
         noble.on('discover', (peripheral) => {
             // Deep copy the advertisement object to avoid mutation issues
@@ -206,10 +208,16 @@ class BLE {
             await this.pybricksControlChar.subscribeAsync();
 
             this.status = BLEStatus.Connected;
+            const rssiUpdater = setInterval(() => peripheral.updateRssi(), 1000);
+            peripheral.on('rssiUpdate', (rssi) => {
+                // Notify listeners of RSSI update
+                this.listeners.forEach((fn) => fn(metadata));
+            });
 
             this.exitStack.push(async () => {
                 // need to remove this as pybricks creates a random BLE id on each reconnect
                 if (this.name) this._allDevices.delete(this.name);
+                clearInterval(rssiUpdater);
                 peripheral.removeAllListeners();
             });
 
@@ -381,23 +389,14 @@ class BLE {
     }
 
     private set status(newStatus: BLEStatus) {
+        this._status = newStatus;
         setState(StateProp.Connected, newStatus === BLEStatus.Connected);
         setState(StateProp.Connecting, newStatus === BLEStatus.Connecting);
 
         if (this._status === newStatus) return;
-        this._status = newStatus;
 
-        // update status
-        const isConnected = newStatus === BLEStatus.Connected;
-        setStatusBarItem(
-            isConnected,
-            (this.name ? this.name + ' ' : '') + ToCapialized(newStatus),
-            `Connected to ${this.name} hub.`,
-        );
-        // vscode.window.setStatusBarMessage(`Connected to ${this.Name} hub.`, 3000);
-        // setContextIsConnected(isConnected); // TODO: make this automatic when the status characteristic changes
-
-        TreeCommands.refresh();
+        CommandsTree.refresh();
+        DevicesTree.refreshCurrentItem();
     }
 
     public get current() {

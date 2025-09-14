@@ -40,13 +40,13 @@ class CommandsTreeDataProvider extends BaseTreeDataProvider<TreeItemData> {
     }
 }
 
-export const TreeCommands = new CommandsTreeDataProvider();
+export const CommandsTree = new CommandsTreeDataProvider();
 export function registerCommandsTree(context: vscode.ExtensionContext) {
     // vscode.window.registerTreeDataProvider(EXTENSION_KEY + '-commands', TreeCommands);
-    TreeCommands.init(context);
+    CommandsTree.init(context);
 
     const treeview = vscode.window.createTreeView(EXTENSION_KEY + '-commands', {
-        treeDataProvider: TreeCommands,
+        treeDataProvider: CommandsTree,
     });
 
     context.subscriptions.push(treeview);

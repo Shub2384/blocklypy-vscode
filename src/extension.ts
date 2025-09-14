@@ -6,7 +6,7 @@ import { commandHandlers, Commands } from './extension/commands';
 import { registerContextUtils } from './extension/context-utils';
 import { logDebug, registerDebugTerminal } from './extension/debug-channel';
 import { clearPythonErrors } from './extension/diagnostics';
-import { registerCommandsTree, TreeCommands } from './extension/tree-commands';
+import { CommandsTree, registerCommandsTree } from './extension/tree-commands';
 import { registerDevicesTree } from './extension/tree-devices';
 import { registerSettingsTree } from './extension/tree-settings';
 import { wrapErrorHandling } from './extension/utils';
@@ -76,7 +76,7 @@ export function activate(context: vscode.ExtensionContext) {
     // refresh commands tree on state change
     context.subscriptions.push(
         onStateChange(() => {
-            TreeCommands.refresh();
+            CommandsTree.refresh();
         }),
     );
 
@@ -85,7 +85,7 @@ export function activate(context: vscode.ExtensionContext) {
         logDebug('BlocklyPy Commander started up successfully.', true);
 
         await Device.waitForReadyAsync();
-        await Device.startScanning();
+        // await Device.startScanning();
 
         // autoconnect to last connected device
         if (Config.autoConnect && Config.lastConnectedDevice) {

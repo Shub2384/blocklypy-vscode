@@ -1,4 +1,3 @@
-import { TreeCommands } from '../extension/tree-commands';
 import { Device } from '../logic/ble';
 import { hasState, StateProp } from '../logic/state';
 import { stopUserProgramAsync } from './stop-user-program';
@@ -13,5 +12,4 @@ export async function disconnectDeviceAsync() {
     }
 
     await Device.disconnectAsync();
-    TreeCommands.refresh();
 }

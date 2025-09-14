@@ -8,6 +8,7 @@ import {
     ViewType,
 } from '../views/BlocklypyViewerProvider';
 import { setStatusBarItem } from './statusbar';
+import { DevicesTree } from './tree-devices';
 import { ToCapialized } from './utils';
 
 const CONTEXT_BASE = EXTENSION_KEY + '.';
@@ -26,9 +27,11 @@ export function registerContextUtils(context: vscode.ExtensionContext) {
 
                 const msg =
                     (Device.name ? Device.name + ' ' : '') + event.value
-                        ? 'Connected'
+                        ? `Connected to ${Device.name}`
                         : 'Disconnected';
                 setStatusBarItem(event.value, msg, msg);
+
+                DevicesTree.refreshCurrentItem();
                 break;
 
             case StateProp.Running:

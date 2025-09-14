@@ -14,6 +14,12 @@ export interface TreeItemDeviceData extends TreeItemData {
 class DevicesTreeDataProvider extends BaseTreeDataProvider<TreeItemDeviceData> {
     public deviceMap = new Map<string, TreeItemDeviceData>();
 
+    getTreeItem(element: TreeItemDeviceData): vscode.TreeItem {
+        const item = super.getTreeItem(element);
+        if (element.id && element.id === Device.name) item.label = `${element.id} 🔵`;
+        return item;
+    }
+
     getChildren(
         element?: TreeItemDeviceData,
     ): vscode.ProviderResult<TreeItemDeviceData[]> {
@@ -31,6 +37,14 @@ class DevicesTreeDataProvider extends BaseTreeDataProvider<TreeItemDeviceData> {
                 },
             ];
         }
+    }
+
+    refreshCurrentItem() {
+        const name = Device.name;
+        if (!name) return;
+        const item = this.deviceMap.get(name);
+        if (!item) return;
+        this.refreshItem(item);
     }
 }
 
@@ -52,6 +66,7 @@ function registerDevicesTree(context: vscode.ExtensionContext) {
         const isNew = item.command === undefined;
         Object.assign(item, {
             name,
+            id: name,
             title: name,
             command: Commands.ConnectDevice,
             commandArguments: [name],
@@ -101,6 +116,7 @@ function registerDevicesTree(context: vscode.ExtensionContext) {
 function getSignalIcon(rssi?: number) {
     if (rssi === undefined) return '';
     const levels = [-85, -70, -60, -45];
+    // const levels = [-95, -80, -70, -60]; // chrome values
     const idx = levels.findIndex((level) => rssi <= level);
     const icon = `asset/signal-${idx === -1 ? 4 : idx}.svg`;
     return icon;

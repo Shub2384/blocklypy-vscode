@@ -188,13 +188,13 @@
           "id": "blocklypy-vscode-commands",
           "name": "Commands",
           "icon": "asset/icon.svg",
-          "initialSize": 10
+          "initialSize": 20
         },
         {
           "id": "blocklypy-vscode-devices",
           "name": "Devices",
           "icon": "asset/icon.svg",
-          "initialSize": 10
+          "initialSize": 20
         },
         {
           "id": "blocklypy-vscode-settings",
