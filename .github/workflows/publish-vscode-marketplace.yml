@@ -1,0 +1,29 @@
+name: Publish Extension
+
+on:
+  workflow_dispatch:  # Allow manual publishing from the Actions UI
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '22'  # Specify the Node.js version
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build the project
+        run: npm run package
+
+      - name: Publish extension
+        run: npx vsce publish  --pat $VSCE_TOKEN
+        env:
+          VSCE_TOKEN: ${{ secrets.VSCE_TOKEN }}
+          VSCE_PAT: ${{ secrets.VSCE_TOKEN }}
