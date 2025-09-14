@@ -317,13 +317,14 @@ export class BlocklypyViewerProvider
         const state = this.documents.get(this.activeUri);
         if (!state) throw new Error('No active document state');
 
-        const scriptUri = webviewPanel.webview.asWebviewUri(
-            vscode.Uri.joinPath(
-                this.context.extensionUri,
-                'dist',
-                'BlocklypyWebview.js',
-            ),
-        );
+        const scriptUri = this.getScriptUri(webviewPanel);
+        // const scriptUri = webviewPanel.webview.asWebviewUri(
+        //     vscode.Uri.joinPath(
+        //         this.context.extensionUri,
+        //         'dist',
+        //         'webviews.js',
+        //     ),
+        // );
         const imageUri = webviewPanel.webview.asWebviewUri(
             vscode.Uri.joinPath(
                 this.context.extensionUri,

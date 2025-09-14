@@ -48,6 +48,12 @@ export abstract class CustomEditorProviderBase<TState extends DocumentState>
         return this.providerByType.get(providerType);
     }
 
+    public getScriptUri(webviewPanel: vscode.WebviewPanel): vscode.Uri | undefined {
+        return webviewPanel.webview.asWebviewUri(
+            vscode.Uri.joinPath(this.context.extensionUri, 'dist', 'webviews.js'),
+        );
+    }
+
     async openCustomDocument(
         uri: vscode.Uri,
         openContext: { backupId?: string },
