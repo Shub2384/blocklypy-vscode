@@ -37,7 +37,7 @@ jobs:
                   git clean -fdx
 
             - name: Publish extension
-              run: npx vsce publish  --no-yarn --pat $VSCE_TOKEN minor
+              run: npx @vscode/vsce publish --no-yarn --pat $VSCE_TOKEN minor
               env:
                   VSCE_TOKEN: ${{ secrets.VSCE_TOKEN }}
                   VSCE_PAT: ${{ secrets.VSCE_TOKEN }}
