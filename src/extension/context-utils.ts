@@ -8,13 +8,19 @@ import {
     ViewType,
 } from '../views/BlocklypyViewerProvider';
 import { setStatusBarItem } from './statusbar';
+import { CommandsTree } from './tree-commands';
 import { DevicesTree } from './tree-devices';
 import { ToCapialized } from './utils';
 
 const CONTEXT_BASE = EXTENSION_KEY + '.';
 
+// saga like bahaviour for context management
 export function registerContextUtils(context: vscode.ExtensionContext) {
     const handleStateChange = (event: StateChangeEvent) => {
+        // refresh commands tree on any state change
+        CommandsTree.refresh();
+
+        // handle specific state changes
         switch (event.prop) {
             case StateProp.Connected:
                 vscode.commands.executeCommand(
@@ -41,6 +47,9 @@ export function registerContextUtils(context: vscode.ExtensionContext) {
                     event.value,
                 );
 
+                // program state notification arrives at a regular pace
+                // it might happen that program sends text before program start notification arrives
+                // as a workaround on stadout we set running to true
                 clearStdOutDataHelpers();
                 break;
         }
@@ -67,6 +76,7 @@ export function setContextCustomViewType(value: ViewType | undefined) {
         value,
     );
 }
+
 export function setContextContentAvailability(
     content: BlocklypyViewerContentAvailabilityMap | undefined,
 ) {
@@ -77,4 +87,12 @@ export function setContextContentAvailability(
             content[key as keyof BlocklypyViewerContentAvailabilityMap] === true,
         );
     }
+}
+
+export function setContextPlotDataAvailability(value: boolean) {
+    vscode.commands.executeCommand(
+        'setContext',
+        `${CONTEXT_BASE}isPlotDataAvailable`,
+        value,
+    );
 }

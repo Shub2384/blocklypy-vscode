@@ -118,7 +118,7 @@ function getSignalIcon(rssi?: number) {
     const levels = [-85, -70, -60, -45];
     // const levels = [-95, -80, -70, -60]; // chrome values
     const idx = levels.findIndex((level) => rssi <= level);
-    const icon = `asset/signal-${idx === -1 ? 4 : idx}.svg`;
+    const icon = `asset/icons/signal-${idx === -1 ? 4 : idx}.svg`;
     return icon;
 }
 

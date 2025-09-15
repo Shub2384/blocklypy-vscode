@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { hasState, StateProp } from '../logic/state';
+import { registerStdoutHelper } from '../logic/stdout-helper';
 import { getIcon } from './utils';
 
 class DebugTerminal implements vscode.Pseudoterminal {
@@ -16,7 +17,10 @@ class DebugTerminal implements vscode.Pseudoterminal {
             name: 'BlocklyPy Debug Terminal',
             pty: this,
             iconPath: getIcon(
-                { light: 'asset/icon-light.svg', dark: 'asset/icon-dark.svg' },
+                {
+                    light: 'asset/icons/icon-light.svg',
+                    dark: 'asset/icons/icon-dark.svg',
+                },
                 this.context,
             ),
             isTransient: false,
@@ -77,10 +81,14 @@ export function registerDebugTerminal(
     context: vscode.ExtensionContext,
     onUserInput?: (input: string) => void,
 ) {
+    // create terminal
     debugTerminal = new DebugTerminal(context);
     debugTerminal.onUserInput = onUserInput;
     debugTerminal.show(false);
     // vscode.window.activeTerminal = debugTerminal.terminal;
+
+    // register stdout helpers
+    registerStdoutHelper();
 
     // Return a disposable that closes the terminal when disposed
     context.subscriptions.push({

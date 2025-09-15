@@ -26,6 +26,7 @@
 - connect to standard LEGO hubs via BT, logging
     <https://lego.github.io/lego-ble-wireless-protocol-docs/>
 - // TODO: handle disconnect and restart scanning!
+- <https://code.visualstudio.com/api/ux-guidelines/panel>
 
 ## TO-FIX
 

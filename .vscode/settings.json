@@ -13,5 +13,6 @@
     "editor.formatOnSave": true,
     "editor.tabSize": 2,
     "markdown.validate.enabled": true,
-    "markdown.validate.referenceLinks": false
+    "liveServer.settings.root": "temp/uPlot/",
+    "liveServer.settings.multiRootWorkspaceName": "blocklypy-vscode-3"
 }

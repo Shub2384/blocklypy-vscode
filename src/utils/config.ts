@@ -2,59 +2,68 @@ import * as vscode from 'vscode';
 import { EXTENSION_KEY } from '../const';
 
 const CONFIG_BASEKEY = EXTENSION_KEY + '.';
-const enum ConfigKeys {
-    LastConnectedDevice = 'lastConnectedDevice',
-    AutoConnect = 'autoConnect',
-    AutoStartProgram = 'autoStart',
-    AutoClearTerminal = 'autoClearTerminal',
+export const enum ConfigKeys {
+    DeviceLastConnected = 'lastconnected-device',
+    DeviceAutoConnect = 'autoconnect-device',
+    ProgramAutoStart = 'autostart-program',
+    TerminalAutoClear = 'autoclear-terminal',
+    PlotAutosave = 'autosave-plot',
 }
 
 export function getConfig<T>(key: string) {
-    return vscode.workspace.getConfiguration().get(key) as T;
+    // use the extension section so keys are the short names from ConfigKeys
+    return vscode.workspace.getConfiguration(EXTENSION_KEY).get<T>(key);
 }
 
 export async function updateConfig(key: string, value: any) {
-    const res = await vscode.workspace
-        .getConfiguration()
+    await vscode.workspace
+        .getConfiguration(EXTENSION_KEY)
         .update(key, value, vscode.ConfigurationTarget.Global);
 }
 
 class Config {
-    private static read(key: ConfigKeys) {
-        return getConfig<any>(CONFIG_BASEKEY + key);
+    private static read<T>(key: ConfigKeys, defaultValue?: T): T | undefined {
+        return getConfig<T>(key) ?? defaultValue;
     }
     private static async write(key: ConfigKeys, value: any) {
-        await updateConfig(Config.getKey(key), value);
+        await updateConfig(key, value);
     }
     public static getKey(key: ConfigKeys) {
-        return CONFIG_BASEKEY + key;
+        return `${EXTENSION_KEY}.${key}`;
     }
-    public static get lastConnectedDevice() {
-        return this.read(ConfigKeys.LastConnectedDevice);
+
+    // helper for toggling boolean flags
+    private static async toggleBoolean(key: ConfigKeys, value?: boolean) {
+        const current = this.read<boolean>(key) ?? false;
+        const next = value === undefined ? !current : value;
+        await this.write(key, next);
+        return next;
     }
-    public static async setLastConnectedDevice(value: string) {
-        await this.write(ConfigKeys.LastConnectedDevice, value);
+
+    public static get deviceLastConnected(): string | undefined {
+        return this.read<string>(ConfigKeys.DeviceLastConnected);
     }
-    public static get autoConnect() {
-        return this.read(ConfigKeys.AutoConnect);
+    public static get programAutostart(): boolean {
+        return !!this.read<boolean>(ConfigKeys.ProgramAutoStart);
     }
-    public static async setAutoConnect(value?: boolean) {
-        if (value === undefined) value = !this.autoConnect;
-        await this.write(ConfigKeys.AutoConnect, value);
+    public static get terminalAutoClear(): boolean {
+        return !!this.read<boolean>(ConfigKeys.TerminalAutoClear);
     }
-    public static get autostart() {
-        return this.read(ConfigKeys.AutoStartProgram);
+    public static get deviceAutoConnect(): boolean {
+        return !!this.read<boolean>(ConfigKeys.DeviceAutoConnect);
     }
-    public static async setAutostart(value?: boolean) {
-        if (value === undefined) value = !this.autostart;
-        await this.write(ConfigKeys.AutoStartProgram, value);
+    public static get plotAutosave(): boolean {
+        return !!this.read<boolean>(ConfigKeys.PlotAutosave);
     }
-    public static get autoClearTerminal() {
-        return this.read(ConfigKeys.AutoClearTerminal);
+
+    public static getConfigValue<T>(key: ConfigKeys, defaultValue?: T) {
+        return this.read<T>(key, defaultValue);
     }
-    public static async setAutoClearTerminal(value?: boolean) {
-        if (value === undefined) value = !this.autoClearTerminal;
-        await this.write(ConfigKeys.AutoClearTerminal, value);
+    public static async setConfigValue(key: ConfigKeys, value: any) {
+        await this.write(key, value);
+    }
+    public static toggleConfigValue(key: ConfigKeys, value?: boolean) {
+        return this.toggleBoolean(key, value);
     }
 }
 export default Config;

@@ -25,7 +25,25 @@ class StatusBarItem {
     }
 }
 
+const { EventEmitter: NodeEventEmitter } = require('events');
+
+class _EventEmitter {
+    constructor() {
+        this._emitter = new NodeEventEmitter();
+    }
+    event(listener) {
+        this._emitter.on('fire', listener);
+        return {
+            dispose: () => this._emitter.off('fire', listener),
+        };
+    }
+    fire(data) {
+        this._emitter.emit('fire', data);
+    }
+}
+
 module.exports = {
+    EventEmitter: _EventEmitter,
     workspace: {
         workspaceFolders: [{ uri: { fsPath: os.tmpdir() } }],
     },
@@ -43,6 +61,5 @@ module.exports = {
             dispose: jest.fn(),
         })),
     },
-    EventEmitter,
     TreeItem,
 };

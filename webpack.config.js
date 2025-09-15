@@ -80,11 +80,14 @@ const extensionConfig = {
 const webviewConfig = {
     target: 'web',
     mode: 'none',
-    entry: {
-        main: glob.sync(path.resolve(__dirname, 'src/views/webview/*.ts')),
-    },
+    entry: Object.fromEntries(
+        glob.sync(path.resolve(__dirname, 'src/views/webview/*.ts')).map((file) => {
+            const name = path.basename(file, path.extname(file));
+            return [name, file];
+        }),
+    ),
     output: {
-        filename: 'webviews.js',
+        filename: '[name].js',
         path: path.resolve(__dirname, 'dist'),
     },
     resolve: {
@@ -123,6 +126,13 @@ const webviewConfig = {
     infrastructureLogging: {
         level: 'log',
     },
+    performance: isDevelopment
+        ? {
+              maxAssetSize: 512000, // Increase asset size limit to 500 KB
+              maxEntrypointSize: 1024000, // Increase entry point size limit to 1 MB
+              hints: false,
+          }
+        : undefined,
 };
 
 module.exports = [extensionConfig, webviewConfig];

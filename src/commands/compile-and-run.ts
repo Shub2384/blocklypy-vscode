@@ -15,7 +15,7 @@ import { stopUserProgramAsync } from './stop-user-program';
 
 export async function compileAndRunAsync() {
     clearPythonErrors();
-    if (Config.autoClearTerminal) clearDebugLog();
+    if (Config.terminalAutoClear) clearDebugLog();
 
     vscode.window.withProgress(
         {

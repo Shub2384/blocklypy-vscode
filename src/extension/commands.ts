@@ -6,7 +6,7 @@ import { disconnectDeviceAsync } from '../commands/disconnect-device';
 import { startUserProgramAsync } from '../commands/start-user-program';
 import { stopUserProgramAsync } from '../commands/stop-user-program';
 import { compileAsync } from '../logic/compile';
-import Config from '../utils/config';
+import Config, { ConfigKeys } from '../utils/config';
 import { BlocklypyViewerProvider, ViewType } from '../views/BlocklypyViewerProvider';
 import { PybricksPythonPreviewProvider } from '../views/PybricksPythonPreviewProvider';
 import { settingsTreeData } from './tree-settings';
@@ -24,6 +24,7 @@ export enum Commands {
     ToggleAutoConnect = 'blocklypy-vscode.toggleAutoConnect',
     ToggleAutoStart = 'blocklypy-vscode.toggleAutoStart',
     ToggleAutoClearTerminal = 'blocklypy-vscode.toggleAutoClearTerminal',
+    TogglePlotAutosave = 'blocklypy-vscode.toggleAutoSavePlot',
     DisplayNextView = 'blocklypy-vscode.blocklypyViewer.displayNextView',
     DisplayPreviousView = 'blocklypy-vscode.blocklypyViewer.displayPreviousView',
     DisplayPreview = 'blocklypy-vscode.blocklypyViewer.displayPreview',
@@ -33,6 +34,43 @@ export enum Commands {
     ShowPythonPreview = 'blocklypy-vscode.showPythonPreview',
     ShowSource = 'blocklypy-vscode.pythonPreview.showSource',
 }
+
+// Map configuration keys to their toggle commands and tooltips, title is taken from package.json
+export const SettingsToggleCommandsMap: [ConfigKeys, Commands, string][] = [
+    [
+        ConfigKeys.DeviceAutoConnect,
+        Commands.ToggleAutoConnect,
+        'Auto-connect to last device connected.',
+    ],
+    [
+        ConfigKeys.ProgramAutoStart,
+        Commands.ToggleAutoStart,
+        "Auto-start user program on save with '# LEGO autostart' in first line.",
+    ],
+    [
+        ConfigKeys.TerminalAutoClear,
+        Commands.ToggleAutoClearTerminal,
+        'Auto-clear terminal before running.',
+    ],
+    [
+        ConfigKeys.PlotAutosave,
+        Commands.TogglePlotAutosave,
+        'Auto-save plots to workspace folder using the "plot:" commands.',
+    ],
+];
+
+const settingsCommandHandlers = Array.from(
+    SettingsToggleCommandsMap.map(
+        ([configkey, command]) =>
+            [
+                command,
+                async () => {
+                    await Config.toggleConfigValue(configkey);
+                    settingsTreeData.refresh();
+                },
+            ] as [Commands, CommandHandler],
+    ),
+);
 
 type CommandHandler =
     | ((...args: any[]) => Promise<any>)
@@ -45,27 +83,7 @@ export const commandHandlers: Map<Commands, CommandHandler> = new Map([
     [Commands.StartUserProgram, startUserProgramAsync],
     [Commands.StopUserProgram, stopUserProgramAsync],
     [Commands.DisconnectDevice, disconnectDeviceAsync],
-    [
-        Commands.ToggleAutoConnect,
-        async () => {
-            await Config.setAutoConnect(!Config.autoConnect);
-            settingsTreeData.refresh();
-        },
-    ],
-    [
-        Commands.ToggleAutoStart,
-        async () => {
-            await Config.setAutostart(!Config.autostart);
-            settingsTreeData.refresh();
-        },
-    ],
-    [
-        Commands.ToggleAutoClearTerminal,
-        async () => {
-            await Config.setAutoClearTerminal(!Config.autoClearTerminal);
-            settingsTreeData.refresh();
-        },
-    ],
+    ...settingsCommandHandlers,
     [
         Commands.DisplayNextView,
         async () => {

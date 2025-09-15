@@ -4,17 +4,12 @@ import { reportPythonError, showInfo } from '../extension/diagnostics';
 import {
     resetPlotParser as clearPlotParser,
     parsePlotCommand,
+    registerStdoutPlotHelper,
 } from './stdout-plot-helper';
 import {
     resetPythonErrorParser as clearPythonErrorParser,
     parsePythonError,
 } from './stdout-python-error-helper';
-
-function handleOnPlotFileCreate(filepath: string) {
-    // onCreate callback
-    logDebug(`Started datalogging to ${filepath}`);
-    showInfo(`Started datalogging to ${path.basename(filepath)}`);
-}
 
 function handleReportPythonError(filename: string, line: number, message: string) {
     // onReport callback
@@ -27,7 +22,7 @@ export async function handleStdOutData(text: string) {
     const lines = text.split(/\r?\n/);
     for (const line of lines) {
         // starts with "plot: "
-        await parsePlotCommand(line, handleOnPlotFileCreate);
+        await parsePlotCommand(line);
 
         // equal to  "Traceback (most recent call last):"
         await parsePythonError(line, handleReportPythonError);
@@ -37,4 +32,12 @@ export async function handleStdOutData(text: string) {
 export function clearStdOutDataHelpers() {
     clearPlotParser();
     clearPythonErrorParser();
+}
+
+export function registerStdoutHelper() {
+    registerStdoutPlotHelper((filepath) => {
+        // onCreate callback
+        logDebug(`Started datalogging to ${filepath}`);
+        showInfo(`Started datalogging to ${path.basename(filepath)}`);
+    });
 }

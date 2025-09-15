@@ -4,6 +4,7 @@ import { EXTENSION_KEY } from '../const';
 import GraphvizLoader from '../utils/graphviz-helper';
 import { collectPythonModules } from './collectPythonModules';
 import { CustomEditorProviderBase } from './CustomEditorProviderBase';
+import { getScriptUri } from './utils';
 
 interface DocumentState {
     document: vscode.CustomDocument;
@@ -25,7 +26,7 @@ export class PybricksPythonPreviewProvider
     }
 
     public static get TypeKey() {
-        return EXTENSION_KEY + '.pythonPreview';
+        return EXTENSION_KEY + '-pythonPreview';
     }
 
     /**
@@ -119,7 +120,11 @@ export class PybricksPythonPreviewProvider
     }
 
     protected getHtmlForWebview(webviewPanel: vscode.WebviewPanel): string {
-        const scriptUri = this.getScriptUri(webviewPanel);
+        const scriptUri = getScriptUri(
+            this.context,
+            webviewPanel,
+            'PythonPreviewWebview',
+        );
         // const scriptUri = webviewPanel.webview.asWebviewUri(
         //     vscode.Uri.joinPath(
         //         this.context.extensionUri,

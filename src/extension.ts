@@ -6,18 +6,19 @@ import { commandHandlers, Commands } from './extension/commands';
 import { registerContextUtils } from './extension/context-utils';
 import { logDebug, registerDebugTerminal } from './extension/debug-channel';
 import { clearPythonErrors } from './extension/diagnostics';
-import { CommandsTree, registerCommandsTree } from './extension/tree-commands';
+import { registerCommandsTree } from './extension/tree-commands';
 import { registerDevicesTree } from './extension/tree-devices';
 import { registerSettingsTree } from './extension/tree-settings';
 import { wrapErrorHandling } from './extension/utils';
 import { Device } from './logic/ble';
-import { onStateChange } from './logic/state';
 import { sendDataToHubStdin } from './logic/stdin-helper';
 import Config from './utils/config';
 import { BlocklypyViewerProvider } from './views/BlocklypyViewerProvider';
+import { DatalogView } from './views/DatalogView';
 import { PybricksPythonPreviewProvider } from './views/PybricksPythonPreviewProvider';
 
 export const EXTENSION_ID = 'afarago.blocklypy-vscode';
+const LEGO_AUTOSTART_REGEX = /^#\s*LEGO\b.*\bautostart\b/i;
 
 export function activate(context: vscode.ExtensionContext) {
     isDevelopmentMode = context.extensionMode === vscode.ExtensionMode.Development;
@@ -44,6 +45,9 @@ export function activate(context: vscode.ExtensionContext) {
             PybricksPythonPreviewProvider.TypeKey,
         ),
     );
+
+    // register datalog view
+    DatalogView.register(context);
 
     // register tree views
     registerCommandsTree(context);
@@ -73,13 +77,6 @@ export function activate(context: vscode.ExtensionContext) {
     // context.subscriptions.push(registerDebugTerminal(sendDataToHubStdin));
     registerDebugTerminal(context, sendDataToHubStdin);
 
-    // refresh commands tree on state change
-    context.subscriptions.push(
-        onStateChange(() => {
-            CommandsTree.refresh();
-        }),
-    );
-
     // Start BLE scanning at startup and keep it running
     setTimeout(async () => {
         logDebug('BlocklyPy Commander started up successfully.', true);
@@ -88,9 +85,9 @@ export function activate(context: vscode.ExtensionContext) {
         // await Device.startScanning();
 
         // autoconnect to last connected device
-        if (Config.autoConnect && Config.lastConnectedDevice) {
-            await Device.waitTillDeviceAppearsAsync(Config.lastConnectedDevice, 10000);
-            await connectDeviceAsync(Config.lastConnectedDevice);
+        if (Config.deviceAutoConnect && Config.deviceLastConnected) {
+            await Device.waitTillDeviceAppearsAsync(Config.deviceLastConnected, 10000);
+            await connectDeviceAsync(Config.deviceLastConnected);
         }
     }, 500);
 }
@@ -109,11 +106,10 @@ function onActiveEditorSaveCallback(document: vscode.TextDocument) {
     const activeEditor = vscode.window.activeTextEditor;
 
     if (activeEditor && activeEditor.document === document) {
-        if (Config.autostart && document.languageId === 'python') {
+        if (Config.programAutostart && document.languageId === 'python') {
             // check if file is python and has magic header
             const line1 = document.lineAt(0).text;
-            const regex = new RegExp(/^#\s*LEGO\b.*\bautostart\b/i);
-            if (regex.test(line1)) {
+            if (LEGO_AUTOSTART_REGEX.test(line1)) {
                 console.log('AutoStart detected, compiling and running...');
                 vscode.commands.executeCommand(Commands.CompileAndRun);
             }

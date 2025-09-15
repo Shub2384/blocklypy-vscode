@@ -48,8 +48,9 @@
     "onStartupFinished",
     "onLanguage:python",
     "onLanguage:lego",
-    "onWebviewPanel:blocklypy-vscode.blocklypyViewer",
-    "onWebviewPanel:blocklypy-vscode.pythonPreview"
+    "onWebviewPanel:blocklypy-vscode-blocklypyViewer",
+    "onWebviewPanel:blocklypy-vscode-pythonPreview",
+    "onWebviewPanel:blocklypy-vscode-datalogview"
   ],
   "main": "./dist/extension.js",
   "packageManager": "yarn@1.22.19",
@@ -64,8 +65,8 @@
         "command": "blocklypy-vscode.connectDevice",
         "title": "BlocklyPy: Connect Device",
         "icon": {
-          "light": "asset/hub-small-light.svg",
-          "dark": "asset/hub-small-dark.svg"
+          "light": "asset/icons/hub-small-light.svg",
+          "dark": "asset/icons/hub-small-dark.svg"
         }
       },
       {
@@ -112,6 +113,12 @@
         "category": "blocklypy-vscode.Settings"
       },
       {
+        "command": "blocklypy-vscode.toggleAutoSavePlot",
+        "title": "BlocklyPy: Toggle Auto-Save Plot Data",
+        "icon": "$(file-symlink-file)",
+        "category": "blocklypy-vscode.Settings"
+      },
+      {
         "command": "blocklypy-vscode.statusPlaceholder",
         "title": "BlocklyPy: Status",
         "icon": "$(debug-stackframe)",
@@ -131,40 +138,40 @@
         "command": "blocklypy-vscode.blocklypyViewer.displayPycode",
         "title": "BlocklyPy: Show Python Code",
         "icon": {
-          "light": "asset/display-py-light.svg",
-          "dark": "asset/display-py-dark.svg"
+          "light": "asset/icons/display-py-light.svg",
+          "dark": "asset/icons/display-py-dark.svg"
         }
       },
       {
         "command": "blocklypy-vscode.blocklypyViewer.displayPseudo",
         "title": "BlocklyPy: Show Pseudo Code",
         "icon": {
-          "light": "asset/display-pseudo-light.svg",
-          "dark": "asset/display-pseudo-dark.svg"
+          "light": "asset/icons/display-pseudo-light.svg",
+          "dark": "asset/icons/display-pseudo-dark.svg"
         }
       },
       {
         "command": "blocklypy-vscode.blocklypyViewer.displayPreview",
         "title": "BlocklyPy: Show Preview",
         "icon": {
-          "light": "asset/display-preview-light.svg",
-          "dark": "asset/display-preview-dark.svg"
+          "light": "asset/icons/display-preview-light.svg",
+          "dark": "asset/icons/display-preview-dark.svg"
         }
       },
       {
         "command": "blocklypy-vscode.blocklypyViewer.displayGraph",
         "title": "BlocklyPy: Show Dependency Graph",
         "icon": {
-          "light": "asset/display-graph-light.svg",
-          "dark": "asset/display-graph-dark.svg"
+          "light": "asset/icons/display-graph-light.svg",
+          "dark": "asset/icons/display-graph-dark.svg"
         }
       },
       {
         "command": "blocklypy-vscode.showPythonPreview",
         "title": "Show Python Dependency Preview",
         "icon": {
-          "light": "asset/display-graph-light.svg",
-          "dark": "asset/display-graph-dark.svg"
+          "light": "asset/icons/display-graph-light.svg",
+          "dark": "asset/icons/display-graph-dark.svg"
         }
       },
       {
@@ -178,28 +185,44 @@
         {
           "id": "blocklypy-vscode-activitybar",
           "title": "BlocklyPy Commander",
-          "icon": "asset/icon.svg"
+          "icon": "asset/icons/icon.svg"
+        }
+      ],
+      "panel": [
+        {
+          "id": "blocklypy-vscode-datalogview-panel",
+          "title": "Datalog",
+          "icon": "$(graph-line)"
         }
       ]
     },
     "views": {
+      "blocklypy-vscode-datalogview-panel": [
+        {
+          "id": "blocklypy-vscode-datalogview",
+          "name": "Chart",
+          "icon": "$(graph-line)",
+          "type": "webview",
+          "when": "blocklypy-vscode.isPlotDataAvailable"
+        }
+      ],
       "blocklypy-vscode-activitybar": [
         {
           "id": "blocklypy-vscode-commands",
           "name": "Commands",
-          "icon": "asset/icon.svg",
+          "icon": "asset/icons/icon.svg",
           "initialSize": 20
         },
         {
           "id": "blocklypy-vscode-devices",
           "name": "Devices",
-          "icon": "asset/icon.svg",
+          "icon": "asset/icons/icon.svg",
           "initialSize": 20
         },
         {
           "id": "blocklypy-vscode-settings",
           "name": "Settings",
-          "icon": "asset/icon.svg",
+          "icon": "asset/icons/icon.svg",
           "initialSize": 10
         }
       ]
@@ -208,12 +231,12 @@
       {
         "command": "blocklypy-vscode.compileAndRun",
         "key": "f5",
-        "when": "(editorLangId == python || activeCustomEditorId == blocklypy-vscode.blocklypyViewer) && blocklypy-vscode.isConnected"
+        "when": "(editorLangId == python || activeCustomEditorId == blocklypy-vscode-blocklypyViewer) && blocklypy-vscode.isConnected"
       },
       {
         "command": "blocklypy-vscode.compile",
         "key": "ctrl+f5",
-        "when": "(editorLangId == python || activeCustomEditorId == blocklypy-vscode.blocklypyViewer)"
+        "when": "(editorLangId == python || activeCustomEditorId == blocklypy-vscode-blocklypyViewer)"
       },
       {
         "command": "blocklypy-vscode.stopUserProgram",
@@ -228,12 +251,12 @@
       {
         "command": "blocklypy-vscode.blocklypyViewer.displayNextView",
         "key": "f7",
-        "when": "activeCustomEditorId == blocklypy-vscode.blocklypyViewer"
+        "when": "activeCustomEditorId == blocklypy-vscode-blocklypyViewer"
       },
       {
         "command": "blocklypy-vscode.blocklypyViewer.displayPreviousView",
         "key": "shift+f7",
-        "when": "activeCustomEditorId == blocklypy-vscode.blocklypyViewer"
+        "when": "activeCustomEditorId == blocklypy-vscode-blocklypyViewer"
       },
       {
         "command": "blocklypy-vscode.showPythonPreview",
@@ -243,31 +266,36 @@
       {
         "command": "blocklypy-vscode.pythonPreview.showSource",
         "key": "f7",
-        "when": "activeCustomEditorId == blocklypy-vscode.pythonPreview"
+        "when": "activeCustomEditorId == blocklypy-vscode-pythonPreview"
       }
     ],
     "configuration": {
       "title": "BlocklyPy",
       "properties": {
-        "blocklypy-vscode.lastConnectedDevice": {
+        "blocklypy-vscode.lastconnected-device": {
           "type": "string",
           "default": "",
           "description": "The name of the last connected device."
         },
-        "blocklypy-vscode.autoConnect": {
+        "blocklypy-vscode.autoconnect-device": {
           "type": "boolean",
           "default": false,
           "description": "Automatically connect to the last connected device when opening a Python file."
         },
-        "blocklypy-vscode.autoStart": {
+        "blocklypy-vscode.autostart-program": {
           "type": "boolean",
           "default": false,
           "description": "Automatically start the user program after connecting to a device."
         },
-        "blocklypy-vscode.autoClearTerminal": {
+        "blocklypy-vscode.autoclear-terminal": {
           "type": "boolean",
           "default": false,
           "description": "Automatically clear the terminal before compiling and running a program."
+        },
+        "blocklypy-vscode.autosave-plot": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically save plot data to a CSV file when receiving #plot commands."
         }
       }
     },
@@ -302,16 +330,16 @@
         },
         {
           "command": "blocklypy-vscode.blocklypyViewer.displayGraph",
-          "when": "activeCustomEditorId == blocklypy-vscode.blocklypyViewer && blocklypy-vscode.customViewType !== 'graph' && blocklypy-vscode.contentAvailability.hasGraph",
+          "when": "activeCustomEditorId == blocklypy-vscode-blocklypyViewer && blocklypy-vscode.customViewType !== 'graph' && blocklypy-vscode.contentAvailability.hasGraph",
           "group": "navigation@6"
         },
         {
           "command": "blocklypy-vscode.blocklypyViewer.displayNextView",
-          "when": "activeCustomEditorId == blocklypy-vscode.blocklypyViewer"
+          "when": "activeCustomEditorId == blocklypy-vscode-blocklypyViewer"
         },
         {
           "command": "blocklypy-vscode.blocklypyViewer.displayPreviousView",
-          "when": "activeCustomEditorId == blocklypy-vscode.blocklypyViewer"
+          "when": "activeCustomEditorId == blocklypy-vscode-blocklypyViewer"
         },
         {
           "command": "blocklypy-vscode.showPythonPreview",
@@ -320,18 +348,18 @@
         },
         {
           "command": "blocklypy-vscode.pythonPreview.showSource",
-          "when": "activeCustomEditorId == blocklypy-vscode.pythonPreview",
+          "when": "activeCustomEditorId == blocklypy-vscode-pythonPreview",
           "group": "navigation@1"
         }
       ]
     },
     "customEditors": [
       {
-        "viewType": "blocklypy-vscode.blocklypyViewer",
+        "viewType": "blocklypy-vscode-blocklypyViewer",
         "displayName": "BlocklyPy Viewer",
         "icon": {
-          "light": "asset/file-lego-light.svg",
-          "dark": "asset/file-lego-dark.svg"
+          "light": "asset/icons/file-lego-light.svg",
+          "dark": "asset/icons/file-lego-dark.svg"
         },
         "selector": [
           {
@@ -341,12 +369,12 @@
         "priority": "default"
       },
       {
-        "viewType": "blocklypy-vscode.pythonPreview",
+        "viewType": "blocklypy-vscode-pythonPreview",
         "displayName": "Python Dependency Graph Preview",
         "priority": "option",
         "icon": {
-          "light": "asset/display-graph-light.svg",
-          "dark": "asset/display-graph-dark.svg"
+          "light": "asset/icons/display-graph-light.svg",
+          "dark": "asset/icons/display-graph-dark.svg"
         },
         "selector": [
           {
@@ -373,8 +401,8 @@
           "lego"
         ],
         "icon": {
-          "light": "asset/file-lego-light.svg",
-          "dark": "asset/file-lego-dark.svg"
+          "light": "asset/icons/file-lego-light.svg",
+          "dark": "asset/icons/file-lego-dark.svg"
         }
       }
     ],
@@ -432,6 +460,7 @@
     "blocklypy": "^0.1.9",
     "lodash": "^4.17.21",
     "resolve": "^1.22.10",
-    "svg-pan-zoom": "^3.6.2"
+    "svg-pan-zoom": "^3.6.2",
+    "uplot": "^1.6.32"
   }
 }

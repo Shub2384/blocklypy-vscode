@@ -13,3 +13,24 @@ vsc-extension-quickstart.md
 **/*.ts
 **/.vscode-test.*
 **/*.LICENSE.txt
+.editorconfig
+.eslintrc.json
+.markdownlint.json
+.prettierc.json
+.vscode-test*
+eslint.config.js
+jest.config.js
+tsconfig*
+webpack.config.js
+*.lock
+TODO.md
+
+
+# .gitignore contents
+out
+dist
+node_modules
+.vscode-test/
+*.vsix
+**/.DS_Store
+temp/

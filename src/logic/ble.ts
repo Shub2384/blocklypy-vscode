@@ -21,7 +21,7 @@ import {
     PybricksDecodedBleBroadcast,
 } from '../pybricks/protocol-ble-broadcast';
 import { withTimeout } from '../utils/async';
-import Config from '../utils/config';
+import Config, { ConfigKeys } from '../utils/config';
 import { setState, StateProp } from './state';
 import { handleStdOutData } from './stdout-helper';
 
@@ -225,7 +225,7 @@ class BLE {
             logDebug(`Connected to ${peripheral.advertisement.localName}`);
 
             const connectedName = peripheral.advertisement.localName;
-            await Config.setLastConnectedDevice(connectedName);
+            await Config.setConfigValue(ConfigKeys.DeviceLastConnected, connectedName);
         } catch (error) {
             this.status = BLEStatus.Disconnected;
             await this.runExitStack();
@@ -278,8 +278,10 @@ class BLE {
         switch (eventType) {
             case EventType.StatusReport:
                 {
+                    // process any pending stdout data first
                     this.processStdoutData();
 
+                    // parse status report
                     const status = parseStatusReport(dataView);
                     if (status) {
                         const value =
@@ -291,6 +293,10 @@ class BLE {
                 break;
             case EventType.WriteStdout:
                 {
+                    // if stdout data comes in - it means program is running, make sure it is set
+                    setState(StateProp.Running, true);
+
+                    // parse and handle stdout data
                     const text = data.toString('utf8', 1, data.length);
                     logDebugFromHub(text, false);
                     this.handleWriteStdout(text);
