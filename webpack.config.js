@@ -80,11 +80,14 @@ const extensionConfig = {
 const webviewConfig = {
     target: 'web',
     mode: 'none',
-    entry: {
-        main: glob.sync(path.resolve(__dirname, 'src/views/webview/*.ts')),
-    },
+    entry: Object.fromEntries(
+        glob.sync(path.resolve(__dirname, 'src/views/webview/*.ts')).map((file) => {
+            const name = path.basename(file, path.extname(file));
+            return [name, file];
+        }),
+    ),
     output: {
-        filename: 'webviews.js',
+        filename: '[name].js',
         path: path.resolve(__dirname, 'dist'),
     },
     resolve: {

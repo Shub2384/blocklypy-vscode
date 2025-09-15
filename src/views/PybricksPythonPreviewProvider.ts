@@ -119,7 +119,7 @@ export class PybricksPythonPreviewProvider
     }
 
     protected getHtmlForWebview(webviewPanel: vscode.WebviewPanel): string {
-        const scriptUri = this.getScriptUri(webviewPanel);
+        const scriptUri = this.getScriptUri(webviewPanel, 'PythonPreviewWebview');
         // const scriptUri = webviewPanel.webview.asWebviewUri(
         //     vscode.Uri.joinPath(
         //         this.context.extensionUri,

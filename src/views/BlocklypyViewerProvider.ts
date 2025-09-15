@@ -317,7 +317,7 @@ export class BlocklypyViewerProvider
         const state = this.documents.get(this.activeUri);
         if (!state) throw new Error('No active document state');
 
-        const scriptUri = this.getScriptUri(webviewPanel);
+        const scriptUri = this.getScriptUri(webviewPanel, 'BlocklypyWebview');
         // const scriptUri = webviewPanel.webview.asWebviewUri(
         //     vscode.Uri.joinPath(
         //         this.context.extensionUri,
