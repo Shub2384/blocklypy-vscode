@@ -4,7 +4,10 @@ module.exports = {
     extensionsToTreatAsEsm: ['.ts'],
     preset: 'ts-jest/presets/default-esm',
     transform: {
-        '^.+\\.ts$': ['ts-jest', { tsconfig: 'tsconfig.jest.json', useESM: true }],
+        '^.+\\.ts$': [
+            'ts-jest',
+            { tsconfig: '<rootDir>/tsconfig.jest.json', useESM: true },
+        ],
     },
     testPathIgnorePatterns: ['/temp/'],
     transformIgnorePatterns: [
@@ -14,4 +17,5 @@ module.exports = {
         '^blocklypy$': '<rootDir>/__mocks__/blocklypy.js',
         '^@abandonware/noble$': '<rootDir>/__mocks__/@abandonware/noble.js',
     },
+    roots: ['<rootDir>/src', '<rootDir>/__mocks__'],
 };
