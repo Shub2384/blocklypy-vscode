@@ -41,6 +41,10 @@ class DebugTerminal implements vscode.Pseudoterminal {
         this.closeEmitter.fire();
     }
 
+    public handleInput(data: string) {
+        // built-in name, do not change the name
+        this.handleInputFromTerminal(data);
+    }
     handleInputFromTerminal(data: string) {
         if (!this.onUserInput) return; // ignore input if no callback is set, this is how we send to the BLE device
         if (!hasState(StateProp.Running)) return; // ignore input if user program is not not running

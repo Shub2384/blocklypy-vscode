@@ -162,23 +162,18 @@ class BLE {
         const peripheral = metadata.peripheral;
         try {
             this.status = BLEStatus.Connecting;
-            await withTimeout(
-                peripheral
-                    .connectAsync()
-                    .then(() => peripheral.discoverServicesAsync()),
-                8000,
-            );
+            await withTimeout(peripheral.connectAsync(), 8000);
 
             // Remove any previous listeners
             this.exitStack.push(async () => {
                 peripheral.removeAllListeners('disconnect');
             });
-            peripheral.on('disconnect', () => {
+            peripheral.on('disconnect', async () => {
                 if (this.status === BLEStatus.Connected) {
                     logDebug(
                         `Disconnected from ${peripheral?.advertisement.localName}`,
                     );
-                    clearPythonErrors();
+                    await clearPythonErrors();
                     this.status = BLEStatus.Disconnected;
                     // Do not call disconnectAsync recursively
                     this.runExitStack();
@@ -232,6 +227,11 @@ class BLE {
             // restart scanning to make sure the device shows up again
             await this.restartScanning();
             throw new Error(`Failed to connect to ${name}: ${error}`);
+        }
+
+        if (this.status !== BLEStatus.Connected) {
+            this.disconnectAsync();
+            throw new Error(`Failed to connect to ${name}: Timeout`);
         }
     }
 

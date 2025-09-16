@@ -1,6 +1,5 @@
 import * as vscode from 'vscode';
 import { Device } from '../logic/ble';
-import { StateProp, withState } from '../logic/state';
 
 const items: vscode.QuickPickItem[] = [];
 
@@ -30,10 +29,6 @@ export async function connectDeviceAsync(name: string) {
             cancellable: false,
         },
         async () => {
-            await withState(StateProp.Connected, async () => {
-                await Device.disconnectAsync();
-            })();
-
             // if a name is provided, connect directly
             await Device.connectAsync(name);
         },

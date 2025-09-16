@@ -1,7 +1,9 @@
 import { Device } from '../logic/ble';
-import { createLegacyStartUserProgramCommand } from '../pybricks/protocol';
+import { BuiltinProgramId, createStartUserProgramCommand } from '../pybricks/protocol';
 
-export async function startUserProgramAsync() {
+export async function startUserProgramAsync(
+    progId: number | BuiltinProgramId,
+): Promise<void> {
     if (!Device.current) {
         throw new Error(
             'No device selected. Please connect to a Pybricks device first.',
@@ -9,5 +11,5 @@ export async function startUserProgramAsync() {
         return;
     }
 
-    await Device.write(createLegacyStartUserProgramCommand(), false);
+    await Device.write(createStartUserProgramCommand(progId), false);
 }

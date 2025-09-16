@@ -69,7 +69,7 @@ export async function compileAndRunAsync() {
                 }
 
                 // await Device.write(createLegacyStartUserProgramCommand(), false);
-                await startUserProgramAsync();
+                await startUserProgramAsync(0);
 
                 logDebug(
                     `User program compiled (${blob.size} bytes) and started successfully.`,

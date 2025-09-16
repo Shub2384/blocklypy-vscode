@@ -5,8 +5,8 @@ import * as vscode from 'vscode';
 import { BlocklypyViewerProvider } from '../views/BlocklypyViewerProvider';
 import { setState, StateProp } from './state';
 
-export const MAIN_MOCULE = '__main__';
-export const MAIN_MOCULE_PATH = '__main__.py';
+export const MAIN_MODULE = '__main__';
+export const MAIN_MODULE_PATH = '__main__.py';
 
 type Module = {
     name: string;
@@ -41,14 +41,13 @@ export async function compileAsync(...args: any[]): Promise<Blob> {
 
         const modules: Module[] = [
             {
-                name: MAIN_MOCULE,
-                path: MAIN_MOCULE_PATH,
+                name: MAIN_MODULE,
+                path: MAIN_MODULE_PATH,
                 content: pycode.content,
             },
         ];
 
         const checkedModules = new Set<string>();
-
         while (modules.length > 0) {
             const module = modules.pop()!;
             if (checkedModules.has(module.name)) {
@@ -74,27 +73,47 @@ export async function compileAsync(...args: any[]): Promise<Blob> {
             }
 
             // compile module
-            const compiled = await compile(
+            const [status, mpy] = await compileInternal(
                 module.path,
+                module.name,
                 module.content,
-                undefined,
-                undefined,
             );
-            if (compiled.status !== 0 || !compiled.mpy) {
+            if (status !== 0 || !mpy)
                 throw new Error(`Failed to compile ${module.name}`);
-            }
 
-            parts.push(encodeUInt32LE(compiled.mpy.length));
+            parts.push(encodeUInt32LE(mpy.length));
             parts.push(cString(module.name) as BlobPart);
-            parts.push(compiled.mpy as BlobPart);
+            parts.push(mpy as BlobPart);
 
             checkedModules.add(module.name);
         }
+    } catch (e) {
+        console.error(e);
     } finally {
         setState(StateProp.Compiling, false);
     }
 
     return new Blob(parts);
+}
+
+async function compileInternal(
+    path: string,
+    name: string,
+    content: string,
+): Promise<[number, Uint8Array | undefined]> {
+    // HACK: This is a workaround for https://github.com/pybricks/support/issues/2185
+    const fetch_backup = (global as any).fetch;
+    (global as any).fetch = undefined;
+    const compiled = await compile(path, content, undefined, undefined)
+        .catch((e) => {
+            console.error(`Failed to compile ${name}: ${e}`);
+            return { status: 1, mpy: undefined };
+        })
+        .finally(() => {
+            (global as any).fetch = fetch_backup;
+        });
+
+    return [compiled.status, compiled.mpy];
 }
 
 async function resolveModuleAsync(
