@@ -458,6 +458,7 @@
     "@pybricks/mpy-cross-v6": "^2.0.0",
     "@pybricks/python-program-analysis": "^2.0.0",
     "blocklypy": "^0.1.9",
+    "crc-32": "^1.2.2",
     "lodash": "^4.17.21",
     "resolve": "^1.22.10",
     "svg-pan-zoom": "^3.6.2",

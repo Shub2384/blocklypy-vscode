@@ -1,15 +1,16 @@
-import { Device } from '../logic/ble';
-import { BuiltinProgramId, createStartUserProgramCommand } from '../pybricks/protocol';
+import { bleLayer } from '../clients/ble-layer';
+import { hasState, StateProp } from '../logic/state';
+import { BuiltinProgramId } from '../pybricks/protocol';
 
 export async function startUserProgramAsync(
     progId: number | BuiltinProgramId,
 ): Promise<void> {
-    if (!Device.current) {
+    if (!hasState(StateProp.Connected)) {
         throw new Error(
             'No device selected. Please connect to a Pybricks device first.',
         );
         return;
     }
 
-    await Device.write(createStartUserProgramCommand(progId), false);
+    await bleLayer.client?.action_start(progId);
 }

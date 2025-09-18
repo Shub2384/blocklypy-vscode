@@ -25,6 +25,9 @@
 - <https://code.visualstudio.com/api/ux-guidelines/panel>
 - datalog through AppData send
 - use debug console
+- use @stoprocent/noble
+- cancelled promise / debug
+- clarify and handle licensing, adjust Apache and MIT - include pybricks, lego--vscode, pybricks-vscode projects
 
 ## TO-FIX
 

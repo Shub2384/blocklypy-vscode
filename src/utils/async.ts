@@ -1,11 +1,36 @@
-export function withTimeout<T>(promise: Promise<T>, timeout: number) {
+export function withTimeout<T>(
+    promise: Promise<T>,
+    timeout: number,
+): Promise<T | undefined> {
     return Promise.race([
         promise,
-        new Promise((_, rej) =>
+        new Promise<undefined>((_, rej) =>
             setTimeout(() => rej(new Error('Operation timed out')), timeout),
         ),
     ]);
 }
+
+// export function withTimeout<T>(
+//     promise: Promise<T>,
+//     timeout: number,
+// ): Promise<T | undefined> {
+//     return Promise.race([
+//         promise,
+//         new Promise<undefined>((_, rej) =>
+//             setTimeout(() => {
+//                 rej(new Error('Operation timed out'));
+//             }, timeout),
+//         ),
+//     ]);
+// }
+
+// function cancellableAsync(signal: AbortSignal): Promise<void> {
+//     return new Promise((resolve, reject) => {
+//         if (signal.aborted) return reject(new Error('Cancelled'));
+//         signal.addEventListener('abort', () => reject(new Error('Cancelled')));
+//         // ...do work, check signal.aborted as needed...
+//     });
+// }
 
 export async function retryWithTimeout<T>(
     fn: () => Promise<T>,

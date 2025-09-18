@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { bleLayer } from './clients/ble-layer';
 import { connectDeviceAsync } from './commands/connect-device';
 import { disconnectDeviceAsync } from './commands/disconnect-device';
 import { stopUserProgramAsync } from './commands/stop-user-program';
@@ -10,8 +11,7 @@ import { registerCommandsTree } from './extension/tree-commands';
 import { registerDevicesTree } from './extension/tree-devices';
 import { registerSettingsTree } from './extension/tree-settings';
 import { wrapErrorHandling } from './extension/utils';
-import { Device } from './logic/ble';
-import { sendDataToHubStdin } from './logic/stdin-helper';
+import { onTerminalUserInput } from './logic/stdin-helper';
 import Config from './utils/config';
 import { BlocklypyViewerProvider } from './views/BlocklypyViewerProvider';
 import { DatalogView } from './views/DatalogView';
@@ -75,18 +75,21 @@ export function activate(context: vscode.ExtensionContext) {
     // listen to state changes and update contexts
     registerContextUtils(context);
     // context.subscriptions.push(registerDebugTerminal(sendDataToHubStdin));
-    registerDebugTerminal(context, sendDataToHubStdin);
+    registerDebugTerminal(context, onTerminalUserInput);
 
     // Start BLE scanning at startup and keep it running
     setTimeout(async () => {
         logDebug('BlocklyPy Commander started up successfully.', true);
 
-        await Device.waitForReadyAsync();
+        await bleLayer.waitForReadyAsync();
         // await Device.startScanning();
 
         // autoconnect to last connected device
         if (Config.deviceAutoConnect && Config.deviceLastConnected) {
-            await Device.waitTillDeviceAppearsAsync(Config.deviceLastConnected, 10000);
+            await bleLayer.waitTillDeviceAppearsAsync(
+                Config.deviceLastConnected,
+                10000,
+            );
             await connectDeviceAsync(Config.deviceLastConnected);
         }
     }, 500);
@@ -94,9 +97,10 @@ export function activate(context: vscode.ExtensionContext) {
 
 export async function deactivate() {
     try {
+        // Place cleanup logic here
         await wrapErrorHandling(stopUserProgramAsync);
         await wrapErrorHandling(disconnectDeviceAsync);
-        await Device.stopScanningAsync();
+        await bleLayer.stopScanningAsync();
     } catch (err) {
         console.error('Error during deactivation:', err);
     }

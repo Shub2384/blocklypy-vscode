@@ -9,6 +9,7 @@ import { compileAsync } from '../logic/compile';
 import Config, { ConfigKeys } from '../utils/config';
 import { BlocklypyViewerProvider, ViewType } from '../views/BlocklypyViewerProvider';
 import { PybricksPythonPreviewProvider } from '../views/PybricksPythonPreviewProvider';
+import { showInfo } from './diagnostics';
 import { settingsTreeData } from './tree-settings';
 import { openOrActivate } from './utils';
 
@@ -127,7 +128,7 @@ export const commandHandlers: Map<Commands, CommandHandler> = new Map([
                     },
                 );
             } else {
-                vscode.window.showInformationMessage('Open a Python file to preview.');
+                showInfo('Open a Python file to preview.');
             }
         },
     ],

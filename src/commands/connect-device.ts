@@ -1,5 +1,7 @@
 import * as vscode from 'vscode';
-import { Device } from '../logic/ble';
+import { bleLayer } from '../clients/ble-layer';
+import { delay } from '../extension';
+import { hasState, StateProp } from '../logic/state';
 
 const items: vscode.QuickPickItem[] = [];
 
@@ -9,7 +11,7 @@ export async function connectDeviceAsyncAny(...args: any[]): Promise<any> {
 
 export async function connectDeviceAsync(name: string) {
     if (!name?.length) {
-        const items = [...Device.allDevices.entries()].map(([name, metadata]) => ({
+        const items = [...bleLayer.allDevices.entries()].map(([name, metadata]) => ({
             label: name,
         }));
         if (!items.length) {
@@ -23,6 +25,11 @@ export async function connectDeviceAsync(name: string) {
                 ?.label ?? '';
     }
 
+    if (hasState(StateProp.Connected)) {
+        await bleLayer.disconnect();
+        await delay(1000);
+    }
+
     await vscode.window.withProgress(
         {
             location: { viewId: 'blocklypy-vscode-commands' },
@@ -30,7 +37,7 @@ export async function connectDeviceAsync(name: string) {
         },
         async () => {
             // if a name is provided, connect directly
-            await Device.connectAsync(name);
+            await bleLayer.connect(name);
         },
     );
 }

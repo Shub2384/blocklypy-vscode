@@ -49,7 +49,7 @@ const extensionConfig = {
         ],
     },
     // devtool: 'nosources-source-map',
-    devtool: isDevelopment ? 'eval-source-map' : undefined,
+    devtool: isDevelopment ? 'source-map' : undefined,
     infrastructureLogging: {
         level: 'log',
     },
@@ -71,7 +71,7 @@ const extensionConfig = {
         }),
     ],
     optimization: {
-        minimize: true,
+        minimize: !isDevelopment,
         runtimeChunk: false,
         splitChunks: false,
     },
@@ -122,7 +122,7 @@ const webviewConfig = {
         runtimeChunk: false,
         splitChunks: false,
     },
-    devtool: isDevelopment ? 'eval-source-map' : undefined,
+    devtool: isDevelopment ? 'source-map' : undefined,
     infrastructureLogging: {
         level: 'log',
     },
