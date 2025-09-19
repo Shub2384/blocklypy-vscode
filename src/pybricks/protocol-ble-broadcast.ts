@@ -1,3 +1,5 @@
+import { LegoCompanyId } from './ble-lwp3-service/protocol';
+
 enum PbBleBroadcastDataType {
     SingleObject = 0,
     True = 1,
@@ -7,8 +9,6 @@ enum PbBleBroadcastDataType {
     Str = 5,
     Bytes = 6,
 }
-
-export const LEGO_CID = 0x0397;
 
 export type PybricksDecodedBleBroadcast = {
     channel: number;
@@ -68,7 +68,8 @@ export function pybricksDecodeBleBroadcastData(
     buffer: Buffer,
 ): PybricksDecodedBleBroadcast | undefined {
     // Manufacturer data format: [LEGO_CID(0x0397)][channel][payload...]
-    if (!buffer || buffer?.length < 3 || buffer.readUInt16LE(0) !== LEGO_CID) return;
+    if (!buffer || buffer?.length < 3 || buffer.readUInt16LE(0) !== LegoCompanyId)
+        return;
 
     const channel = buffer.readUInt8(2);
 

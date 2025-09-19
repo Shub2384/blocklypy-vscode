@@ -1,7 +1,7 @@
-import { BaseMessage } from './base-message';
+import { RequestMessage } from './base-message';
 import { DeviceUuidResponseMessage } from './device-uuid-response-message';
 
-export class DeviceUuidRequestMessage extends BaseMessage {
+export class DeviceUuidRequestMessage extends RequestMessage {
     public static readonly Id = 0x1a;
 
     public serialize(): Uint8Array {

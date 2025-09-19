@@ -39,6 +39,11 @@ export abstract class BaseLayer {
                 (device, name) => {
                     // need to remove this as pybricks creates a random BLE id on each reconnect
                     if (name) this._allDevices.delete(name);
+
+                    setState(StateProp.Connected, false);
+                    setState(StateProp.Connecting, false);
+                    setState(StateProp.Running, false);
+                    DevicesTree.refresh();
                 },
             );
 

@@ -1,6 +1,18 @@
+/**
+ * COBS (Consistent Overhead Byte Stuffing) encoding and decoding.
+ *
+ * See:
+ *   - https://en.wikipedia.org/wiki/Consistent_Overhead_Byte_Stuffing
+ *   - https://lego.github.io/spike-prime-docs/encoding.html#cobs
+ *
+ * COBS is an algorithm that can be used to escape certain values in a byte stream
+ * with minimal overhead. This frees up the values to be used for special purposes,
+ * such as message delimiters or other control characters.
+ */
+
 /* eslint-disable no-bitwise */
 const DELIMITER = 0x02;
-const NO_DELIMITER = 0xFF;
+const NO_DELIMITER = 0xff;
 const COBS_CODE_OFFSET = DELIMITER;
 const MAX_BLOCK_SIZE = 84;
 const XOR = 3;
@@ -50,8 +62,7 @@ export function decode(data: Uint8Array): Uint8Array {
 
         if (block > 0) {
             buffer.push(byte);
-        }
-        else {
+        } else {
             if (value !== null) {
                 buffer.push(value);
             }
@@ -82,14 +93,17 @@ export function unpack(frame: Uint8Array): Uint8Array {
         start = 1;
     }
 
-    const unframed = frame.slice(start, -1).map(byte => byte ^ XOR);
+    const unframed = frame.slice(start, -1).map((byte) => byte ^ XOR);
     return decode(unframed);
 }
 
 function unescape(code: number): [number | null, number] {
     if (code === NO_DELIMITER) return [null, MAX_BLOCK_SIZE + 1];
 
-    let [value, block] = [Math.floor((code - COBS_CODE_OFFSET) / MAX_BLOCK_SIZE), (code - COBS_CODE_OFFSET) % MAX_BLOCK_SIZE];
+    let [value, block] = [
+        Math.floor((code - COBS_CODE_OFFSET) / MAX_BLOCK_SIZE),
+        (code - COBS_CODE_OFFSET) % MAX_BLOCK_SIZE,
+    ];
     if (block === 0) {
         block = MAX_BLOCK_SIZE;
         value -= 1;

@@ -1,15 +1,10 @@
-import { BaseMessage } from './base-message';
+import { ResponseMessage } from './base-message';
 
-export class DeviceUuidResponseMessage extends BaseMessage {
+export class DeviceUuidResponseMessage extends ResponseMessage {
     public static readonly Id = 0x1b;
 
     constructor(public uuid: string = '') {
         super();
-    }
-
-    public serialize(): Uint8Array {
-        // Not typically sent from client, so not implemented
-        throw new Error('Serialize not implemented for DeviceUuidResponseMessage');
     }
 
     public static fromBytes(data: Uint8Array): DeviceUuidResponseMessage {

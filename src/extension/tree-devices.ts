@@ -17,8 +17,11 @@ class DevicesTreeDataProvider extends BaseTreeDataProvider<TreeItemDeviceData> {
 
     getTreeItem(element: TreeItemDeviceData): vscode.TreeItem {
         const item = super.getTreeItem(element);
-        if (element.id && element.id === bleLayer.client?.name)
-            item.label = `${element.id} 🔵`;
+        if (element.id) {
+            const active =
+                element.id && element.id === bleLayer.client?.name ? '🔵 ' : '';
+            item.label = `${active}${element.id} [${element.contextValue}]`;
+        }
         return item;
     }
 
@@ -29,8 +32,9 @@ class DevicesTreeDataProvider extends BaseTreeDataProvider<TreeItemDeviceData> {
             return [];
         }
 
-        if (this.deviceMap.size > 0) return Array.from(this.deviceMap.values());
-        else {
+        if (this.deviceMap.size > 0) {
+            return Array.from(this.deviceMap.values());
+        } else {
             return [
                 {
                     title: 'Scanning for devices...',
@@ -76,6 +80,7 @@ function registerDevicesTree(context: vscode.ExtensionContext) {
             description: device.lastBroadcast ? `⛁ ${device.lastBroadcast.data}` : '',
             //  on ch:${device.lastBroadcast.channel}
             lastSeen: Date.now(),
+            contextValue: device.devtype,
         } as TreeItemDeviceData);
 
         if (isNew) {

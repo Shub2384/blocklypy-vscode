@@ -1,6 +1,6 @@
-import { BaseMessage } from './base-message';
+import { ResponseMessage } from './base-message';
 
-export class TunnelMessage extends BaseMessage {
+export class TunnelMessage extends ResponseMessage {
     public static readonly Id = 0x32;
 
     constructor(public payload: Uint8Array = new Uint8Array()) {

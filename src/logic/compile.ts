@@ -9,10 +9,13 @@ import { setState, StateProp } from './state';
 export const MAIN_MODULE = '__main__';
 export const MAIN_MODULE_PATH = '__main__.py';
 export const FILENAME_SAMPLE_RAW = 'program.py';
-export const FILENAME_SAMPLE_COMPILED = 'program.mpy';
+export const FILENAME_SAMPLE_COMPILED = 'program.mpy'; // app.mpy+program.mpy for HubOS
 
 export const MODE_RAW = 'raw';
 export const MODE_COMPILED = 'compiled';
+
+export const LEGO_HEADER_REGEX =
+    /^\s*#\s*LEGO((?:\s*(?<autostart>\bautostart\b).*?)?(?:.*?\bslot:\s*(?<slot>\d{1,2}))?)*/im;
 
 type Module = {
     name: string;
@@ -35,7 +38,9 @@ function getPythonCode(): { content: string; folder?: string } | undefined {
     }
 }
 
-export async function compileAsync(...args: any[]): Promise<[Uint8Array, string]> {
+export async function compileAsync(
+    ...args: any[]
+): Promise<{ data: Uint8Array; filename: string; slot: number | undefined }> {
     await vscode.commands.executeCommand('workbench.action.files.saveAll');
     const mode = args[0];
 
@@ -43,8 +48,11 @@ export async function compileAsync(...args: any[]): Promise<[Uint8Array, string]
     const pycode = getPythonCode();
     if (!pycode) throw new Error('No Python code available to compile.');
 
+    const slot = checkMagicHeaderComment(pycode.content).slot;
+
     if (mode === MODE_RAW) {
-        return [new TextEncoder().encode(pycode.content), FILENAME_SAMPLE_RAW];
+        const data = encoder.encode(pycode.content);
+        return { data, filename: FILENAME_SAMPLE_RAW, slot };
     }
 
     let mpyCurrent: Uint8Array | undefined;
@@ -110,14 +118,18 @@ export async function compileAsync(...args: any[]): Promise<[Uint8Array, string]
     if (bleLayer.client?.supportsModularMpy) {
         const blob = new Blob(parts);
         const buffer = await blob.arrayBuffer();
-        return [new Uint8Array(buffer), FILENAME_SAMPLE_COMPILED];
+        return {
+            data: new Uint8Array(buffer),
+            filename: FILENAME_SAMPLE_COMPILED,
+            slot,
+        };
     } else {
         if (modules.length > 1 || parts.length > 3 * 1 || !mpyCurrent) {
             throw new Error(
                 'Modular .mpy files are not supported by the connected device. Please combine all code into a single file.',
             );
         }
-        return [mpyCurrent, FILENAME_SAMPLE_COMPILED];
+        return { data: mpyCurrent, filename: FILENAME_SAMPLE_COMPILED, slot };
     }
 }
 
@@ -162,19 +174,6 @@ async function resolveModuleAsync(
     } catch {}
 }
 
-const encoder = new TextEncoder();
-
-function cString(str: string): Uint8Array {
-    return encoder.encode(str + '\x00');
-}
-
-function encodeUInt32LE(value: number): ArrayBuffer {
-    const buf = new ArrayBuffer(4);
-    const view = new DataView(buf);
-    view.setUint32(0, value, true);
-    return buf;
-}
-
 function findImportedModules(py: string): ReadonlySet<string> {
     const modules = new Set<string>();
 
@@ -193,4 +192,32 @@ function findImportedModules(py: string): ReadonlySet<string> {
     });
 
     return modules;
+}
+
+const encoder = new TextEncoder();
+function cString(str: string): Uint8Array {
+    return encoder.encode(str + '\x00');
+}
+
+function encodeUInt32LE(value: number): ArrayBuffer {
+    const buf = new ArrayBuffer(4);
+    const view = new DataView(buf);
+    view.setUint32(0, value, true);
+    return buf;
+}
+
+export function checkMagicHeaderComment(py: string): {
+    autostart?: boolean;
+    slot?: number;
+} {
+    const match = py.match(LEGO_HEADER_REGEX);
+    if (match) {
+        const groups = match.groups ?? {};
+        return {
+            autostart: Object.prototype.hasOwnProperty.call(groups, 'autostart'),
+            slot: groups.slot ? parseInt(groups.slot) : undefined,
+        };
+    } else {
+        return {};
+    }
 }

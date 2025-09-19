@@ -23,6 +23,8 @@ export abstract class BaseClient {
 
     public abstract get name(): string | undefined;
 
+    public abstract get description(): string | undefined;
+
     public abstract get connected(): boolean;
 
     public abstract write(data: Uint8Array, withoutResponse: boolean): Promise<void>;
@@ -38,9 +40,15 @@ export abstract class BaseClient {
             this.runExitStack();
             this._device = device;
 
-            await this.connectWorker(device, onDeviceUpdated, onFinalizing);
+            //await withTimeout(
+            await this.connectWorker(device, onDeviceUpdated, onFinalizing),
+                //    10000,
+                //);
+                // if (!this.connected) {
+                //     throw new Error('Failed to connect');
+                // }
 
-            logDebug(`Connected to ${this.name}`);
+                logDebug(`Connected to ${this.name}, ${this.description}`);
             const connectedName = this.name;
             await Config.setConfigValue(ConfigKeys.DeviceLastConnected, this.name);
         } catch (error) {
@@ -49,11 +57,14 @@ export abstract class BaseClient {
         }
     }
 
-    protected abstract connectWorker(
+    protected connectWorker(
         device: DeviceMetadata,
         onDeviceUpdated: (device: DeviceMetadata) => void,
         onFinalizing: (device: DeviceMetadata, name?: string) => void,
-    ): Promise<void>;
+    ): Promise<void> {
+        // Override in subclass if needed
+        return Promise.resolve();
+    }
 
     protected async runExitStack() {
         for (const fn of this._exitStack) {

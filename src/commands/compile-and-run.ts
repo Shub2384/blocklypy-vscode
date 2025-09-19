@@ -8,7 +8,7 @@ import { hasState, StateProp } from '../logic/state';
 import Config from '../utils/config';
 
 export async function compileAndRunAsync(
-    slot?: number,
+    slot_input?: number,
     compileMode?: string,
 ): Promise<void> {
     clearPythonErrors();
@@ -23,11 +23,16 @@ export async function compileAndRunAsync(
             try {
                 if (!hasState(StateProp.Connected) || !bleLayer.client)
                     throw new Error(
-                        'No device selected. Please connect to a Pybricks device first.',
+                        'No device selected. Please connect to a device first.',
                     );
 
-                const [data, filename] = await compileAsync(compileMode);
+                const {
+                    data,
+                    filename,
+                    slot: slot_header,
+                } = await compileAsync(compileMode);
 
+                const slot = slot_header ?? slot_input;
                 await bleLayer.client.action_stop();
                 await bleLayer.client.action_upload(data, slot, filename);
                 await bleLayer.client.action_start(slot);

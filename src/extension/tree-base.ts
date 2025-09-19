@@ -13,26 +13,29 @@ export interface TreeItemData {
     check?: boolean;
     commandArguments?: any[];
     collapsibleState?: vscode.TreeItemCollapsibleState;
+    contextValue?: string;
 }
 
 export class BaseTreeItem extends vscode.TreeItem {
     constructor(
         label: string,
-        id?: string,
-        tooltip?: string,
-        command?: string,
+        extension_context?: vscode.ExtensionContext,
         icon?: string | { light: string; dark: string },
-        context?: vscode.ExtensionContext,
-        check?: boolean,
+        id?: string,
+        command?: string,
         commandArguments?: any[],
-        description?: string,
-        collapsibleState: vscode.TreeItemCollapsibleState = vscode
-            .TreeItemCollapsibleState.None,
+        check?: boolean,
+
+        // tooltip?: string,
+        // description?: string,
+        // collapsibleState: vscode.TreeItemCollapsibleState = vscode
+        //     .TreeItemCollapsibleState.None,
     ) {
         super(label);
+        if (icon) this.iconPath = getIcon(icon, extension_context);
+
         this.id = id;
-        this.tooltip = tooltip;
-        // this.contextValue = id;
+        // this.tooltip = tooltip;
         // this.tooltip = label;
         if (check !== undefined) {
             this.checkboxState = check
@@ -46,11 +49,8 @@ export class BaseTreeItem extends vscode.TreeItem {
                 arguments: commandArguments,
             } as vscode.Command;
         }
-        if (icon) {
-            this.iconPath = getIcon(icon, context);
-        }
-        this.description = description;
-        this.collapsibleState = collapsibleState;
+        // this.description = description;
+        // this.collapsibleState = collapsibleState;
     }
 }
 
@@ -78,18 +78,22 @@ export abstract class BaseTreeDataProvider<T extends TreeItemData>
         const title =
             element.title ?? cmd.title?.replace(PACKAGEJSON_COMMAND_PREFIX, '') ?? '';
 
-        return new BaseTreeItem(
+        const item = new BaseTreeItem(
             title,
-            element.id,
-            cmd.tooltip,
-            cmd.command,
-            cmd.icon,
             this.context,
-            cmd.check,
+            cmd.icon,
+            cmd.id,
+            cmd.command,
             cmd.commandArguments,
-            cmd.description,
-            cmd.collapsibleState,
+            cmd.check,
         );
+        item.tooltip = cmd.tooltip;
+        item.description = cmd.description;
+        item.collapsibleState = cmd.collapsibleState;
+        item.contextValue = element.contextValue;
+
+        // Object.assign(item, cmd);
+        return item;
     }
     abstract getChildren(element?: T): vscode.ProviderResult<T[]>;
 

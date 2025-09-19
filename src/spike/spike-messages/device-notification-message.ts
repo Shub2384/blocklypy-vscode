@@ -1,4 +1,4 @@
-import { BaseMessage } from './base-message';
+import { ResponseMessage } from './base-message';
 
 export type DeviceNotificationPayload =
     | { type: 'battery'; batteryLevel: number }
@@ -39,16 +39,11 @@ export type DeviceNotificationPayload =
     | { type: 'matrix3x3'; port: number; pixels: number[] }
     | { type: 'unknown'; msgType: number; raw: Uint8Array };
 
-export class DeviceNotificationMessage extends BaseMessage {
+export class DeviceNotificationMessage extends ResponseMessage {
     public static readonly Id = 0x3c;
 
     constructor(public payloads: DeviceNotificationPayload[]) {
         super();
-    }
-
-    public serialize(): Uint8Array {
-        // Not implemented: would require reverse-packing all payloads
-        throw new Error('Not implemented');
     }
 
     public static fromBytes(data: Uint8Array): DeviceNotificationMessage {

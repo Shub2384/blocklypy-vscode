@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 
+import { clearAllSlots } from '../commands/clear-all-slots';
 import { compileAndRunAsync } from '../commands/compile-and-run';
 import { connectDeviceAsyncAny } from '../commands/connect-device';
 import { disconnectDeviceAsync } from '../commands/disconnect-device';
@@ -34,6 +35,7 @@ export enum Commands {
     DisplayGraph = 'blocklypy-vscode.blocklypyViewer.displayGraph',
     ShowPythonPreview = 'blocklypy-vscode.showPythonPreview',
     ShowSource = 'blocklypy-vscode.pythonPreview.showSource',
+    ClearAllSlots = 'blocklypy-vscode.clearAllSlots',
 }
 
 // Map configuration keys to their toggle commands and tooltips, title is taken from package.json
@@ -84,6 +86,7 @@ export const commandHandlers: Map<Commands, CommandHandler> = new Map([
     [Commands.StartUserProgram, startUserProgramAsync],
     [Commands.StopUserProgram, stopUserProgramAsync],
     [Commands.DisconnectDevice, disconnectDeviceAsync],
+    [Commands.ClearAllSlots, clearAllSlots],
     ...settingsCommandHandlers,
     [
         Commands.DisplayNextView,

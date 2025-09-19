@@ -1,8 +1,17 @@
 import noble from '@abandonware/noble';
+import semver from 'semver';
 import { DeviceMetadata } from '.';
 import { logDebug } from '../extension/debug-channel';
-import { clearPythonErrors } from '../extension/diagnostics';
 import { setState, StateProp } from '../logic/state';
+import {
+    decodePnpId,
+    deviceInformationServiceUUID,
+    firmwareRevisionStringUUID,
+    getHubTypeName,
+    PnpId,
+    pnpIdUUID,
+    softwareRevisionStringUUID,
+} from '../pybricks/ble-device-info-service/protocol';
 import {
     createStartUserProgramCommand,
     createStopUserProgramCommand,
@@ -17,9 +26,9 @@ import {
     pybricksServiceUUID,
     Status,
     statusToFlag,
-} from '../pybricks/protocol';
-import { withTimeout } from '../utils/async';
-import { BaseClient } from './base-client';
+} from '../pybricks/ble-pybricks-service/protocol';
+import { BleBaseClient } from './ble-base-client';
+import { uuid128, uuidStr } from './utils';
 
 interface Capabilities {
     maxWriteSize: number;
@@ -28,14 +37,21 @@ interface Capabilities {
     numOfSlots: number | undefined; // above 1.5.0
 }
 
-export class BlePybricksClient extends BaseClient {
-    public static readonly devtype = 'ble-pybricks';
-    public static readonly devname = 'Pybricks Hub';
+interface VersionInfo {
+    firmware: string;
+    software: string;
+    pnpId: PnpId;
+}
+
+export class BlePybricksClient extends BleBaseClient {
+    public static readonly devtype = 'pybricks-ble';
+    public static readonly devname = 'Pybricks on BLE';
     public static readonly supportsModularMpy = true;
 
     private _rxtxCharacteristic: noble.Characteristic | undefined;
     private _capabilitiesCharacteristic: noble.Characteristic | undefined;
     private _capabilities: Capabilities | undefined;
+    private _version: VersionInfo | undefined;
 
     constructor() {
         super();
@@ -43,6 +59,15 @@ export class BlePybricksClient extends BaseClient {
 
     public get name() {
         return this._device?.peripheral?.advertisement.localName;
+    }
+
+    public get description() {
+        const osType = 'Pybricks';
+        return `${
+            this._version ? getHubTypeName(this._version?.pnpId) : 'Unknown hub'
+        } with ${osType} firmware: ${this._version?.firmware}, software: ${
+            this._version?.software
+        }`;
     }
 
     public get connected() {
@@ -70,22 +95,58 @@ export class BlePybricksClient extends BaseClient {
         onDeviceUpdated: (device: DeviceMetadata) => void,
         onDeviceRemoved: (device: DeviceMetadata, name?: string) => void,
     ) {
-        const peripheral = device.peripheral;
-        await withTimeout(peripheral.connectAsync(), 8000);
-        this._exitStack.push(async () => {
-            peripheral.removeAllListeners('disconnect');
-            onDeviceRemoved &&
-                onDeviceRemoved(device, device.peripheral.advertisement.localName);
-        });
+        await super.connectWorker(device, onDeviceUpdated, onDeviceRemoved);
 
-        peripheral.on('disconnect', async () => {
-            if (!this.connected) return;
-            logDebug(`Disconnected from ${peripheral?.advertisement.localName}`);
-            await clearPythonErrors();
-            // Do not call disconnectAsync recursively
-            this.runExitStack();
-            this._device = undefined;
-        });
+        const peripheral = device.peripheral;
+        // await peripheral.connectAsync();
+        // this._exitStack.push(async () => {
+        //     peripheral.removeAllListeners('disconnect');
+        //     onDeviceRemoved &&
+        //         onDeviceRemoved(device, device.peripheral.advertisement.localName);
+        // });
+
+        // peripheral.on('disconnect', async () => {
+        //     if (!this.connected) return;
+        //     logDebug(`Disconnected from ${peripheral?.advertisement.localName}`);
+        //     await clearPythonErrors();
+        //     // Do not call disconnectAsync recursively
+        //     this.runExitStack();
+        //     this._device = undefined;
+        // });
+
+        const discoveredServicesandCharacterisitics =
+            await peripheral.discoverSomeServicesAndCharacteristicsAsync(
+                [pybricksServiceUUID, uuid128(deviceInformationServiceUUID)],
+                [
+                    pybricksControlEventCharacteristicUUID,
+                    pybricksHubCapabilitiesCharacteristicUUID,
+
+                    firmwareRevisionStringUUID,
+                    softwareRevisionStringUUID,
+                    pnpIdUUID,
+                ].map((uuid16) => uuidStr(uuid16)),
+            );
+
+        const [pybricksService, deviceInfoService] =
+            discoveredServicesandCharacterisitics.services;
+        const [
+            pybricksControlChar,
+            pybricksHubCapabilitiesChar,
+            firmwareChar,
+            softwareChar,
+            pnpIdChar,
+        ] = discoveredServicesandCharacterisitics.characteristics;
+        // const findChar = (uuid: string | number) =>
+        //     characteristics.find((c) => equalUuids(c.uuid, uuid));
+
+        const firmwareRevision = (await firmwareChar.readAsync()).toString('utf8');
+        const softwareRevision = (await softwareChar.readAsync()).toString('utf8');
+        const pnpId = decodePnpId(new DataView((await pnpIdChar.readAsync()).buffer));
+        this._version = {
+            firmware: firmwareRevision,
+            software: softwareRevision,
+            pnpId,
+        };
 
         this._exitStack.push(async () => {
             this._rxtxCharacteristic?.removeAllListeners('data');
@@ -93,26 +154,23 @@ export class BlePybricksClient extends BaseClient {
             this._rxtxCharacteristic = undefined;
         });
 
-        const chars = await peripheral.discoverSomeServicesAndCharacteristicsAsync(
-            [pybricksServiceUUID],
-            [
-                pybricksControlEventCharacteristicUUID,
-                pybricksHubCapabilitiesCharacteristicUUID,
-            ],
-        );
-        [this._rxtxCharacteristic, this._capabilitiesCharacteristic] =
-            chars?.characteristics;
+        this._rxtxCharacteristic = pybricksControlChar;
         this._rxtxCharacteristic.on('data', (data) => this.handleIncomingData(data));
         await this._rxtxCharacteristic.subscribeAsync();
 
         // Read capabilities once connected
-        const buf = await this._capabilitiesCharacteristic?.readAsync();
-        this._capabilities = buf && {
-            maxWriteSize: buf.readUInt16LE(0) ?? 20,
-            flags: buf.readUInt32LE(2),
-            maxUserProgramSize: buf.readUInt32LE(6),
-            numOfSlots: buf.readUInt8(10) ?? 20, // above 1.5.0
-        };
+        if (semver.satisfies(softwareRevision, '^1.2.0')) {
+            this._capabilitiesCharacteristic = pybricksHubCapabilitiesChar;
+            const buf = await this._capabilitiesCharacteristic?.readAsync();
+            this._capabilities = buf && {
+                maxWriteSize: buf.readUInt16LE(0) ?? 20,
+                flags: buf.readUInt32LE(2),
+                maxUserProgramSize: buf.readUInt32LE(6),
+                numOfSlots: semver.satisfies(softwareRevision, '^1.5.0')
+                    ? buf.readUInt8(10)
+                    : undefined, // above 1.5.0
+            };
+        }
 
         // Repeatedly update RSSI
         const rssiUpdater = setInterval(() => peripheral.updateRssi(), 1000);
@@ -183,9 +241,8 @@ export class BlePybricksClient extends BaseClient {
         }
     }
 
-    public async action_start() {
-        const slot = 0; // TODO: support multiple programs
-        await this.write(createStartUserProgramCommand(slot), false);
+    public async action_start(slot?: number) {
+        await this.write(createStartUserProgramCommand(slot ?? 0), false);
     }
 
     public async action_stop() {

@@ -7,22 +7,23 @@ export abstract class BaseMessage {
         return (this.constructor as typeof BaseMessage).Id;
     }
 
-    public serialize(): Uint8Array {
+    static fromBytes(data: Uint8Array): BaseMessage {
         throw new Error('Method not implemented.');
-    }
-
-    // This is just a type hint; actual implementation must be in each subclass.
-    public static fromBytes(data: Uint8Array): BaseMessage {
-        throw new Error('Not implemented');
-    }
-
-    // This is just a type hint; actual implementation must be in each subclass.
-    public acceptsResponse(): number {
-        throw new Error('Not implemented');
     }
 }
 
-export abstract class BaseMessageWithStatus extends BaseMessage {
+export abstract class RequestMessage extends BaseMessage {
+    abstract serialize(): Uint8Array;
+    abstract acceptsResponse(): number;
+}
+
+export abstract class ResponseMessage extends BaseMessage {
+    static fromBytes(data: Uint8Array): BaseMessage {
+        throw new Error('Method not implemented.');
+    }
+}
+
+export abstract class ResponseMessageWithStatus extends ResponseMessage {
     abstract get status(): number;
 
     public get success(): boolean {

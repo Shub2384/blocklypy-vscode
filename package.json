@@ -178,6 +178,11 @@
         "command": "blocklypy-vscode.pythonPreview.showSource",
         "title": "Show Python Source Code",
         "icon": "$(go-to-file)"
+      },
+      {
+        "command": "blocklypy-vscode.clearAllSlots",
+        "title": "BlocklyPy: Clear All Slots in HubOS",
+        "icon": "$(trash)"
       }
     ],
     "viewsContainers": {
@@ -433,6 +438,7 @@
     "@types/mocha": "^10.0.10",
     "@types/node": "20.x",
     "@types/resolve": "^1.20.6",
+    "@types/semver": "^7.7.1",
     "@types/vscode": "^1.101.0",
     "@typescript-eslint/eslint-plugin": "^8.31.1",
     "@typescript-eslint/parser": "^8.31.1",
@@ -461,6 +467,7 @@
     "crc-32": "^1.2.2",
     "lodash": "^4.17.21",
     "resolve": "^1.22.10",
+    "semver": "^7.7.2",
     "svg-pan-zoom": "^3.6.2",
     "uplot": "^1.6.32"
   }

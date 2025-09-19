@@ -11,6 +11,7 @@ import { registerCommandsTree } from './extension/tree-commands';
 import { registerDevicesTree } from './extension/tree-devices';
 import { registerSettingsTree } from './extension/tree-settings';
 import { wrapErrorHandling } from './extension/utils';
+import { checkMagicHeaderComment } from './logic/compile';
 import { onTerminalUserInput } from './logic/stdin-helper';
 import Config from './utils/config';
 import { BlocklypyViewerProvider } from './views/BlocklypyViewerProvider';
@@ -18,7 +19,8 @@ import { DatalogView } from './views/DatalogView';
 import { PybricksPythonPreviewProvider } from './views/PybricksPythonPreviewProvider';
 
 export const EXTENSION_ID = 'afarago.blocklypy-vscode';
-const LEGO_AUTOSTART_REGEX = /^#\s*LEGO\b.*\bautostart\b/i;
+
+export let isDevelopmentMode: boolean;
 
 export function activate(context: vscode.ExtensionContext) {
     isDevelopmentMode = context.extensionMode === vscode.ExtensionMode.Development;
@@ -113,7 +115,9 @@ function onActiveEditorSaveCallback(document: vscode.TextDocument) {
         if (Config.programAutostart && document.languageId === 'python') {
             // check if file is python and has magic header
             const line1 = document.lineAt(0).text;
-            if (LEGO_AUTOSTART_REGEX.test(line1)) {
+
+            // check for the autostart in the header (header exists, autostart is included)
+            if (checkMagicHeaderComment(line1)?.autostart) {
                 console.log('AutoStart detected, compiling and running...');
                 vscode.commands.executeCommand(Commands.CompileAndRun);
             }
@@ -124,8 +128,6 @@ function onActiveEditorSaveCallback(document: vscode.TextDocument) {
 export function delay(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
-
-export let isDevelopmentMode: boolean;
 
 process.on('uncaughtException', (err) => {
     if (isDevelopmentMode) console.error('Uncaught Exception:', err);

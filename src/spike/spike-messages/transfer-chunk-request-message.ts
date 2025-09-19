@@ -1,7 +1,7 @@
-import { BaseMessage } from './base-message';
+import { RequestMessage } from './base-message';
 import { TransferChunkResponseMessage } from './transfer-chunk-response-message';
 
-export class TransferChunkRequestMessage extends BaseMessage {
+export class TransferChunkRequestMessage extends RequestMessage {
     public static readonly Id = 0x10;
 
     constructor(public runningCrc32: number, public chunk: Uint8Array) {

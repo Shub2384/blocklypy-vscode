@@ -1,4 +1,4 @@
-import { BaseMessage } from './base-message';
+import { ResponseMessage } from './base-message';
 
 export interface InfoResponse {
     messageType: number;
@@ -14,7 +14,18 @@ export interface InfoResponse {
     productGroupDeviceType: number;
 }
 
-export class InfoResponseMessage extends BaseMessage {
+// export enum ProductGroupDeviceType {
+//     SpikePrime = 0,
+//     SpikeEssential = 1,
+//     SpikePrimeH5 = 2,
+// }
+export const ProductGroupDeviceTypeMap: Record<number, string> = {
+    [0]: 'Spike Prime',
+    [1]: 'Spike Essential',
+    [2]: 'Spike Prime H5',
+};
+
+export class InfoResponseMessage extends ResponseMessage {
     public static readonly Id = 0x01;
 
     constructor(public info: InfoResponse) {

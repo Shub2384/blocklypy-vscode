@@ -3,7 +3,8 @@ import _ from 'lodash';
 import { DeviceMetadata } from '.';
 import { delay, isDevelopmentMode } from '../extension';
 import { setState, StateProp } from '../logic/state';
-import { pbio_gatt_pnp_id_char_uuid, pybricksServiceUUID } from '../pybricks/protocol';
+import { pnpIdUUID } from '../pybricks/ble-device-info-service/protocol';
+import { pybricksServiceUUID } from '../pybricks/ble-pybricks-service/protocol';
 import { pybricksDecodeBleBroadcastData } from '../pybricks/protocol-ble-broadcast';
 import { SPIKE_SERVICE_UUID16 } from '../spike/protocol';
 import { withTimeout } from '../utils/async';
@@ -55,7 +56,7 @@ export class BLELayer extends BaseLayer {
             );
             const isPybricksAdv = advertisement.serviceData
                 ?.map((sd) => sd?.uuid)
-                .includes(uuid16(pbio_gatt_pnp_id_char_uuid));
+                .includes(uuid16(pnpIdUUID));
 
             if (
                 !advertisement.localName ||
@@ -130,7 +131,7 @@ export class BLELayer extends BaseLayer {
         await noble.startScanningAsync(
             [
                 pybricksServiceUUID, // pybricks connect uuid
-                uuid128(pbio_gatt_pnp_id_char_uuid), // pybricks advertisement uuid
+                uuid128(pnpIdUUID), // pybricks advertisement uuid
                 uuid128(SPIKE_SERVICE_UUID16), // spike prime connect uuid
             ],
             true,

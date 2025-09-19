@@ -1,7 +1,7 @@
-import { BaseMessage } from './base-message';
+import { RequestMessage } from './base-message';
 import { ClearSlotResponseMessage } from './clear-slot-response-message';
 
-export class ClearSlotRequestMessage extends BaseMessage {
+export class ClearSlotRequestMessage extends RequestMessage {
     public static readonly Id = 0x46;
 
     constructor(public slot: number) {

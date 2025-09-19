@@ -2,7 +2,6 @@ import noble from '@abandonware/noble';
 import crc32 from 'crc-32';
 import { DeviceMetadata } from '.';
 import { logDebug } from '../extension/debug-channel';
-import { clearPythonErrors } from '../extension/diagnostics';
 import { FILENAME_SAMPLE_COMPILED } from '../logic/compile';
 import { setState, StateProp } from '../logic/state';
 import {
@@ -10,39 +9,45 @@ import {
     SPIKE_SERVICE_UUID,
     SPIKE_TX_CHAR_UUID,
 } from '../spike/protocol';
-import { withTimeout } from '../utils/async';
-import { BaseClient } from './base-client';
-import { pack, unpack } from './cobs';
-import { decodeSpikeMessage } from './spike-messages';
-import { BaseMessage } from './spike-messages/base-message';
-import { ConsoleNotificationMessage } from './spike-messages/console-notification-message';
-import { DeviceNotificationMessage } from './spike-messages/device-notification-message';
-import { InfoRequestMessage } from './spike-messages/info-request-message';
+import { decodeSpikeMessage } from '../spike/spike-messages';
+import { RequestMessage, ResponseMessage } from '../spike/spike-messages/base-message';
+import { ClearSlotRequestMessage } from '../spike/spike-messages/clear-slot-request-message';
+import { ClearSlotResponseMessage } from '../spike/spike-messages/clear-slot-response-message';
+import { pack, unpack } from '../spike/spike-messages/cobs';
+import { ConsoleNotificationMessage } from '../spike/spike-messages/console-notification-message';
+import { DeviceNotificationMessage } from '../spike/spike-messages/device-notification-message';
+import { InfoRequestMessage } from '../spike/spike-messages/info-request-message';
 import {
     InfoResponse,
     InfoResponseMessage,
-} from './spike-messages/info-response-message';
-import { ProgramFlowNotificationMessage } from './spike-messages/program-flow-notification-message';
-import { ProgramFlowRequestMessage } from './spike-messages/program-flow-request-message';
-import { StartFileUploadRequestMessage } from './spike-messages/start-file-upload-request-message';
-import { StartFileUploadResponseMessage } from './spike-messages/start-file-upload-response-message';
-import { TransferChunkRequestMessage } from './spike-messages/transfer-chunk-request-message';
-import { TransferChunkResponseMessage } from './spike-messages/transfer-chunk-response-message';
-import { TunnelMessage } from './spike-messages/tunnel-message';
+    ProductGroupDeviceTypeMap,
+} from '../spike/spike-messages/info-response-message';
+import { ProgramFlowNotificationMessage } from '../spike/spike-messages/program-flow-notification-message';
+import { ProgramFlowRequestMessage } from '../spike/spike-messages/program-flow-request-message';
+import { StartFileUploadRequestMessage } from '../spike/spike-messages/start-file-upload-request-message';
+import { StartFileUploadResponseMessage } from '../spike/spike-messages/start-file-upload-response-message';
+import { TransferChunkRequestMessage } from '../spike/spike-messages/transfer-chunk-request-message';
+import { TransferChunkResponseMessage } from '../spike/spike-messages/transfer-chunk-response-message';
+import { withTimeout } from '../utils/async';
+import { BleBaseClient } from './ble-base-client';
 
 const SPIKE_RECEIVE_MESSAGE_TIMEOUT = 5000; // ms
 const CRC32_ALIGNMENT = 4;
+const HUBOS_SPIKE_SLOTS = 20;
 
-export class BleSpikeClient extends BaseClient {
-    public static readonly devtype = 'ble-spike';
-    public static readonly devname = 'SPIKE Prime / Robot Inventor';
+export class BleSpikeClient extends BleBaseClient {
+    public static readonly devtype = 'hubos-ble';
+    public static readonly devname = 'HubOS Hub on BLE';
     public static readonly supportsModularMpy = false;
 
     private _rxCharacteristic: noble.Characteristic | undefined;
     private _txCharacteristic: noble.Characteristic | undefined;
     private _pendingMessagesPromises = new Map<
         number,
-        [(result: BaseMessage | PromiseLike<BaseMessage>) => void, (e: string) => void]
+        [
+            (result: ResponseMessage | PromiseLike<ResponseMessage>) => void,
+            (e: string) => void,
+        ]
     >();
     private _capabilities: InfoResponse | undefined;
 
@@ -52,6 +57,17 @@ export class BleSpikeClient extends BaseClient {
 
     public get name() {
         return this._device?.peripheral?.advertisement.localName;
+    }
+
+    public get description(): string | undefined {
+        if (!this._capabilities) return undefined;
+        const hubType =
+            ProductGroupDeviceTypeMap[this._capabilities.productGroupDeviceType] ||
+            'Unknown Hub';
+        const osType = 'HubOS';
+        const { rpcMajor, rpcMinor, rpcBuild, fwMajor, fwMinor, fwBuild } =
+            this._capabilities;
+        return `${hubType} with ${osType} firmware: ${fwMajor}.${fwMinor}.${fwBuild}, software: ${rpcMajor}.${rpcMinor}.${rpcBuild}`;
     }
 
     public get connected() {
@@ -75,22 +91,24 @@ export class BleSpikeClient extends BaseClient {
         onDeviceUpdated: (device: DeviceMetadata) => void,
         onDeviceRemoved: (device: DeviceMetadata, name?: string) => void,
     ) {
-        const peripheral = device.peripheral;
-        await withTimeout(peripheral.connectAsync(), 8000);
-        this._exitStack.push(async () => {
-            peripheral.removeAllListeners('disconnect');
-            onDeviceRemoved &&
-                onDeviceRemoved(device, device.peripheral.advertisement.localName);
-        });
+        await super.connectWorker(device, onDeviceUpdated, onDeviceRemoved);
 
-        peripheral.on('disconnect', async () => {
-            if (!this.connected) return;
-            logDebug(`Disconnected from ${peripheral?.advertisement.localName}`);
-            await clearPythonErrors();
-            // Do not call disconnectAsync recursively
-            this.runExitStack();
-            this._device = undefined;
-        });
+        const peripheral = device.peripheral;
+        // await peripheral.connectAsync();
+        // this._exitStack.push(async () => {
+        //     peripheral.removeAllListeners('disconnect');
+        //     onDeviceRemoved &&
+        //         onDeviceRemoved(device, device.peripheral.advertisement.localName);
+        // });
+
+        // peripheral.on('disconnect', async () => {
+        //     if (!this.connected) return;
+        //     logDebug(`Disconnected from ${peripheral?.advertisement.localName}`);
+        //     await clearPythonErrors();
+        //     // Do not call disconnectAsync recursively
+        //     this.runExitStack();
+        //     this._device = undefined;
+        // });
 
         this._exitStack.push(async () => {
             this._rxCharacteristic?.removeAllListeners('data');
@@ -132,12 +150,12 @@ export class BleSpikeClient extends BaseClient {
         await this._rxCharacteristic?.writeAsync(Buffer.from(data), withoutResponse);
     }
 
-    protected async sendMessage<TResponse extends BaseMessage = BaseMessage>(
-        message: BaseMessage,
+    protected async sendMessage<TResponse extends ResponseMessage>(
+        message: RequestMessage,
     ): Promise<TResponse | undefined> {
         const payload = pack(message.serialize());
         const resultTypeId = message.acceptsResponse();
-        const resultPromise = new Promise<BaseMessage>((resolve, reject) => {
+        const resultPromise = new Promise<ResponseMessage>((resolve, reject) => {
             this._pendingMessagesPromises.set(resultTypeId, [resolve, reject]);
         });
 
@@ -219,9 +237,9 @@ export class BleSpikeClient extends BaseClient {
         // (e.g., web or Python environment). This enables advanced interaction, such as exchanging sensor readings or motor
         // commands, and offers more flexibility than the built-in broadcast message blocks.
 
-        const message = new TunnelMessage(Buffer.from(text, 'utf-8'));
-        const response = await this.sendMessage(message);
-        console.log('TunnelMessage response:', response);
+        // const message = new TunnelMessage(Buffer.from(text, 'utf-8'));
+        // const response = await this.sendMessage(message);
+        // console.log('TunnelMessage response:', response);
     }
 
     public async action_start(slot?: number) {
@@ -232,23 +250,34 @@ export class BleSpikeClient extends BaseClient {
         await this.sendMessage(new ProgramFlowRequestMessage(false)); // 0 = stop
     }
 
-    public async action_upload(data: Uint8Array, slot?: number, filename?: string) {
+    public async action_upload(
+        data: Uint8Array,
+        slot_input?: number,
+        filename?: string,
+    ) {
         {
             if (!this._capabilities) return;
 
             const uploadSize = data.byteLength;
+            const slot = slot_input ?? 0;
+
+            // initiate upload
+            const clearResponse = await this.sendMessage<ClearSlotResponseMessage>(
+                new ClearSlotRequestMessage(slot),
+            );
+            if (!clearResponse?.success) console.warn(`Failed to clear slot ${slot}`); // not critical
 
             // watch out for the extension - .mpy or .py repsectively
             const uploadResponse =
                 await this.sendMessage<StartFileUploadResponseMessage>(
                     new StartFileUploadRequestMessage(
                         filename ?? FILENAME_SAMPLE_COMPILED,
-                        slot ?? 0,
+                        slot,
                         crc32WithAlignment(data),
                     ),
                 );
             if (!uploadResponse?.success)
-                throw new Error('Failed to initiate file upload');
+                throw new Error(`Failed to initiate file upload to ${slot}`);
 
             const blockSize: number = this._capabilities.maxChunkSize;
             // const increment = (1 / Math.ceil(uploadSize / blockSize)) * 100;
@@ -263,8 +292,34 @@ export class BleSpikeClient extends BaseClient {
                 );
                 if (!resp?.success) console.warn('Failed to send chunk'); // TODO: retry?
                 //progress?.report({ increment });
+                // await delay(100); // let the hub finish processing the last chunk
             }
         }
+    }
+
+    public async action_clear_all_slots() {
+        const result: Map<boolean, number[]> = new Map([
+            [true, [] as number[]],
+            [false, [] as number[]],
+        ]);
+        for (let slot = 0; slot < HUBOS_SPIKE_SLOTS; slot++) {
+            const response = await this.sendMessage<ClearSlotResponseMessage>(
+                new ClearSlotRequestMessage(slot),
+            );
+
+            result.get(!!response?.success)?.push(slot);
+        }
+
+        logDebug(
+            Array.from(result.entries())
+                .map(
+                    ([success, slots]) =>
+                        `${success ? 'Cleared' : 'Not cleared'} slots: ${slots.join(
+                            ', ',
+                        )}`,
+                )
+                .join(' | '),
+        );
     }
 }
 
