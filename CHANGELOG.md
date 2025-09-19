@@ -4,6 +4,13 @@ All significant updates to the "blocklypy-vscode" extension are tracked in this 
 
 ## [Unreleased]
 
+## [0.5.0] - 2025-09-19
+
+## Added
+
+- Offical SPIKE Prime HubOS support, including SPIKE Essential and
+Robot Inventor Mindstorms Hubs.
+
 ## [0.4.1] - 2025-09-16
 
 ## Added

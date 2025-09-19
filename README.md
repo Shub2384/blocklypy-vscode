@@ -3,11 +3,12 @@
 [![Version](https://img.shields.io/visual-studio-marketplace/v/afarago.blocklypy-vscode?label=VS%20Marketplace)](https://marketplace.visualstudio.com/items?itemName=afarago.blocklypy-vscode)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-A Visual Studio Code extension to interact with LEGO® Hubs running the Pybricks firmware.
+A Visual Studio Code extension to interact with LEGO® Hubs running the Pybricks
+and official HubOSv3 firmware.
 
 ## Features
 
-Streamline your Pybricks coding experience with:
+Streamline your Pybricks and LEGO SPIKE coding experience with:
 
 - **Connect/disconnect your Hub** via Bluetooth
 - **Start/stop programs** directly from VS Code
@@ -29,10 +30,12 @@ Streamline your Pybricks coding experience with:
 ## Guide: Fun First Things to Explore
 
 - **Connect** to a SPIKE Pybricks Hub via Bluetooth
+- **Connect** to a LEGO SPIKE offical HubOS Hub via Bluetooth
 - **Reconnect** to the last Pybricks Hub via Bluetooth
-- Check out the **auto-connect** to the last Pybricks Hub via Bluetooth on
+- Check out the **auto-connect** to the last Hub via Bluetooth on
   VSCode start
 - Open a **Pybricks Python file**, compile and upload
+- Open a **LEGO standard Python file**, compile and upload
 - Use the **auto-start** feature by adding `# LEGO autostart` header
 - Check the feedback for any **runtime error** reported by the hub
 - Check the feedback from any **print statements** reported by the hub
@@ -119,6 +122,12 @@ from pybricks.hubs import PrimeHub
 hub.speaker.beep()
 ```
 
+For LEGO HubOS devices you can use
+
+```python
+# LEGO slot0 autostart
+```
+
 ## Data Logging
 
 The extension now supports a datalogging view that can plot incoming data in real-time.
@@ -176,6 +185,9 @@ print("plot: end") # This line will never be reached in this example
 This project is rooted on the work of Song-Pei Du
 [dusongpei](https://github.com/dsp05/pybricks-vscode) and on the work of the
 [Pybricks authors](https://github.com/pybricks), Laurens Valk and David Lechner.
+
+Many thanks for the HubOS [documentation](https://lego.github.io/spike-prime-docs)
+to the LEGO® group.
 
 ## License
 
