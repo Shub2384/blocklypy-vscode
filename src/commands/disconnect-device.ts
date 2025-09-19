@@ -1,9 +1,9 @@
-import { Device } from '../logic/ble';
+import { bleLayer } from '../clients/ble-layer';
 import { hasState, StateProp } from '../logic/state';
 import { stopUserProgramAsync } from './stop-user-program';
 
 export async function disconnectDeviceAsync() {
-    if (!Device.current) {
+    if (!hasState(StateProp.Connected)) {
         throw new Error('No device is currently connected.');
     }
 
@@ -11,5 +11,5 @@ export async function disconnectDeviceAsync() {
         await stopUserProgramAsync();
     }
 
-    await Device.disconnectAsync();
+    await bleLayer.disconnect();
 }

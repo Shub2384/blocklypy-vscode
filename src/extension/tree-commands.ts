@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
+import { bleLayer } from '../clients/ble-layer';
 import { EXTENSION_KEY } from '../const';
-import { Device } from '../logic/ble';
 import { getStateString, hasState, StateProp } from '../logic/state';
 import { Commands } from './commands';
 import { BaseTreeDataProvider, TreeItemData } from './tree-base';
@@ -12,9 +12,10 @@ class CommandsTreeDataProvider extends BaseTreeDataProvider<TreeItemData> {
 
         // customize label for some commands
         if (element.command === Commands.DisconnectDevice) {
-            retval.label = Device.current
-                ? `Disconnect from ${Device.current.peripheral.advertisement.localName}`
-                : 'Disconnect';
+            retval.label =
+                hasState(StateProp.Connected) && bleLayer.client?.connected
+                    ? `Disconnect from ${bleLayer.client?.name}`
+                    : 'Disconnect';
         } else if (element.command === Commands.StatusPlaceHolder) {
             retval.label = 'Status: ' + ToCapialized(getStateString());
         }
@@ -25,7 +26,7 @@ class CommandsTreeDataProvider extends BaseTreeDataProvider<TreeItemData> {
         if (element) return [];
 
         const elems = [] as TreeItemData[];
-        if (Device.current) {
+        if (hasState(StateProp.Connected) && bleLayer.client?.connected) {
             elems.push({ command: Commands.CompileAndRun });
             elems.push({
                 command: hasState(StateProp.Running)

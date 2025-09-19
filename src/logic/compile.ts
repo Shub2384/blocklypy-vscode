@@ -2,11 +2,20 @@ import { compile } from '@pybricks/mpy-cross-v6';
 import { parse, walk } from '@pybricks/python-program-analysis';
 import path from 'path';
 import * as vscode from 'vscode';
+import { bleLayer } from '../clients/ble-layer';
 import { BlocklypyViewerProvider } from '../views/BlocklypyViewerProvider';
 import { setState, StateProp } from './state';
 
-export const MAIN_MOCULE = '__main__';
-export const MAIN_MOCULE_PATH = '__main__.py';
+export const MAIN_MODULE = '__main__';
+export const MAIN_MODULE_PATH = '__main__.py';
+export const FILENAME_SAMPLE_RAW = 'program.py';
+export const FILENAME_SAMPLE_COMPILED = 'program.mpy'; // app.mpy+program.mpy for HubOS
+
+export const MODE_RAW = 'raw';
+export const MODE_COMPILED = 'compiled';
+
+export const LEGO_HEADER_REGEX =
+    /^\s*#\s*LEGO((?:\s*(?<autostart>\bautostart\b).*?)?(?:.*?\bslot:\s*(?<slot>\d{1,2}))?)*/im;
 
 type Module = {
     name: string;
@@ -29,34 +38,41 @@ function getPythonCode(): { content: string; folder?: string } | undefined {
     }
 }
 
-export async function compileAsync(...args: any[]): Promise<Blob> {
+export async function compileAsync(
+    ...args: any[]
+): Promise<{ data: Uint8Array; filename: string; slot: number | undefined }> {
     await vscode.commands.executeCommand('workbench.action.files.saveAll');
+    const mode = args[0];
 
     const parts: BlobPart[] = [];
+    const pycode = getPythonCode();
+    if (!pycode) throw new Error('No Python code available to compile.');
+
+    const slot = checkMagicHeaderComment(pycode.content).slot;
+
+    if (mode === MODE_RAW) {
+        const data = encoder.encode(pycode.content);
+        return { data, filename: FILENAME_SAMPLE_RAW, slot };
+    }
+
+    let mpyCurrent: Uint8Array | undefined;
+    const modules: Module[] = [
+        {
+            name: MAIN_MODULE,
+            path: MAIN_MODULE_PATH,
+            content: pycode.content,
+        },
+    ];
 
     setState(StateProp.Compiling, true);
     try {
-        const pycode = getPythonCode();
-        if (!pycode) throw new Error('No Python code available to compile.');
-
-        const modules: Module[] = [
-            {
-                name: MAIN_MOCULE,
-                path: MAIN_MOCULE_PATH,
-                content: pycode.content,
-            },
-        ];
-
         const checkedModules = new Set<string>();
-
         while (modules.length > 0) {
             const module = modules.pop()!;
-            if (checkedModules.has(module.name)) {
-                continue;
-            }
+            if (checkedModules.has(module.name)) continue;
             checkedModules.add(module.name);
 
-            // console.log(`Compiling module: ${module.name} (${module.path})`);
+            // Compiling module may reveal more imports, so check those too
             const importedModules = findImportedModules(module.content);
             for (const importedModule of importedModules) {
                 if (checkedModules.has(importedModule) || !pycode.folder) {
@@ -73,20 +89,24 @@ export async function compileAsync(...args: any[]): Promise<Blob> {
                 }
             }
 
-            // compile module
-            const compiled = await compile(
-                module.path,
-                module.content,
-                undefined,
-                undefined,
-            );
-            if (compiled.status !== 0 || !compiled.mpy) {
-                throw new Error(`Failed to compile ${module.name}`);
-            }
+            // Compile one module
+            if (bleLayer.client?.supportsModularMpy || parts.length === 0) {
+                // Either the device supports modular .mpy files, or there is only one
+                const [status, mpy] = await compileInternal(
+                    module.path,
+                    module.name,
+                    module.content,
+                );
+                if (status !== 0 || !mpy)
+                    throw new Error(`Failed to compile ${module.name}`);
 
-            parts.push(encodeUInt32LE(compiled.mpy.length));
-            parts.push(cString(module.name) as BlobPart);
-            parts.push(compiled.mpy as BlobPart);
+                mpyCurrent = mpy;
+                parts.push(encodeUInt32LE(mpy.length));
+                parts.push(cString(module.name) as BlobPart);
+                parts.push(mpy as BlobPart);
+            } else {
+                break;
+            }
 
             checkedModules.add(module.name);
         }
@@ -94,7 +114,43 @@ export async function compileAsync(...args: any[]): Promise<Blob> {
         setState(StateProp.Compiling, false);
     }
 
-    return new Blob(parts);
+    // Check if modular .mpy files are supported or just a single file is needed
+    if (bleLayer.client?.supportsModularMpy) {
+        const blob = new Blob(parts);
+        const buffer = await blob.arrayBuffer();
+        return {
+            data: new Uint8Array(buffer),
+            filename: FILENAME_SAMPLE_COMPILED,
+            slot,
+        };
+    } else {
+        if (modules.length > 1 || parts.length > 3 * 1 || !mpyCurrent) {
+            throw new Error(
+                'Modular .mpy files are not supported by the connected device. Please combine all code into a single file.',
+            );
+        }
+        return { data: mpyCurrent, filename: FILENAME_SAMPLE_COMPILED, slot };
+    }
+}
+
+async function compileInternal(
+    path: string,
+    name: string,
+    content: string,
+): Promise<[number, Uint8Array | undefined]> {
+    // HACK: This is a workaround for https://github.com/pybricks/support/issues/2185
+    const fetch_backup = (global as any).fetch;
+    (global as any).fetch = undefined;
+    const compiled = await compile(path, content, undefined, undefined)
+        .catch((e) => {
+            console.error(`Failed to compile ${name}: ${e}`);
+            return { status: 1, mpy: undefined };
+        })
+        .finally(() => {
+            (global as any).fetch = fetch_backup;
+        });
+
+    return [compiled.status, compiled.mpy];
 }
 
 async function resolveModuleAsync(
@@ -118,19 +174,6 @@ async function resolveModuleAsync(
     } catch {}
 }
 
-const encoder = new TextEncoder();
-
-function cString(str: string): Uint8Array {
-    return encoder.encode(str + '\x00');
-}
-
-function encodeUInt32LE(value: number): ArrayBuffer {
-    const buf = new ArrayBuffer(4);
-    const view = new DataView(buf);
-    view.setUint32(0, value, true);
-    return buf;
-}
-
 function findImportedModules(py: string): ReadonlySet<string> {
     const modules = new Set<string>();
 
@@ -149,4 +192,32 @@ function findImportedModules(py: string): ReadonlySet<string> {
     });
 
     return modules;
+}
+
+const encoder = new TextEncoder();
+function cString(str: string): Uint8Array {
+    return encoder.encode(str + '\x00');
+}
+
+function encodeUInt32LE(value: number): ArrayBuffer {
+    const buf = new ArrayBuffer(4);
+    const view = new DataView(buf);
+    view.setUint32(0, value, true);
+    return buf;
+}
+
+export function checkMagicHeaderComment(py: string): {
+    autostart?: boolean;
+    slot?: number;
+} {
+    const match = py.match(LEGO_HEADER_REGEX);
+    if (match) {
+        const groups = match.groups ?? {};
+        return {
+            autostart: Object.prototype.hasOwnProperty.call(groups, 'autostart'),
+            slot: groups.slot ? parseInt(groups.slot) : undefined,
+        };
+    } else {
+        return {};
+    }
 }

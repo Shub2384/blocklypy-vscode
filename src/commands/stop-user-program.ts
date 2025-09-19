@@ -1,12 +1,10 @@
-import { Device } from '../logic/ble';
-import { createStopUserProgramCommand } from '../pybricks/protocol';
+import { bleLayer } from '../clients/ble-layer';
+import { hasState, StateProp } from '../logic/state';
 
 export async function stopUserProgramAsync() {
-    if (!Device.current) {
-        throw new Error(
-            'No device selected. Please connect to a Pybricks device first.',
-        );
+    if (!hasState(StateProp.Connected) || !bleLayer.client) {
+        throw new Error('No device selected. Please connect to a device first.');
     }
 
-    await Device.write(createStopUserProgramCommand(), false);
+    await bleLayer.client.action_stop();
 }

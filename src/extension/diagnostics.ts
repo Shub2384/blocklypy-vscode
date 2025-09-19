@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { MAIN_MOCULE_PATH } from '../logic/compile';
+import { MAIN_MODULE_PATH } from '../logic/compile';
 import {
     BlocklypyViewer,
     BlocklypyViewerProvider,
@@ -51,7 +51,7 @@ async function showEditorErrorDecoration(
 async function findEditorForFile(
     filename: string,
 ): Promise<{ editor?: vscode.TextEditor; blviewer?: BlocklypyViewer }> {
-    if (filename === MAIN_MOCULE_PATH) {
+    if (filename === MAIN_MODULE_PATH) {
         return {
             editor: vscode.window.activeTextEditor,
             blviewer: BlocklypyViewerProvider.activeBlocklypyViewer,
@@ -90,8 +90,8 @@ async function findEditorForFile(
 }
 
 export function showInfo(message: string) {
-    vscode.window.showInformationMessage(message);
+    vscode.window?.showInformationMessage(message);
 }
 export function showError(message: string) {
-    vscode.window.showErrorMessage(message);
+    vscode.window?.showErrorMessage(message);
 }

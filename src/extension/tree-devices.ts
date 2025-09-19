@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
+import { DeviceMetadata } from '../clients';
+import { bleLayer } from '../clients/ble-layer';
 import { EXTENSION_KEY } from '../const';
-import { Device, DeviceMetadata } from '../logic/ble';
 import { Commands } from './commands';
 import { BaseTreeDataProvider, TreeItemData } from './tree-base';
 
@@ -16,7 +17,11 @@ class DevicesTreeDataProvider extends BaseTreeDataProvider<TreeItemDeviceData> {
 
     getTreeItem(element: TreeItemDeviceData): vscode.TreeItem {
         const item = super.getTreeItem(element);
-        if (element.id && element.id === Device.name) item.label = `${element.id} 🔵`;
+        if (element.id) {
+            const active =
+                element.id && element.id === bleLayer.client?.name ? '🔵 ' : '';
+            item.label = `${active}${element.id} [${element.contextValue}]`;
+        }
         return item;
     }
 
@@ -27,8 +32,9 @@ class DevicesTreeDataProvider extends BaseTreeDataProvider<TreeItemDeviceData> {
             return [];
         }
 
-        if (this.deviceMap.size > 0) return Array.from(this.deviceMap.values());
-        else {
+        if (this.deviceMap.size > 0) {
+            return Array.from(this.deviceMap.values());
+        } else {
             return [
                 {
                     title: 'Scanning for devices...',
@@ -40,7 +46,7 @@ class DevicesTreeDataProvider extends BaseTreeDataProvider<TreeItemDeviceData> {
     }
 
     refreshCurrentItem() {
-        const name = Device.name;
+        const name = bleLayer.client?.name;
         if (!name) return;
         const item = this.deviceMap.get(name);
         if (!item) return;
@@ -74,6 +80,7 @@ function registerDevicesTree(context: vscode.ExtensionContext) {
             description: device.lastBroadcast ? `⛁ ${device.lastBroadcast.data}` : '',
             //  on ch:${device.lastBroadcast.channel}
             lastSeen: Date.now(),
+            contextValue: device.devtype,
         } as TreeItemDeviceData);
 
         if (isNew) {
@@ -83,7 +90,7 @@ function registerDevicesTree(context: vscode.ExtensionContext) {
             DevicesTree.refreshItem(item);
         }
     };
-    Device.addListener(addDevice);
+    bleLayer.addListener(addDevice);
 
     // Periodically remove devices not seen for X seconds
     // Except for currently connected device, that will not broadcast, yet it should stay in the list
@@ -91,7 +98,7 @@ function registerDevicesTree(context: vscode.ExtensionContext) {
         const now = Date.now();
         let changed = false;
         for (const [name, item] of DevicesTree.deviceMap.entries()) {
-            if (Device.name === name) continue;
+            if (bleLayer.client?.name === name) continue;
 
             const lastSeen = item.lastSeen as number | undefined;
             if (lastSeen && now - lastSeen > DEVICE_VISIBILITY_TIMEOUT) {
@@ -107,7 +114,7 @@ function registerDevicesTree(context: vscode.ExtensionContext) {
     context.subscriptions.push(
         treeview,
         new vscode.Disposable(() => {
-            Device.removeListener(addDevice);
+            bleLayer.removeListener(addDevice);
             clearInterval(timer);
         }),
     );

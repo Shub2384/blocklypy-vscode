@@ -3,32 +3,16 @@
 //
 // Definitions related to the Pybricks Bluetooth low energy GATT service.
 
-import { assert } from './utils';
+import { assert } from '../utils';
 
 /** Pybricks service UUID. */
 export const pybricksServiceUUID = 'c5f50001-8280-46da-89f4-6d8051e4aeef';
 /** Pybricks control/event characteristic UUID. */
 export const pybricksControlEventCharacteristicUUID =
     'c5f50002-8280-46da-89f4-6d8051e4aeef';
-
 /** Pybricks hub capabilities characteristic UUID. */
 export const pybricksHubCapabilitiesCharacteristicUUID =
     'c5f50003-8280-46da-89f4-6d8051e4aeef';
-
-/** Bluetooth Device Information Service UUID. */
-export const pbio_gatt_device_info_service_uuid = 0x180a;
-
-/** Bluetooth Device Name Characteristic UUID. */
-export const pbio_gatt_device_name_char_uuid = 0x2a00;
-
-/** Bluetooth Firmware Version Characteristic UUID. */
-export const pbio_gatt_firmware_version_char_uuid = 0x2a26;
-
-/** Bluetooth Software Version Characteristic UUID (Pybricks protocol version). */
-export const pbio_gatt_software_version_char_uuid = 0x2a28;
-
-/** Bluetooth PnP ID Characteristic UUID. */
-export const pbio_gatt_pnp_id_char_uuid = 0x2a50;
 
 /** Commands are instructions sent to the hub. */
 export enum CommandType {
@@ -346,9 +330,9 @@ export function parseStatusReport(msg: DataView): {
  *
  * @since Pybricks Profile v1.3.0
  */
-export function parseWriteStdout(msg: DataView): ArrayBufferLike {
+export function parseWriteStdout(msg: DataView): ArrayBuffer {
     assert(msg.getUint8(0) === EventType.WriteStdout, 'expecting write stdout event');
-    return msg.buffer.slice(1);
+    return msg.buffer.slice(1) as ArrayBuffer; // NOTE: added to avoid es2015 lib SharedArrayBuffer
 }
 
 /**
@@ -358,9 +342,9 @@ export function parseWriteStdout(msg: DataView): ArrayBufferLike {
  *
  * @since Pybricks Profile v1.4.0
  */
-export function parseWriteAppData(msg: DataView): ArrayBufferLike {
+export function parseWriteAppData(msg: DataView): ArrayBuffer {
     assert(msg.getUint8(0) === EventType.WriteAppData, 'expecting write appdata event');
-    return msg.buffer.slice(1);
+    return msg.buffer.slice(1) as ArrayBuffer; // NOTE: added to avoid es2015 lib SharedArrayBuffer
 }
 
 /**

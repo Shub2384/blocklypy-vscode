@@ -1,7 +1,13 @@
 import * as vscode from 'vscode';
+import { bleLayer } from '../clients/ble-layer';
 import { EXTENSION_KEY } from '../const';
-import { Device } from '../logic/ble';
-import { onStateChange, setState, StateChangeEvent, StateProp } from '../logic/state';
+import {
+    hasState,
+    onStateChange,
+    setState,
+    StateChangeEvent,
+    StateProp,
+} from '../logic/state';
 import { clearStdOutDataHelpers } from '../logic/stdout-helper';
 import {
     BlocklypyViewerContentAvailabilityMap,
@@ -31,10 +37,9 @@ export function registerContextUtils(context: vscode.ExtensionContext) {
                 setState(StateProp.Connecting, false);
                 setState(StateProp.Running, false);
 
-                const msg =
-                    (Device.name ? Device.name + ' ' : '') + event.value
-                        ? `Connected to ${Device.name}`
-                        : 'Disconnected';
+                const msg = hasState(StateProp.Connected)
+                    ? `Connected to ${bleLayer.client?.name}`
+                    : 'Disconnected';
                 setStatusBarItem(event.value, msg, msg);
 
                 DevicesTree.refreshCurrentItem();

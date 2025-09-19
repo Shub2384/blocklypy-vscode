@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 
+import { clearAllSlots } from '../commands/clear-all-slots';
 import { compileAndRunAsync } from '../commands/compile-and-run';
 import { connectDeviceAsyncAny } from '../commands/connect-device';
 import { disconnectDeviceAsync } from '../commands/disconnect-device';
@@ -9,6 +10,7 @@ import { compileAsync } from '../logic/compile';
 import Config, { ConfigKeys } from '../utils/config';
 import { BlocklypyViewerProvider, ViewType } from '../views/BlocklypyViewerProvider';
 import { PybricksPythonPreviewProvider } from '../views/PybricksPythonPreviewProvider';
+import { showInfo } from './diagnostics';
 import { settingsTreeData } from './tree-settings';
 import { openOrActivate } from './utils';
 
@@ -33,6 +35,7 @@ export enum Commands {
     DisplayGraph = 'blocklypy-vscode.blocklypyViewer.displayGraph',
     ShowPythonPreview = 'blocklypy-vscode.showPythonPreview',
     ShowSource = 'blocklypy-vscode.pythonPreview.showSource',
+    ClearAllSlots = 'blocklypy-vscode.clearAllSlots',
 }
 
 // Map configuration keys to their toggle commands and tooltips, title is taken from package.json
@@ -83,6 +86,7 @@ export const commandHandlers: Map<Commands, CommandHandler> = new Map([
     [Commands.StartUserProgram, startUserProgramAsync],
     [Commands.StopUserProgram, stopUserProgramAsync],
     [Commands.DisconnectDevice, disconnectDeviceAsync],
+    [Commands.ClearAllSlots, clearAllSlots],
     ...settingsCommandHandlers,
     [
         Commands.DisplayNextView,
@@ -127,7 +131,7 @@ export const commandHandlers: Map<Commands, CommandHandler> = new Map([
                     },
                 );
             } else {
-                vscode.window.showInformationMessage('Open a Python file to preview.');
+                showInfo('Open a Python file to preview.');
             }
         },
     ],

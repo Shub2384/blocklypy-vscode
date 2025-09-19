@@ -64,6 +64,6 @@ export function getStateString() {
     if (hasState(StateProp.Uploading)) return StateProp.Uploading;
     if (hasState(StateProp.Connected)) return StateProp.Connected;
     if (hasState(StateProp.Connecting)) return StateProp.Connecting;
-    if (hasState(StateProp.Scanning)) return StateProp.Scanning;
+    if (hasState(StateProp.Scanning)) return `idle and ${StateProp.Scanning}`;
     return 'idle';
 }
