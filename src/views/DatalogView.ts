@@ -4,7 +4,7 @@
 import * as vscode from 'vscode';
 import { EXTENSION_KEY } from '../const';
 import { setContextPlotDataAvailability } from '../extension/context-utils';
-import { getDatalogColumns, getDatalogData } from '../logic/stdout-plot-helper';
+import { plotManager } from '../logic/stdout-helper';
 import { getScriptUri } from './utils';
 
 export class DatalogView implements vscode.WebviewViewProvider {
@@ -62,7 +62,8 @@ export class DatalogView implements vscode.WebviewViewProvider {
 
         // Initialize the from the webview with the last header data
         setTimeout(() => {
-            this.setHeaders(getDatalogColumns(), getDatalogData());
+            if (!plotManager) return;
+            this.setHeaders(plotManager.datalogcolumns, plotManager.data);
         }, 100);
     }
 

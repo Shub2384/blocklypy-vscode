@@ -1,6 +1,6 @@
 import { DeviceMetadata } from '.';
 import { logDebug, logDebugFromHub } from '../extension/debug-channel';
-import { handleStdOutData } from '../logic/stdout-helper';
+import { handleStdOutDataHelpers } from '../logic/stdout-helper';
 import Config, { ConfigKeys } from '../utils/config';
 
 export abstract class BaseClient {
@@ -80,7 +80,7 @@ export abstract class BaseClient {
 
     protected async processStdoutData() {
         if (this._stdoutBuffer.length > 0) {
-            await handleStdOutData(this._stdoutBuffer);
+            await handleStdOutDataHelpers(this._stdoutBuffer);
             this._stdoutBuffer = '';
         }
         if (this._stdoutTimer) {
@@ -98,7 +98,7 @@ export abstract class BaseClient {
         let newlineIndex;
         while ((newlineIndex = this._stdoutBuffer.indexOf('\n')) !== -1) {
             const line = this._stdoutBuffer.slice(0, newlineIndex + 1);
-            handleStdOutData(line);
+            handleStdOutDataHelpers(line);
             this._stdoutBuffer = this._stdoutBuffer.slice(newlineIndex + 1);
         }
 

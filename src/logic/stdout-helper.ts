@@ -1,11 +1,8 @@
 import path from 'path';
 import { logDebug } from '../extension/debug-channel';
 import { reportPythonError, showInfo } from '../extension/diagnostics';
-import {
-    resetPlotParser as clearPlotParser,
-    parsePlotCommand,
-    registerStdoutPlotHelper,
-} from './stdout-plot-helper';
+import { PlotManager } from './plot';
+import { parsePlotCommand } from './stdout-plot-helper';
 import {
     resetPythonErrorParser as clearPythonErrorParser,
     parsePythonError,
@@ -18,26 +15,25 @@ function handleReportPythonError(filename: string, line: number, message: string
     }, 0);
 }
 
-export async function handleStdOutData(text: string) {
-    const lines = text.split(/\r?\n/);
-    for (const line of lines) {
-        // starts with "plot: "
-        await parsePlotCommand(line);
+export async function handleStdOutDataHelpers(line: string) {
+    // starts with "plot: "
+    await parsePlotCommand(line, plotManager);
 
-        // equal to  "Traceback (most recent call last):"
-        await parsePythonError(line, handleReportPythonError);
-    }
+    // equal to  "Traceback (most recent call last):"
+    await parsePythonError(line, handleReportPythonError);
 }
 
 export function clearStdOutDataHelpers() {
-    clearPlotParser();
+    plotManager?.resetPlotParser();
     clearPythonErrorParser();
 }
 
 export function registerStdoutHelper() {
-    registerStdoutPlotHelper((filepath) => {
+    plotManager = PlotManager.createWithCb((filepath: string) => {
         // onCreate callback
         logDebug(`Started datalogging to ${filepath}`);
         showInfo(`Started datalogging to ${path.basename(filepath)}`);
     });
 }
+
+export let plotManager: PlotManager | undefined = undefined;
