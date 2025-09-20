@@ -118,7 +118,7 @@ const webviewConfig = {
         }),
     ],
     optimization: {
-        minimize: true,
+        minimize: !isDevelopment,
         runtimeChunk: false,
         splitChunks: false,
     },
@@ -130,7 +130,7 @@ const webviewConfig = {
         ? {
               maxAssetSize: 512000, // Increase asset size limit to 500 KB
               maxEntrypointSize: 1024000, // Increase entry point size limit to 1 MB
-              hints: false,
+              hints: false, // Disable performance hints during development
           }
         : undefined,
 };

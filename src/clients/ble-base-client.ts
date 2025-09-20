@@ -21,13 +21,23 @@ export abstract class BleBaseClient extends BaseClient {
         });
 
         peripheral.on('disconnect', async () => {
-            // if (!this.connected) return;
-
             logDebug(`Disconnected from ${name}`);
             await clearPythonErrors();
             // Do not call disconnectAsync recursively
             this.runExitStack();
             this._device = undefined;
         });
+    }
+
+    public async disconnect() {
+        try {
+            console.log('Disconnecting...');
+            const peripheral = this._device?.peripheral;
+            await this.runExitStack();
+            peripheral?.disconnect();
+            this._device = undefined;
+        } catch (error) {
+            logDebug(`Error during disconnect: ${error}`);
+        }
     }
 }

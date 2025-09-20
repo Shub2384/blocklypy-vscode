@@ -195,4 +195,5 @@ This project is licensed under the [MIT License](LICENSE).
 
 ## Screenshot
 
-![Screenshot](./screenshots/1.gif)
+![Screenshot: Overview](./screenshots/1.gif)
+![Screenshot: Plot handling](./screenshots/plot.gif)

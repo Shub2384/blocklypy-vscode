@@ -92,6 +92,9 @@ async function findEditorForFile(
 export function showInfo(message: string) {
     vscode.window?.showInformationMessage(message);
 }
+export function showWarning(message: string) {
+    vscode.window?.showWarningMessage(message);
+}
 export function showError(message: string) {
     vscode.window?.showErrorMessage(message);
 }

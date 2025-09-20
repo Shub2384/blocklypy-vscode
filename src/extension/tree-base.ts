@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
+import { CommandMetaDataEntry, getCommandsFromPackageJson } from './commands';
 import { getIcon } from './utils';
-
-const PACKAGEJSON_COMMAND_PREFIX = 'BlocklyPy: ';
 
 export interface TreeItemData {
     id?: string;
@@ -62,11 +61,11 @@ export abstract class BaseTreeDataProvider<T extends TreeItemData>
     readonly onDidChangeTreeData: vscode.Event<T | undefined | void> =
         this._onDidChangeTreeData.event;
     protected context?: vscode.ExtensionContext;
-    protected commands: { command?: string; title?: string; icon?: string }[] = [];
+    protected commands: CommandMetaDataEntry[] = [];
 
     async init(context: vscode.ExtensionContext) {
         this.context = context;
-        this.commands = context.extension.packageJSON.contributes.commands;
+        this.commands = getCommandsFromPackageJson(context);
     }
 
     getTreeItem(element: T): vscode.TreeItem {
@@ -75,8 +74,7 @@ export abstract class BaseTreeDataProvider<T extends TreeItemData>
             ...this.commands?.find((c) => c.command === element.command),
             ...element,
         };
-        const title =
-            element.title ?? cmd.title?.replace(PACKAGEJSON_COMMAND_PREFIX, '') ?? '';
+        const title = element.title ?? cmd.title ?? '';
 
         const item = new BaseTreeItem(
             title,

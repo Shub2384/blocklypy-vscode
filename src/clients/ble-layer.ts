@@ -1,7 +1,7 @@
 import noble from '@abandonware/noble';
 import _ from 'lodash';
 import { DeviceMetadata } from '.';
-import { delay, isDevelopmentMode } from '../extension';
+import { isDevelopmentMode } from '../extension';
 import { setState, StateProp } from '../logic/state';
 import { pnpIdUUID } from '../pybricks/ble-device-info-service/protocol';
 import { pybricksServiceUUID } from '../pybricks/ble-pybricks-service/protocol';
@@ -116,9 +116,6 @@ export class BLELayer extends BaseLayer {
     public async disconnect() {
         await this.restartScanning();
         await super.disconnect();
-
-        // allow rescan some time
-        await delay(500);
     }
 
     private async restartScanning() {

@@ -14,9 +14,6 @@ export const FILENAME_SAMPLE_COMPILED = 'program.mpy'; // app.mpy+program.mpy fo
 export const MODE_RAW = 'raw';
 export const MODE_COMPILED = 'compiled';
 
-export const LEGO_HEADER_REGEX =
-    /^\s*#\s*LEGO((?:\s*(?<autostart>\bautostart\b).*?)?(?:.*?\bslot:\s*(?<slot>\d{1,2}))?)*/im;
-
 type Module = {
     name: string;
     path: string;
@@ -210,12 +207,12 @@ export function checkMagicHeaderComment(py: string): {
     autostart?: boolean;
     slot?: number;
 } {
-    const match = py.match(LEGO_HEADER_REGEX);
-    if (match) {
-        const groups = match.groups ?? {};
+    if (py.match(/^\s*#\s*LEGO/i)) {
+        const autostart = py.match(/\bautostart\b/i) !== null;
+        const slot = py.match(/\bslot:\s*(\d{1,2})/i);
         return {
-            autostart: Object.prototype.hasOwnProperty.call(groups, 'autostart'),
-            slot: groups.slot ? parseInt(groups.slot) : undefined,
+            autostart: autostart,
+            slot: slot ? parseInt(slot[1]) : undefined,
         };
     } else {
         return {};

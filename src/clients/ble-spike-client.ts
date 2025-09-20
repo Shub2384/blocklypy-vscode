@@ -2,6 +2,7 @@ import noble from '@abandonware/noble';
 import crc32 from 'crc-32';
 import { DeviceMetadata } from '.';
 import { logDebug } from '../extension/debug-channel';
+import { showWarning } from '../extension/diagnostics';
 import { FILENAME_SAMPLE_COMPILED } from '../logic/compile';
 import { setState, StateProp } from '../logic/state';
 import {
@@ -72,18 +73,6 @@ export class BleSpikeClient extends BleBaseClient {
 
     public get connected() {
         return this._device?.peripheral.state === 'connected';
-    }
-
-    public async disconnect() {
-        if (!this.connected || !this._device) return;
-
-        try {
-            await this.runExitStack();
-            await this._device.peripheral.disconnectAsync();
-            this._device = undefined;
-        } catch (error) {
-            logDebug(`Error during disconnect: ${error}`);
-        }
     }
 
     protected async connectWorker(
@@ -260,6 +249,11 @@ export class BleSpikeClient extends BleBaseClient {
 
             const uploadSize = data.byteLength;
             const slot = slot_input ?? 0;
+            if (slot_input === undefined) {
+                showWarning(
+                    'No slot specified, defaulting to slot 0. To specify a different slot, add a comment like "# LEGO slot: 1" at the top of your code.',
+                );
+            }
 
             // initiate upload
             const clearResponse = await this.sendMessage<ClearSlotResponseMessage>(

@@ -63,7 +63,7 @@
     "commands": [
       {
         "command": "blocklypy-vscode.connectDevice",
-        "title": "BlocklyPy: Connect Device",
+        "title": "BlocklyPy Commander: Connect Device",
         "icon": {
           "light": "asset/icons/hub-small-light.svg",
           "dark": "asset/icons/hub-small-dark.svg"
@@ -71,72 +71,53 @@
       },
       {
         "command": "blocklypy-vscode.disconnectDevice",
-        "title": "BlocklyPy: Disconnect Device",
+        "title": "BlocklyPy Commander: Disconnect Device",
         "icon": "$(debug-disconnect)"
       },
       {
         "command": "blocklypy-vscode.compile",
-        "title": "BlocklyPy: Compile",
+        "title": "BlocklyPy Commander: Compile",
         "icon": "$(compile)"
       },
       {
         "command": "blocklypy-vscode.compileAndRun",
-        "title": "BlocklyPy: Compile and Run",
+        "title": "BlocklyPy Commander: Compile and Run",
         "icon": "$(debug-start)"
       },
       {
         "command": "blocklypy-vscode.startUserProgram",
-        "title": "BlocklyPy: Start User Program",
+        "title": "BlocklyPy Commander: Start User Program",
         "icon": "$(run)"
       },
       {
         "command": "blocklypy-vscode.stopUserProgram",
-        "title": "BlocklyPy: Stop User Program",
+        "title": "BlocklyPy Commander: Stop User Program",
         "icon": "$(debug-stop)"
       },
       {
         "command": "blocklypy-vscode.toggleAutoConnect",
-        "title": "BlocklyPy: Toggle Auto-Connect",
+        "title": "BlocklyPy Commander: Toggle Auto-Connect",
         "icon": "$(plug)",
         "category": "blocklypy-vscode.Settings"
       },
       {
-        "command": "blocklypy-vscode.toggleAutoStart",
-        "title": "BlocklyPy: Toggle Auto-Start",
-        "icon": "$(play)",
-        "category": "blocklypy-vscode.Settings"
-      },
-      {
-        "command": "blocklypy-vscode.toggleAutoClearTerminal",
-        "title": "BlocklyPy: Toggle Auto-Clear Terminal",
-        "icon": "$(clear-all)",
-        "category": "blocklypy-vscode.Settings"
-      },
-      {
-        "command": "blocklypy-vscode.toggleAutoSavePlot",
-        "title": "BlocklyPy: Toggle Auto-Save Plot Data",
-        "icon": "$(file-symlink-file)",
-        "category": "blocklypy-vscode.Settings"
-      },
-      {
-        "command": "blocklypy-vscode.statusPlaceholder",
-        "title": "BlocklyPy: Status",
-        "icon": "$(debug-stackframe)",
-        "category": "blocklypy-vscode.Status"
+        "command": "blocklypy-vscode.clearAllSlots",
+        "title": "BlocklyPy Commander: Clear All Slots in HubOS",
+        "icon": "$(trash)"
       },
       {
         "command": "blocklypy-vscode.blocklypyViewer.displayNextView",
-        "title": "BlocklyPy: Next view",
+        "title": "BlocklyPy Commander: Next View",
         "icon": "$(preview)"
       },
       {
         "command": "blocklypy-vscode.blocklypyViewer.displayPreviousView",
-        "title": "BlocklyPy: Previous view",
+        "title": "BlocklyPy Commander: Previous View",
         "icon": "$(preview)"
       },
       {
         "command": "blocklypy-vscode.blocklypyViewer.displayPycode",
-        "title": "BlocklyPy: Show Python Code",
+        "title": "BlocklyPy Commander: Show Python Code",
         "icon": {
           "light": "asset/icons/display-py-light.svg",
           "dark": "asset/icons/display-py-dark.svg"
@@ -144,7 +125,7 @@
       },
       {
         "command": "blocklypy-vscode.blocklypyViewer.displayPseudo",
-        "title": "BlocklyPy: Show Pseudo Code",
+        "title": "BlocklyPy Commander: Show Pseudo Code",
         "icon": {
           "light": "asset/icons/display-pseudo-light.svg",
           "dark": "asset/icons/display-pseudo-dark.svg"
@@ -152,7 +133,7 @@
       },
       {
         "command": "blocklypy-vscode.blocklypyViewer.displayPreview",
-        "title": "BlocklyPy: Show Preview",
+        "title": "BlocklyPy Commander: Show Preview",
         "icon": {
           "light": "asset/icons/display-preview-light.svg",
           "dark": "asset/icons/display-preview-dark.svg"
@@ -160,7 +141,7 @@
       },
       {
         "command": "blocklypy-vscode.blocklypyViewer.displayGraph",
-        "title": "BlocklyPy: Show Dependency Graph",
+        "title": "BlocklyPy Commander: Show Dependency Graph",
         "icon": {
           "light": "asset/icons/display-graph-light.svg",
           "dark": "asset/icons/display-graph-dark.svg"
@@ -168,7 +149,7 @@
       },
       {
         "command": "blocklypy-vscode.showPythonPreview",
-        "title": "Show Python Dependency Preview",
+        "title": "BlocklyPy Commander: Show Python Dependency Preview",
         "icon": {
           "light": "asset/icons/display-graph-light.svg",
           "dark": "asset/icons/display-graph-dark.svg"
@@ -176,12 +157,12 @@
       },
       {
         "command": "blocklypy-vscode.pythonPreview.showSource",
-        "title": "Show Python Source Code",
+        "title": "BlocklyPy Commander: Show Python Source Code",
         "icon": "$(go-to-file)"
       },
       {
         "command": "blocklypy-vscode.clearAllSlots",
-        "title": "BlocklyPy: Clear All Slots in HubOS",
+        "title": "BlocklyPy Commander: Clear All Slots in HubOS",
         "icon": "$(trash)"
       }
     ],
@@ -421,7 +402,8 @@
   "scripts": {
     "vscode:prepublish": "npm run package",
     "compile": "webpack",
-    "watch": "webpack --watch --config-node-env development --devtool source-map",
+    "compile-dev": "rm -rf dist && NODE_ENV=development webpack",
+    "watch": "NODE_ENV=development webpack --watch --config-node-env development --devtool source-map",
     "package": "webpack --mode production --devtool hidden-source-map",
     "compile-tests": "tsc -p . --outDir out",
     "watch-tests": "NODE_ENV=development tsc -p . -w --outDir out",

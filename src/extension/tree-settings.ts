@@ -8,13 +8,16 @@ class SettingsTreeDataProvider extends BaseTreeDataProvider<TreeItemData> {
     getChildren(element?: TreeItemData): vscode.ProviderResult<TreeItemData[]> {
         if (element) return [];
 
-        const elems = SettingsToggleCommandsMap.map(([configKey, command, tooltip]) => {
-            return {
-                tooltip,
-                command,
-                check: Config.getConfigValue<boolean>(configKey, false) === true,
-            };
-        });
+        const elems = SettingsToggleCommandsMap.map(
+            ([configKey, title, command, tooltip]) => {
+                return {
+                    title: title?.replace('Toggle ', ''),
+                    tooltip,
+                    command,
+                    check: Config.getConfigValue<boolean>(configKey, false) === true,
+                };
+            },
+        );
         return elems;
     }
 }
@@ -38,4 +41,4 @@ function registerSettingsTree(context: vscode.ExtensionContext) {
     context.subscriptions.push(treeview);
 }
 
-export { registerSettingsTree, SettingsTree as settingsTreeData };
+export { registerSettingsTree, SettingsTree };

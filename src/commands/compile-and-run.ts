@@ -14,7 +14,7 @@ export async function compileAndRunAsync(
     clearPythonErrors();
     if (Config.terminalAutoClear) clearDebugLog();
 
-    vscode.window.withProgress(
+    await vscode.window.withProgress(
         {
             location: { viewId: 'blocklypy-vscode-commands' },
             cancellable: false,

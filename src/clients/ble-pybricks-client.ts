@@ -1,7 +1,6 @@
 import noble from '@abandonware/noble';
 import semver from 'semver';
 import { DeviceMetadata } from '.';
-import { logDebug } from '../extension/debug-channel';
 import { setState, StateProp } from '../logic/state';
 import {
     decodePnpId,
@@ -76,18 +75,6 @@ export class BlePybricksClient extends BleBaseClient {
 
     public get capabilities() {
         return this._capabilities;
-    }
-
-    public async disconnect() {
-        if (!this.connected || !this._device) return;
-
-        try {
-            await this.runExitStack();
-            await this._device.peripheral.disconnectAsync();
-            this._device = undefined;
-        } catch (error) {
-            logDebug(`Error during disconnect: ${error}`);
-        }
     }
 
     protected async connectWorker(

@@ -1,6 +1,5 @@
 import * as vscode from 'vscode';
 import { bleLayer } from '../clients/ble-layer';
-import { delay } from '../extension';
 import { hasState, StateProp } from '../logic/state';
 
 const items: vscode.QuickPickItem[] = [];
@@ -27,7 +26,9 @@ export async function connectDeviceAsync(name: string) {
 
     if (hasState(StateProp.Connected)) {
         await bleLayer.disconnect();
-        await delay(1000);
+
+        // same device selected, will disappear, and will need to re-appear
+        await bleLayer.waitTillDeviceAppearsAsync(name, 1000);
     }
 
     await vscode.window.withProgress(

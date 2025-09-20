@@ -3,7 +3,7 @@ import { bleLayer } from './clients/ble-layer';
 import { connectDeviceAsync } from './commands/connect-device';
 import { disconnectDeviceAsync } from './commands/disconnect-device';
 import { stopUserProgramAsync } from './commands/stop-user-program';
-import { commandHandlers, Commands } from './extension/commands';
+import { Commands, registerCommands } from './extension/commands';
 import { registerContextUtils } from './extension/context-utils';
 import { logDebug, registerDebugTerminal } from './extension/debug-channel';
 import { clearPythonErrors } from './extension/diagnostics';
@@ -26,11 +26,7 @@ export function activate(context: vscode.ExtensionContext) {
     isDevelopmentMode = context.extensionMode === vscode.ExtensionMode.Development;
 
     // First, register all commands explicitly
-    context.subscriptions.push(
-        ...Array.from(commandHandlers).map(([name, command]) =>
-            vscode.commands.registerCommand(name, wrapErrorHandling(command)),
-        ),
-    );
+    registerCommands(context);
 
     // register webview providers
     context.subscriptions.push(
@@ -129,14 +125,14 @@ export function delay(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-process.on('uncaughtException', (err) => {
-    if (isDevelopmentMode) console.error('Uncaught Exception:', err);
-    // Optionally show a VS Code error message:
-    // vscode.window.showErrorMessage('Uncaught Exception: ' + err.message);
-});
+// process.on('uncaughtException', (err) => {
+//     if (isDevelopmentMode) console.error('Uncaught Exception:', err);
+//     // Optionally show a VS Code error message:
+//     // vscode.window.showErrorMessage('Uncaught Exception: ' + err.message);
+// });
 
-process.on('unhandledRejection', (reason, promise) => {
-    if (isDevelopmentMode) console.error('Unhandled Rejection:', reason);
-    // Optionally show a VS Code error message:
-    // vscode.window.showErrorMessage('Unhandled Rejection: ' + String(reason));
-});
+// process.on('unhandledRejection', (reason, promise) => {
+//     if (isDevelopmentMode) console.error('Unhandled Rejection:', reason);
+//     // Optionally show a VS Code error message:
+//     // vscode.window.showErrorMessage('Unhandled Rejection: ' + String(reason));
+// });

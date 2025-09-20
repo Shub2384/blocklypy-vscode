@@ -11,8 +11,8 @@ import Config, { ConfigKeys } from '../utils/config';
 import { BlocklypyViewerProvider, ViewType } from '../views/BlocklypyViewerProvider';
 import { PybricksPythonPreviewProvider } from '../views/PybricksPythonPreviewProvider';
 import { showInfo } from './diagnostics';
-import { settingsTreeData } from './tree-settings';
-import { openOrActivate } from './utils';
+import { SettingsTree } from './tree-settings';
+import { openOrActivate, wrapErrorHandling } from './utils';
 
 // Define the BlocklyPyCommand enum for all command strings
 export enum Commands {
@@ -38,87 +38,73 @@ export enum Commands {
     ClearAllSlots = 'blocklypy-vscode.clearAllSlots',
 }
 
-// Map configuration keys to their toggle commands and tooltips, title is taken from package.json
-export const SettingsToggleCommandsMap: [ConfigKeys, Commands, string][] = [
-    [
-        ConfigKeys.DeviceAutoConnect,
-        Commands.ToggleAutoConnect,
-        'Auto-connect to last device connected.',
-    ],
-    [
-        ConfigKeys.ProgramAutoStart,
-        Commands.ToggleAutoStart,
-        "Auto-start user program on save with '# LEGO autostart' in first line.",
-    ],
-    [
-        ConfigKeys.TerminalAutoClear,
-        Commands.ToggleAutoClearTerminal,
-        'Auto-clear terminal before running.',
-    ],
-    [
-        ConfigKeys.PlotAutosave,
-        Commands.TogglePlotAutosave,
-        'Auto-save plots to workspace folder using the "plot:" commands.',
-    ],
-];
-
-const settingsCommandHandlers = Array.from(
-    SettingsToggleCommandsMap.map(
-        ([configkey, command]) =>
-            [
-                command,
-                async () => {
-                    await Config.toggleConfigValue(configkey);
-                    settingsTreeData.refresh();
-                },
-            ] as [Commands, CommandHandler],
-    ),
-);
-
-type CommandHandler =
-    | ((...args: any[]) => Promise<any>)
-    | ((...args: any[]) => Thenable<any>);
-
-export const commandHandlers: Map<Commands, CommandHandler> = new Map([
-    [Commands.ConnectDevice, connectDeviceAsyncAny],
-    [Commands.Compile, compileAsync],
-    [Commands.CompileAndRun, compileAndRunAsync],
-    [Commands.StartUserProgram, startUserProgramAsync],
-    [Commands.StopUserProgram, stopUserProgramAsync],
-    [Commands.DisconnectDevice, disconnectDeviceAsync],
-    [Commands.ClearAllSlots, clearAllSlots],
-    ...settingsCommandHandlers,
-    [
-        Commands.DisplayNextView,
-        async () => {
+export const CommandMetaData: CommandMetaDataEntryExtended[] = [
+    {
+        command: Commands.ToggleAutoStart,
+        title: 'Toggle Auto-Start',
+        icon: '$(play)',
+        tooltip:
+            "Auto-start user program on save with '# LEGO autostart' in first line.",
+        configkeyForHandler: ConfigKeys.ProgramAutoStart,
+    },
+    {
+        command: Commands.ToggleAutoConnect,
+        title: 'Toggle Auto-Clear Terminal',
+        icon: '$(clear-all)',
+        tooltip: 'Auto-connect to last device connected.',
+        configkeyForHandler: ConfigKeys.DeviceAutoConnect,
+    },
+    {
+        command: Commands.ToggleAutoClearTerminal,
+        title: 'Toggle Auto-Clear Terminal',
+        icon: '$(clear-all)',
+        tooltip: 'Auto-clear terminal before running.',
+        configkeyForHandler: ConfigKeys.TerminalAutoClear,
+    },
+    {
+        command: Commands.TogglePlotAutosave,
+        title: 'Toggle Auto-Save Plot Data',
+        icon: '$(file-symlink-file)',
+        tooltip: 'Auto-save plots to workspace folder using the "plot:" commands.',
+        configkeyForHandler: ConfigKeys.PlotAutosave,
+    },
+    {
+        command: Commands.StatusPlaceHolder,
+        title: 'Status',
+        icon: '$(debug-stackframe)',
+        handler: async () => {},
+    },
+    {
+        command: Commands.DisplayNextView,
+        handler: async () => {
             BlocklypyViewerProvider.Get?.rotateViews(true);
         },
-    ],
-    [
-        Commands.DisplayPreviousView,
-        async () => {
+    },
+    {
+        command: Commands.DisplayPreviousView,
+        handler: async () => {
             BlocklypyViewerProvider.Get?.rotateViews(false);
         },
-    ],
-    [
-        Commands.DisplayPreview,
-        async () => BlocklypyViewerProvider.Get?.showView(ViewType.Preview),
-    ],
-    [
-        Commands.DisplayPycode,
-        async () => BlocklypyViewerProvider.Get?.showView(ViewType.Pycode),
-    ],
-    [
-        Commands.DisplayPseudo,
-        async () => BlocklypyViewerProvider.Get?.showView(ViewType.Pseudo),
-    ],
-    [
-        Commands.DisplayGraph,
-        async () => BlocklypyViewerProvider.Get?.showView(ViewType.Graph),
-    ],
-    [
-        Commands.ShowPythonPreview,
-        async () => {
+    },
+    {
+        command: Commands.DisplayPycode,
+        handler: async () => BlocklypyViewerProvider.Get?.showView(ViewType.Pycode),
+    },
+    {
+        command: Commands.DisplayPseudo,
+        handler: async () => BlocklypyViewerProvider.Get?.showView(ViewType.Pseudo),
+    },
+    {
+        command: Commands.DisplayPreview,
+        handler: async () => BlocklypyViewerProvider.Get?.showView(ViewType.Preview),
+    },
+    {
+        command: Commands.DisplayGraph,
+        handler: async () => BlocklypyViewerProvider.Get?.showView(ViewType.Graph),
+    },
+    {
+        command: Commands.ShowPythonPreview,
+        handler: async () => {
             const editor = vscode.window.activeTextEditor;
             if (editor && editor.document.languageId === 'python') {
                 await vscode.commands.executeCommand(
@@ -134,16 +120,108 @@ export const commandHandlers: Map<Commands, CommandHandler> = new Map([
                 showInfo('Open a Python file to preview.');
             }
         },
-    ],
-    [
-        Commands.ShowSource,
-        async () => {
+    },
+    {
+        command: Commands.ShowSource,
+        handler: async () => {
             const uri: vscode.Uri | undefined =
                 PybricksPythonPreviewProvider.Get?.ActiveUri;
             if (!uri) return;
             const origialUri = PybricksPythonPreviewProvider.decodeUri(uri);
             openOrActivate(origialUri);
         },
-    ],
-    [Commands.StatusPlaceHolder, async () => {}],
-]);
+    },
+    {
+        command: Commands.ConnectDevice,
+        handler: connectDeviceAsyncAny,
+    },
+    {
+        command: Commands.Compile,
+        handler: compileAsync,
+    },
+    {
+        command: Commands.CompileAndRun,
+        handler: compileAndRunAsync,
+    },
+    {
+        command: Commands.StartUserProgram,
+        handler: startUserProgramAsync,
+    },
+    {
+        command: Commands.StopUserProgram,
+        handler: stopUserProgramAsync,
+    },
+    {
+        command: Commands.DisconnectDevice,
+        handler: disconnectDeviceAsync,
+    },
+    {
+        command: Commands.ClearAllSlots,
+        handler: clearAllSlots,
+    },
+];
+
+export type CommandMetaDataEntry = {
+    command: Commands;
+    title?: string;
+    icon?: string | { light: string; dark: string };
+};
+
+type CommandMetaDataEntryExtended = CommandMetaDataEntry & {
+    tooltip?: string;
+    configkeyForHandler?: ConfigKeys;
+    handler?: CommandHandler;
+};
+
+type CommandHandler =
+    | ((...args: any[]) => Promise<any>)
+    | ((...args: any[]) => Thenable<any>);
+
+function getHandler(entry: CommandMetaDataEntryExtended): CommandHandler | undefined {
+    if (entry.handler) return wrapErrorHandling(entry.handler);
+    if (entry.configkeyForHandler) {
+        return async () => {
+            await Config.toggleConfigValue(entry.configkeyForHandler!);
+            SettingsTree.refresh();
+        };
+    }
+    return undefined;
+}
+
+export function registerCommands(context: vscode.ExtensionContext) {
+    context.subscriptions.push(
+        ...CommandMetaData.map((cmd) =>
+            vscode.commands.registerCommand(
+                cmd.command,
+                getHandler(cmd) ??
+                    (async () => {
+                        showInfo(`Command "${cmd.command}" not implemented yet.`);
+                    }),
+            ),
+        ),
+    );
+}
+
+export const SettingsToggleCommandsMap = CommandMetaData.filter((cmd) =>
+    Boolean(cmd.configkeyForHandler),
+).map(
+    (cmd) => [cmd.configkeyForHandler!, cmd.title, cmd.command, cmd.tooltip] as const,
+);
+
+const PACKAGEJSON_COMMAND_PREFIX = 'BlocklyPy Commander: ';
+let _commandsFromPackageJsonCache: CommandMetaDataEntry[];
+export function getCommandsFromPackageJson(
+    context: vscode.ExtensionContext,
+): CommandMetaDataEntry[] {
+    if (_commandsFromPackageJsonCache) return _commandsFromPackageJsonCache;
+
+    const packageEntries = context.extension.packageJSON.contributes.commands;
+    for (const entry of packageEntries) {
+        if (entry.title.startsWith(PACKAGEJSON_COMMAND_PREFIX)) {
+            entry.title = entry.title.replace(PACKAGEJSON_COMMAND_PREFIX, '');
+        }
+    }
+    _commandsFromPackageJsonCache = packageEntries.concat(CommandMetaData);
+
+    return _commandsFromPackageJsonCache;
+}

@@ -3,6 +3,7 @@ import { logDebug } from '../extension/debug-channel';
 import { CommandsTree } from '../extension/tree-commands';
 import { DevicesTree } from '../extension/tree-devices';
 import { setState, StateProp } from '../logic/state';
+import { withTimeout } from '../utils/async';
 import { BaseClient } from './base-client';
 
 export abstract class BaseLayer {
@@ -31,20 +32,29 @@ export abstract class BaseLayer {
 
         try {
             this.status = ConnectionStatus.Connecting;
-            await this._client.connect(
-                metadata,
-                (device) => {
-                    this._listeners.forEach((fn) => fn(device));
-                },
-                (device, name) => {
-                    // need to remove this as pybricks creates a random BLE id on each reconnect
-                    if (name) this._allDevices.delete(name);
+            await withTimeout(
+                this._client
+                    .connect(
+                        metadata,
+                        (device) => {
+                            this._listeners.forEach((fn) => fn(device));
+                        },
+                        (device, name) => {
+                            // need to remove this as pybricks creates a random BLE id on each reconnect
+                            if (name) this._allDevices.delete(name);
 
-                    setState(StateProp.Connected, false);
-                    setState(StateProp.Connecting, false);
-                    setState(StateProp.Running, false);
-                    DevicesTree.refresh();
-                },
+                            this.status = ConnectionStatus.Disconnected;
+                            // setState(StateProp.Connected, false);
+                            // setState(StateProp.Connecting, false);
+                            // setState(StateProp.Running, false);
+                            DevicesTree.refresh();
+                        },
+                    )
+                    .catch((err) => {
+                        console.error('Error during client.connect:', err);
+                        throw err;
+                    }),
+                10000,
             );
 
             this._exitStack.push(async () => {
@@ -52,15 +62,20 @@ export abstract class BaseLayer {
                 this._client = undefined;
             });
 
+            if (this._client.connected !== true)
+                throw new Error('Client failed to connect for unknown reason.');
+
             this.status = ConnectionStatus.Connected;
         } catch (error) {
+            console.error('Error during connect:', error);
             this.status = ConnectionStatus.Disconnected;
             await this.runExitStack();
+            await this.disconnect();
             this._client = undefined;
         }
 
         if (this.status !== ConnectionStatus.Connected) {
-            this.disconnect();
+            await this.disconnect();
             throw new Error(`Failed to connect to ${name}: Timeout`);
         }
     }

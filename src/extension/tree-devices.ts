@@ -19,7 +19,9 @@ class DevicesTreeDataProvider extends BaseTreeDataProvider<TreeItemDeviceData> {
         const item = super.getTreeItem(element);
         if (element.id) {
             const active =
-                element.id && element.id === bleLayer.client?.name ? '🔵 ' : '';
+                element?.id === bleLayer.client?.name && bleLayer.client?.connected
+                    ? '🔵 '
+                    : '';
             item.label = `${active}${element.id} [${element.contextValue}]`;
         }
         return item;
