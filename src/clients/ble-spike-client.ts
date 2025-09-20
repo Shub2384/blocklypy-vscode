@@ -3,6 +3,7 @@ import crc32 from 'crc-32';
 import { DeviceMetadata } from '.';
 import { logDebug } from '../extension/debug-channel';
 import { showWarning } from '../extension/diagnostics';
+import { handleDeviceNotification } from '../logic/appdata-devicenotification-helper';
 import { FILENAME_SAMPLE_COMPILED } from '../logic/compile';
 import { setState, StateProp } from '../logic/state';
 import {
@@ -110,7 +111,10 @@ export class BleSpikeClient extends BleBaseClient {
             [SPIKE_RX_CHAR_UUID, SPIKE_TX_CHAR_UUID],
         );
         [this._rxCharacteristic, this._txCharacteristic] = chars?.characteristics;
-        this._txCharacteristic.on('data', (data) => this.handleIncomingData(data));
+        this._txCharacteristic.on(
+            'data',
+            async (data) => await this.handleIncomingData(data),
+        );
         await this._txCharacteristic.subscribeAsync();
 
         const infoResponse = await this.sendMessage<InfoResponseMessage>(
@@ -119,12 +123,10 @@ export class BleSpikeClient extends BleBaseClient {
         this._capabilities = infoResponse?.info;
         // logDebug(`infoResponse ${JSON.stringify(infoResponse?.info)}`); //!!
 
-        // {
-        //     const response = await this.sendMessage(
-        //         new DeviceNotificationRequestMessage(100),
-        //     );
-        //     if (response) parsePlotCommand(`plot: start yaw`); //!!
-        // }
+        // // !!
+        // const response = await this.sendMessage(
+        //     new DeviceNotificationRequestMessage(100),
+        // );
 
         // Repeatedly update RSSI and notify listeners of RSSI update
         // const rssiUpdater = setInterval(() => peripheral.updateRssi(), 1000);
@@ -172,7 +174,7 @@ export class BleSpikeClient extends BleBaseClient {
         );
     }
 
-    protected handleIncomingData(data: Buffer) {
+    protected async handleIncomingData(data: Buffer) {
         const unpacked = unpack(data);
         try {
             const [id, response] = decodeSpikeMessage(unpacked);
@@ -187,28 +189,19 @@ export class BleSpikeClient extends BleBaseClient {
             } else {
                 switch (id) {
                     case DeviceNotificationMessage.Id: {
-                        const deviceMsg =
-                            response as unknown as DeviceNotificationMessage;
-                        for (const payload of deviceMsg.payloads) {
-                            logDebug(`DeviceNotification: ${JSON.stringify(payload)}`);
-                            //!!
-                            // if (payload.type === 'imu') {
-                            //     const yaw = payload.yaw;
-                            //     parsePlotCommand(`plot: ${yaw}`);
-                            // }
-                        }
+                        const deviceMsg = response as DeviceNotificationMessage;
+                        handleDeviceNotification(deviceMsg.payloads);
                         break;
                     }
                     case ProgramFlowNotificationMessage.Id: {
                         const programFlowMsg =
-                            response as unknown as ProgramFlowNotificationMessage;
+                            response as ProgramFlowNotificationMessage;
                         setState(StateProp.Running, programFlowMsg.action === 0);
                         break;
                     }
                     case ConsoleNotificationMessage.Id: {
-                        const consoleMsg =
-                            response as unknown as ConsoleNotificationMessage;
-                        this.handleWriteStdout(consoleMsg.text);
+                        const consoleMsg = response as ConsoleNotificationMessage;
+                        await this.handleWriteStdout(consoleMsg.text);
                         break;
                     }
                 }

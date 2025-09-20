@@ -1,6 +1,7 @@
 import noble from '@abandonware/noble';
 import semver from 'semver';
 import { DeviceMetadata } from '.';
+import { handleDeviceNotification } from '../logic/appdata-devicenotification-helper';
 import { setState, StateProp } from '../logic/state';
 import {
     decodePnpId,
@@ -26,6 +27,10 @@ import {
     Status,
     statusToFlag,
 } from '../pybricks/ble-pybricks-service/protocol';
+import {
+    checkIsDeviceNotification,
+    parseDeviceNotificationPayloads,
+} from '../spike/utils/device-notification';
 import { BleBaseClient } from './ble-base-client';
 import { uuid128, uuidStr } from './utils';
 
@@ -142,7 +147,10 @@ export class BlePybricksClient extends BleBaseClient {
         });
 
         this._rxtxCharacteristic = pybricksControlChar;
-        this._rxtxCharacteristic.on('data', (data) => this.handleIncomingData(data));
+        this._rxtxCharacteristic.on(
+            'data',
+            async (data) => await this.handleIncomingData(data),
+        );
         await this._rxtxCharacteristic.subscribeAsync();
 
         // Read capabilities once connected
@@ -173,7 +181,7 @@ export class BlePybricksClient extends BleBaseClient {
         await this._rxtxCharacteristic?.writeAsync(Buffer.from(data), withoutResponse);
     }
 
-    protected handleIncomingData(data: Buffer) {
+    protected async handleIncomingData(data: Buffer) {
         // this is pybricks specific - move to pybricks client?
         const dataView = new DataView(data.buffer);
         const eventType = getEventType(dataView);
@@ -181,7 +189,7 @@ export class BlePybricksClient extends BleBaseClient {
             case EventType.StatusReport:
                 {
                     // process any pending stdout data first
-                    this.processStdoutData();
+                    await this.processStdoutData();
 
                     // parse status report
                     const status = parseStatusReport(dataView);
@@ -194,19 +202,62 @@ export class BlePybricksClient extends BleBaseClient {
                 }
                 break;
             case EventType.WriteStdout:
-                {
-                    // if stdout data comes in - it means program is running, make sure it is set
-                    setState(StateProp.Running, true);
+                setState(StateProp.Running, true);
+                await this.handleWriteStdout(data.toString('utf8', 1, data.length));
+                break;
+            case EventType.WriteAppData:
+                // parse and handle app data
+                await this.handleIncomingAppData(Buffer.from(data.buffer.slice(1)));
 
-                    // parse and handle stdout data
-                    const text = data.toString('utf8', 1, data.length);
-
-                    this.handleWriteStdout(text);
-                }
                 break;
             default:
                 console.warn('Unknown event type:', eventType);
                 break;
+        }
+    }
+
+    private async handleIncomingAppData(data: Buffer) {
+        // await this.handleIncomingData_DeviceNotification(data);
+    }
+
+    private readonly APPDATA_BUFFER_SIZE = 1024;
+    private readonly appdataBuffer = Buffer.alloc(this.APPDATA_BUFFER_SIZE);
+    private appdataBufferOffset = 0;
+    private appdataExpectedLength = 0;
+    private async handleIncomingData_DeviceNotification(data: Uint8Array) {
+        try {
+            if (this.appdataBufferOffset === 0) {
+                const payloadSize = checkIsDeviceNotification(data);
+                if (!payloadSize) return;
+                else {
+                    const expectedLength = payloadSize + 2;
+                    if (expectedLength > this.APPDATA_BUFFER_SIZE) {
+                        console.warn(
+                            `DeviceNotification payload too large: ${expectedLength}`,
+                        );
+                        return;
+                    }
+
+                    // start new buffer
+                    this.appdataExpectedLength = expectedLength;
+                    this.appdataBufferOffset = 0;
+                    this.appdataBuffer.set(data, 0);
+                }
+            } else {
+                this.appdataBuffer.set(data, this.appdataBufferOffset);
+            }
+            this.appdataBufferOffset += data.length;
+
+            if (this.appdataBufferOffset >= this.appdataExpectedLength) {
+                const payloads = parseDeviceNotificationPayloads(this.appdataBuffer);
+                handleDeviceNotification(payloads);
+
+                // reset buffer
+                this.appdataBufferOffset = 0;
+                this.appdataExpectedLength = 0;
+            }
+        } catch (error) {
+            console.warn('Error parsing app data:', error);
         }
     }
 

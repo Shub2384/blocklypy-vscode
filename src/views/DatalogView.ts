@@ -61,27 +61,25 @@ export class DatalogView implements vscode.WebviewViewProvider {
         webviewView.webview.html = this.getHtmlForWebview(scriptUri);
 
         // Initialize the from the webview with the last header data
-        setTimeout(() => {
+        setTimeout(async () => {
             if (!plotManager) return;
-            this.setHeaders(plotManager.datalogcolumns, plotManager.data);
+            await this.setHeaders(plotManager.datalogcolumns, plotManager.data);
         }, 100);
     }
 
-    public setHeaders(cols: string[], rows?: number[][]) {
-        setTimeout(async () => {
-            setContextPlotDataAvailability(true);
+    public async setHeaders(cols: string[], rows?: number[][]) {
+        await setContextPlotDataAvailability(true);
 
-            await focusChartView();
+        await focusChartView();
 
-            this.currentWebviewView?.webview.postMessage({
-                command: 'setHeaders',
-                payload: { cols, rows },
-            });
-        }, 0);
+        await this.currentWebviewView?.webview.postMessage({
+            command: 'setHeaders',
+            payload: { cols, rows },
+        });
     }
 
-    public addData(row: number[]) {
-        this.currentWebviewView?.webview.postMessage({
+    public async addData(row: number[]) {
+        await this.currentWebviewView?.webview.postMessage({
             command: 'addData',
             payload: row,
         });

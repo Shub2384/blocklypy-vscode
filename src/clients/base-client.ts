@@ -89,7 +89,7 @@ export abstract class BaseClient {
         }
     }
 
-    protected handleWriteStdout(text: string) {
+    protected async handleWriteStdout(text: string) {
         logDebugFromHub(text, false);
 
         this._stdoutBuffer += text;
@@ -98,15 +98,15 @@ export abstract class BaseClient {
         let newlineIndex;
         while ((newlineIndex = this._stdoutBuffer.indexOf('\n')) !== -1) {
             const line = this._stdoutBuffer.slice(0, newlineIndex + 1);
-            handleStdOutDataHelpers(line);
+            await handleStdOutDataHelpers(line);
             this._stdoutBuffer = this._stdoutBuffer.slice(newlineIndex + 1);
         }
 
         // Set/reset 500ms timeout for any remaining partial line
         if (this._stdoutTimer) clearTimeout(this._stdoutTimer);
         if (this._stdoutBuffer.length > 0) {
-            this._stdoutTimer = setTimeout(() => {
-                this.processStdoutData();
+            this._stdoutTimer = setTimeout(async () => {
+                await this.processStdoutData();
                 this._stdoutTimer = undefined;
             }, 500);
         }

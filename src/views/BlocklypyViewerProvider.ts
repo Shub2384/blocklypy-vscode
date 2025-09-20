@@ -48,10 +48,10 @@ export class BlocklypyViewer {
         public panel: vscode.WebviewPanel | undefined,
         public provider: BlocklypyViewerProvider,
     ) {}
-    public setErrorLine(line: number, message: string) {
+    public async setErrorLine(line: number, message: string) {
         if (this.viewtype !== ViewType.Pycode) {
-            this.provider.showView(ViewType.Pycode);
-            this.panel?.webview.postMessage({
+            await this.provider.showView(ViewType.Pycode);
+            await this.panel?.webview.postMessage({
                 command: 'setErrorLine',
                 line,
                 message,
@@ -107,7 +107,7 @@ export class BlocklypyViewerProvider
 
         // refresh of data is done in refreshWebview super.resolveCustomEditor
         const state = this.documents.get(document.uri);
-        this.showView(this.guardViewType(state, state?.viewtype));
+        await this.showView(this.guardViewType(state, state?.viewtype));
         const filename = path.basename(document.uri.path);
         logDebug(
             state?.content
@@ -145,9 +145,9 @@ export class BlocklypyViewerProvider
                     pycode: !!state.content.pycode,
                     graph: !!state.content.graph,
                 } satisfies BlocklypyViewerContentAvailabilityMap;
-                setContextContentAvailability(state.contentAvailability);
+                await setContextContentAvailability(state.contentAvailability);
 
-                this.showView(this.guardViewType(state, state.viewtype));
+                await this.showView(this.guardViewType(state, state.viewtype));
                 state.dirty = false;
             } else {
                 state.dirty = true; // Mark as dirty, don't refresh yet
@@ -157,14 +157,14 @@ export class BlocklypyViewerProvider
         }
     }
 
-    protected activateWithoutRefresh(
+    protected async activateWithoutRefresh(
         _document: vscode.CustomDocument,
         _webviewPanel: vscode.WebviewPanel,
     ): Promise<void> {
         const state = this.documents.get(this.activeUri);
         if (!state) return Promise.resolve();
 
-        setContextContentAvailability(state.contentAvailability);
+        await setContextContentAvailability(state.contentAvailability);
         return Promise.resolve();
     }
 
@@ -223,14 +223,14 @@ export class BlocklypyViewerProvider
         return content;
     }
 
-    public rotateViews(forward: boolean) {
+    public async rotateViews(forward: boolean) {
         const state = this.documents.get(this.activeUri);
 
         const view = this.guardViewType(
             state,
             this.nextView(state?.viewtype, forward ? +1 : -1),
         );
-        this.showView(view);
+        await this.showView(view);
     }
 
     private contentForView(
@@ -279,22 +279,22 @@ export class BlocklypyViewerProvider
         return Views[nextIndex];
     }
 
-    public showView(view: ViewType | undefined) {
+    public async showView(view: ViewType | undefined) {
         const state = this.documents.get(this.activeUri);
         if (!state) throw new Error('No active document state');
 
         const content = view ? this.contentForView(state, view) : undefined;
         state.viewtype = view ?? ViewType.Loading;
-        setContextCustomViewType(view);
+        await setContextCustomViewType(view);
 
-        state.panel?.webview.postMessage({
+        await state.panel?.webview.postMessage({
             command: 'showView',
             view: state.viewtype,
             content,
         });
     }
 
-    private handleDiagnosticsChange() {
+    private async handleDiagnosticsChange() {
         const state = this.documents.get(this.activeUri);
         // NOTE: We might get a URI that does not match the current activeUri
         // in case of multiple open editors with different files.
@@ -309,7 +309,10 @@ export class BlocklypyViewerProvider
                 (d) => d.severity === vscode.DiagnosticSeverity.Error,
             );
             if (firstError) {
-                state.setErrorLine(firstError.range.start.line, firstError.message);
+                await state.setErrorLine(
+                    firstError.range.start.line,
+                    firstError.message,
+                );
             }
         }
     }

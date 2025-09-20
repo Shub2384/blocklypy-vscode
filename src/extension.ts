@@ -104,7 +104,7 @@ export async function deactivate() {
     }
 }
 
-function onActiveEditorSaveCallback(document: vscode.TextDocument) {
+async function onActiveEditorSaveCallback(document: vscode.TextDocument) {
     const activeEditor = vscode.window.activeTextEditor;
 
     if (activeEditor && activeEditor.document === document) {
@@ -115,7 +115,7 @@ function onActiveEditorSaveCallback(document: vscode.TextDocument) {
             // check for the autostart in the header (header exists, autostart is included)
             if (checkMagicHeaderComment(line1)?.autostart) {
                 console.log('AutoStart detected, compiling and running...');
-                vscode.commands.executeCommand(Commands.CompileAndRun);
+                await vscode.commands.executeCommand(Commands.CompileAndRun);
             }
         }
     }

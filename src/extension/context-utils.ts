@@ -22,14 +22,14 @@ const CONTEXT_BASE = EXTENSION_KEY + '.';
 
 // saga like bahaviour for context management
 export function registerContextUtils(context: vscode.ExtensionContext) {
-    const handleStateChange = (event: StateChangeEvent) => {
+    const handleStateChange = async (event: StateChangeEvent) => {
         // refresh commands tree on any state change
         CommandsTree.refresh();
 
         // handle specific state changes
         switch (event.prop) {
             case StateProp.Connected:
-                vscode.commands.executeCommand(
+                await vscode.commands.executeCommand(
                     'setContext',
                     CONTEXT_BASE + 'isConnected',
                     event.value,
@@ -46,7 +46,7 @@ export function registerContextUtils(context: vscode.ExtensionContext) {
                 break;
 
             case StateProp.Running:
-                vscode.commands.executeCommand(
+                await vscode.commands.executeCommand(
                     'setContext',
                     EXTENSION_KEY + '.isProgramRunning',
                     event.value,
@@ -74,19 +74,19 @@ export function registerContextUtils(context: vscode.ExtensionContext) {
 // export function setContextIsConnected(value: boolean) {
 //     vscode.commands.executeCommand('setContext', CONTEXT_BASE + 'isConnected', value);
 // }
-export function setContextCustomViewType(value: ViewType | undefined) {
-    vscode.commands.executeCommand(
+export async function setContextCustomViewType(value: ViewType | undefined) {
+    await vscode.commands.executeCommand(
         'setContext',
         CONTEXT_BASE + 'customViewType',
         value,
     );
 }
 
-export function setContextContentAvailability(
+export async function setContextContentAvailability(
     content: BlocklypyViewerContentAvailabilityMap | undefined,
 ) {
     for (const key in content) {
-        vscode.commands.executeCommand(
+        await vscode.commands.executeCommand(
             'setContext',
             `${CONTEXT_BASE}contentAvailability.has${ToCapialized(key)}`,
             content[key as keyof BlocklypyViewerContentAvailabilityMap] === true,
@@ -94,8 +94,8 @@ export function setContextContentAvailability(
     }
 }
 
-export function setContextPlotDataAvailability(value: boolean) {
-    vscode.commands.executeCommand(
+export async function setContextPlotDataAvailability(value: boolean) {
+    await vscode.commands.executeCommand(
         'setContext',
         `${CONTEXT_BASE}isPlotDataAvailable`,
         value,

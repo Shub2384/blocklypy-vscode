@@ -412,7 +412,8 @@
     "test": "vscode-test",
     "postinstall": "patch-package",
     "package-extension": "npx vsce package",
-    "publish-extension": "npx vsce publish"
+    "publish-extension": "npx vsce publish",
+    "publish-extension-with-patch": "npx vsce publish patch"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
