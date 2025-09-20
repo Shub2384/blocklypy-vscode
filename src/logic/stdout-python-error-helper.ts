@@ -42,7 +42,7 @@ export async function parsePythonErrorLine(line: string, onErrorCb?: ErrorCallba
         const error_local = { ...currentErrorFrame };
         if (onErrorCb)
             onErrorCb(error_local.filename, error_local.line, error_local.message);
-        inErrorFrame = true;
+        inErrorFrame = false;
         currentErrorFrame = null;
     }
 }

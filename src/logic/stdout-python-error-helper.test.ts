@@ -1,4 +1,4 @@
-import { parsePythonError } from './stdout-python-error-helper';
+import { parsePythonError, resetPythonErrorParser } from './stdout-python-error-helper';
 
 const reportPythonError = jest.fn();
 
@@ -6,6 +6,7 @@ describe('parsePythonError', () => {
     beforeEach(() => {
         jest.clearAllMocks();
         jest.useFakeTimers();
+        resetPythonErrorParser();
     });
 
     afterEach(() => {
