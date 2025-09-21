@@ -12,6 +12,7 @@ import { registerDevicesTree } from './extension/tree-devices';
 import { registerSettingsTree } from './extension/tree-settings';
 import { wrapErrorHandling } from './extension/utils';
 import { checkMagicHeaderComment } from './logic/compile';
+import { hasState, StateProp } from './logic/state';
 import { onTerminalUserInput } from './logic/stdin-helper';
 import Config from './utils/config';
 import { BlocklypyViewerProvider } from './views/BlocklypyViewerProvider';
@@ -89,9 +90,10 @@ export function activate(context: vscode.ExtensionContext) {
         if (Config.deviceAutoConnect && Config.deviceLastConnected) {
             await bleLayer.waitTillDeviceAppearsAsync(
                 Config.deviceLastConnected,
-                10000,
+                15000,
             );
-            await connectDeviceAsync(Config.deviceLastConnected);
+            if (!hasState(StateProp.Connected) && !hasState(StateProp.Connecting))
+                await connectDeviceAsync(Config.deviceLastConnected);
         }
     }, 500);
 }

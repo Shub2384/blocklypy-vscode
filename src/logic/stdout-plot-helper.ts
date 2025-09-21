@@ -45,22 +45,6 @@ export async function parsePlotCommand(
         });
     }
 
-    // check if any values are overlapping
-    for (let i = 0; i < plotManager.getColumns().length; i++) {
-        if (!isNaN(values[i]) && !isNaN(plotManager.getBufferAt(i))) {
-            // overlapping value, flush buffers
-            plotManager.flushPlotBuffer();
-            break;
-        }
-    }
-
-    // merge values to buffer
-    for (let i = 0; i < Math.min(values.length, plotManager.getColumns().length); i++) {
-        if (typeof values[i] === 'number' && !isNaN(values[i])) {
-            plotManager.setBufferAt(i, values[i]);
-        }
-    }
-
-    // check if buffer is full
-    plotManager.processPostDataReceived();
+    // handle the parsed values
+    plotManager.handleIncomingData(values);
 }

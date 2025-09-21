@@ -215,8 +215,9 @@ export class BlePybricksClient extends BleBaseClient {
         }
     }
 
-    private async handleIncomingAppData(_data: Buffer) {
-        // await this.handleIncomingDataAsync_DeviceNotification(data);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    private async handleIncomingAppData(data: Buffer) {
+        await this.handleIncomingDataAsync_DeviceNotification(data);
     }
 
     private readonly APPDATA_BUFFER_SIZE = 1024;

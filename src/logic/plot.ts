@@ -185,6 +185,29 @@ export class PlotManager {
         this.buffer[index] = value;
     }
 
+    public handleIncomingData(values: number[]) {
+        if (!this.initialized || !this.columns?.length || !this.buffer?.length) return;
+
+        // check if any values are overlapping
+        for (let i = 0; i < this.getColumns().length; i++) {
+            if (!isNaN(values[i]) && !isNaN(this.getBufferAt(i))) {
+                // overlapping value, flush buffers
+                this.flushPlotBuffer();
+                break;
+            }
+        }
+
+        // merge values to buffer
+        for (let i = 0; i < Math.min(values.length, this.getColumns().length); i++) {
+            if (typeof values[i] === 'number' && !isNaN(values[i])) {
+                this.setBufferAt(i, values[i]);
+            }
+        }
+
+        // check if buffer is full
+        this.processPostDataReceived();
+    }
+
     public processPostDataReceived() {
         if (!this.initialized || !this.columns?.length || !this.buffer?.length)
             return false;
