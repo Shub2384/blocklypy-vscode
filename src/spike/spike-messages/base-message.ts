@@ -7,7 +7,7 @@ export abstract class BaseMessage {
         return (this.constructor as typeof BaseMessage).Id;
     }
 
-    static fromBytes(data: Uint8Array): BaseMessage {
+    static fromBytes(_data: Uint8Array): BaseMessage {
         throw new Error('Method not implemented.');
     }
 }
@@ -18,7 +18,7 @@ export abstract class RequestMessage extends BaseMessage {
 }
 
 export abstract class ResponseMessage extends BaseMessage {
-    static fromBytes(data: Uint8Array): BaseMessage {
+    static fromBytes(_data: Uint8Array): BaseMessage {
         throw new Error('Method not implemented.');
     }
 }

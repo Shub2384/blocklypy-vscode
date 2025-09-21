@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { showError } from './diagnostics';
+import { showErrorAsync } from './diagnostics';
 
 export function ToCapialized(s: string) {
     return s.charAt(0).toUpperCase() + s.slice(1);
@@ -34,16 +34,17 @@ export async function openOrActivate(uri: vscode.Uri) {
     // await vscode.commands.executeCommand('vscode.open', uri, vscode.ViewColumn.Beside);
 }
 
-export function wrapErrorHandling(fn: (...args: any[]) => Thenable<any>) {
-    return async (...args: any[]) => {
+export function wrapErrorHandling(fn: (...args: unknown[]) => Promise<unknown>) {
+    const fnw = async (...args: unknown[]) => {
         try {
             await fn(...args);
         } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
-            showError(message);
+            await showErrorAsync(message);
             console.error(error);
         }
     };
+    return fnw;
 }
 
 type IconPath = { readonly light: vscode.Uri; readonly dark: vscode.Uri };

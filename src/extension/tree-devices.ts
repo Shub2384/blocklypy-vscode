@@ -79,7 +79,9 @@ function registerDevicesTree(context: vscode.ExtensionContext) {
             command: Commands.ConnectDevice,
             commandArguments: [name],
             icon: getSignalIcon(peripheral.rssi),
-            description: device.lastBroadcast ? `⛁ ${device.lastBroadcast.data}` : '',
+            description: device.lastBroadcast
+                ? `⛁ ${String(device.lastBroadcast.data)}`
+                : '',
             //  on ch:${device.lastBroadcast.channel}
             lastSeen: Date.now(),
             contextValue: device.devtype,
@@ -102,7 +104,7 @@ function registerDevicesTree(context: vscode.ExtensionContext) {
         for (const [name, item] of DevicesTree.deviceMap.entries()) {
             if (bleLayer.client?.name === name) continue;
 
-            const lastSeen = item.lastSeen as number | undefined;
+            const lastSeen = item.lastSeen;
             if (lastSeen && now - lastSeen > DEVICE_VISIBILITY_TIMEOUT) {
                 DevicesTree.deviceMap.delete(name);
                 changed = true;

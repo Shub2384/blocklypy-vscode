@@ -3,7 +3,7 @@ let currentErrorFrame: { filename: string; line: number; message: string } | nul
     null;
 type ErrorCallback = (filename: string, line: number, message: string) => void;
 
-export async function parsePythonError(text: string, onErrorCb?: ErrorCallback) {
+export function parsePythonError(text: string, onErrorCb?: ErrorCallback) {
     /*
             Find the traceback block:
 
@@ -18,7 +18,7 @@ export async function parsePythonError(text: string, onErrorCb?: ErrorCallback) 
     });
 }
 
-export async function parsePythonErrorLine(line: string, onErrorCb?: ErrorCallback) {
+export function parsePythonErrorLine(line: string, onErrorCb?: ErrorCallback) {
     if (!inErrorFrame) {
         if (line.startsWith('Traceback (most recent call last):')) inErrorFrame = true;
         return;

@@ -10,7 +10,7 @@ export abstract class BaseLayer {
     private _status: ConnectionStatus = ConnectionStatus.Disconnected;
     protected _allDevices = new Map<string, DeviceMetadata>();
     protected _client: BaseClient | undefined = undefined;
-    protected _exitStack: (() => Promise<void>)[] = [];
+    protected _exitStack: (() => Promise<void> | void)[] = [];
     private _listeners: ((device: DeviceMetadata) => void)[] = [];
 
     constructor() {}
@@ -39,7 +39,7 @@ export abstract class BaseLayer {
                         (device) => {
                             this._listeners.forEach((fn) => fn(device));
                         },
-                        (device, name) => {
+                        (_device, name) => {
                             // need to remove this as pybricks creates a random BLE id on each reconnect
                             if (name) this._allDevices.delete(name);
 
@@ -57,7 +57,7 @@ export abstract class BaseLayer {
                 10000,
             );
 
-            this._exitStack.push(async () => {
+            this._exitStack.push(() => {
                 this.status = ConnectionStatus.Disconnected;
                 this._client = undefined;
             });
@@ -89,7 +89,7 @@ export abstract class BaseLayer {
             await this.runExitStack();
             this._client = undefined;
         } catch (error) {
-            logDebug(`Error during disconnectAsync: ${error}`);
+            logDebug(`Error during disconnectAsync: ${String(error)}`);
         }
         this.status = ConnectionStatus.Disconnected;
     }
@@ -99,7 +99,7 @@ export abstract class BaseLayer {
             try {
                 await fn();
             } catch (error) {
-                logDebug(`Error during cleanup function : ${error}`);
+                logDebug(`Error during cleanup function : ${String(error)}`);
             }
         }
         this._exitStack = [];

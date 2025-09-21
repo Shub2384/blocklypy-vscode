@@ -13,20 +13,20 @@ describe('parsePythonError', () => {
         jest.useRealTimers();
     });
 
-    it('should not report if no traceback', async () => {
-        await parsePythonError('No error here', reportPythonError);
+    it('should not report if no traceback', () => {
+        parsePythonError('No error here', reportPythonError);
         jest.runAllTimers();
         expect(reportPythonError).not.toHaveBeenCalled();
     });
 
-    it('should report python error with correct filename, line, and message', async () => {
+    it('should report python error with correct filename, line, and message', () => {
         const errorText = `
     Traceback (most recent call last):
       File "__main__.py", line 9, in <module>
       File "test1.py", line 9, in <module>
     NameError: name 'PrimeHub2' isn't defined
             `.trim();
-        await parsePythonError(errorText, reportPythonError);
+        parsePythonError(errorText, reportPythonError);
         jest.runAllTimers();
         expect(reportPythonError).toHaveBeenCalledWith(
             'test1.py',
@@ -35,7 +35,7 @@ describe('parsePythonError', () => {
         );
     });
 
-    it('should handle multiple stack frames and pick the last one', async () => {
+    it('should handle multiple stack frames and pick the last one', () => {
         const errorText = `
     Traceback (most recent call last):
       File "__main__.py", line 5, in <module>
@@ -43,7 +43,7 @@ describe('parsePythonError', () => {
       File "test3.py", line 20, in <module>
     TypeError: unsupported operand type(s)
             `.trim();
-        await parsePythonError(errorText, reportPythonError);
+        parsePythonError(errorText, reportPythonError);
         jest.runAllTimers();
         expect(reportPythonError).toHaveBeenCalledWith(
             'test3.py',
@@ -52,17 +52,17 @@ describe('parsePythonError', () => {
         );
     });
 
-    it('should not report if error message or filename is missing', async () => {
+    it('should not report if error message or filename is missing', () => {
         const errorText = `
     Traceback (most recent call last):
       File "__main__.py", line 5, in <module>
             `.trim();
-        await parsePythonError(errorText, reportPythonError);
+        parsePythonError(errorText, reportPythonError);
         jest.runAllTimers();
         expect(reportPythonError).not.toHaveBeenCalled();
     });
 
-    it('should report even if message comes in multiple lines', async () => {
+    it('should report even if message comes in multiple lines', () => {
         const errorText = `
 Traceback (most recent call last):
   File "__main__.py", line 9, in <module>
@@ -70,8 +70,8 @@ Traceback (most recent call last):
 NameError: name 'PrimeHub2' isn't defined
         `.trim();
         const lines = errorText.split('\n');
-        lines.forEach(async (line) => {
-            await parsePythonError(line, reportPythonError);
+        lines.forEach((line) => {
+            parsePythonError(line, reportPythonError);
         });
         jest.runAllTimers();
         expect(reportPythonError).toHaveBeenCalled();

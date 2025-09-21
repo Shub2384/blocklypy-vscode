@@ -101,11 +101,6 @@
         "category": "blocklypy-vscode.Settings"
       },
       {
-        "command": "blocklypy-vscode.clearAllSlots",
-        "title": "BlocklyPy Commander: Clear All Slots in HubOS",
-        "icon": "$(trash)"
-      },
-      {
         "command": "blocklypy-vscode.blocklypyViewer.displayNextView",
         "title": "BlocklyPy Commander: Next View",
         "icon": "$(preview)"
@@ -423,6 +418,7 @@
     "@types/resolve": "^1.20.6",
     "@types/semver": "^7.7.1",
     "@types/vscode": "^1.101.0",
+    "@types/vscode-webview": "^1.57.5",
     "@typescript-eslint/eslint-plugin": "^8.31.1",
     "@typescript-eslint/parser": "^8.31.1",
     "@vscode/test-cli": "^0.0.10",

@@ -10,18 +10,20 @@ enum PbBleBroadcastDataType {
     Bytes = 6,
 }
 
+type PybricksDecodedBleBroadcastDataElem = boolean | number | string | Buffer;
+
 export type PybricksDecodedBleBroadcast = {
     channel: number;
-    data: (boolean | number | string | Buffer)[];
+    data: PybricksDecodedBleBroadcastDataElem[];
 };
 
 function pybricksDecodeOne(
     buffer: Buffer,
     startIndex: number,
-): { value: any; nextIndex: number } | undefined {
+): { value: PybricksDecodedBleBroadcastDataElem; nextIndex: number } | undefined {
     if (startIndex >= buffer.length) return undefined;
     const typeAndSize = buffer[startIndex];
-    const type = typeAndSize >> 5;
+    const type = (typeAndSize >> 5) as PbBleBroadcastDataType;
     const size = typeAndSize & 0x1f;
     let index = startIndex + 1;
 
@@ -74,8 +76,8 @@ export function pybricksDecodeBleBroadcastData(
     const channel = buffer.readUInt8(2);
 
     let index = 3;
-    const data = [] as any[];
-    if (buffer[index] >> 5 === PbBleBroadcastDataType.SingleObject) {
+    const data = [] as PybricksDecodedBleBroadcastDataElem[];
+    if (buffer[index] >> 5 === Number(PbBleBroadcastDataType.SingleObject)) {
         // Skip the SingleObject indicator byte
         index += 1;
     }

@@ -16,7 +16,7 @@ async function collectPythonModules(entryUri: vscode.Uri): Promise<Module[]> {
     // Helper to get file content from open editors or workspace
     async function getModuleContent(
         modulePath: string,
-        folder: string,
+        _folder: string,
     ): Promise<string | undefined> {
         // Try open editors first
         for (const doc of openDocs) {

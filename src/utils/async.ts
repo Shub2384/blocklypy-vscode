@@ -50,7 +50,7 @@ export async function retryWithTimeout<T>(
             if (attempt >= retries) {
                 break;
             }
-            cleanUp && (await cleanUp());
+            if (cleanUp) await cleanUp();
             await new Promise((res) => setTimeout(res, delay));
 
             if (backoff) {

@@ -18,17 +18,9 @@ export class BLELayer extends BaseLayer {
 
     constructor() {
         super();
+
         // setup noble listeners
-        noble.on('stateChange', async (state) => {
-            // state = <"unknown" | "resetting" | "unsupported" | "unauthorized" | "poweredOff" | "poweredOn">
-            if (isDevelopmentMode) {
-                console.log(`Noble state changed to: ${state}`);
-                // TODO: handle disconnect and restart scanning!
-            }
-            if (state === 'poweredOn') {
-                await this.restartScanning();
-            }
-        });
+        noble.on('stateChange', (state) => void this.handleStateChange(state));
         noble.on('scanStart', () => {
             this._isScanning = true;
             setState(StateProp.Scanning, true);
@@ -41,9 +33,7 @@ export class BLELayer extends BaseLayer {
             // Deep copy the advertisement object to avoid mutation issues
             if (!peripheral.advertisement.localName) return;
 
-            const advertisement = _.cloneDeep(
-                peripheral.advertisement,
-            ) as noble.Advertisement;
+            const advertisement = _.cloneDeep(peripheral.advertisement);
 
             // seenDevices.add(advertisement.localName);
             // setTimeout(() => {
@@ -95,6 +85,18 @@ export class BLELayer extends BaseLayer {
         });
     }
 
+    private handleStateChange(state: string) {
+        // state = <"unknown" | "resetting" | "unsupported" | "unauthorized" | "poweredOff" | "poweredOn">
+
+        if (isDevelopmentMode) {
+            console.log(`Noble state changed to: ${state}`);
+            // TODO: handle disconnect and restart scanning!
+        }
+        if (state === 'poweredOn') {
+            this.restartScanning().catch(console.error);
+        }
+    }
+
     public async connect(name: string): Promise<void> {
         const metadata = this._allDevices.get(name);
         if (!metadata) throw new Error(`Device ${name} not found.`);
@@ -110,7 +112,7 @@ export class BLELayer extends BaseLayer {
                 throw new Error(`Unknown device type: ${metadata.devtype}`);
         }
 
-        super.connect(name);
+        await super.connect(name);
     }
 
     public async disconnect() {
@@ -119,7 +121,7 @@ export class BLELayer extends BaseLayer {
     }
 
     private async restartScanning() {
-        await this.stopScanningAsync();
+        this.stopScanning();
         await this.startScanning();
     }
 
@@ -201,7 +203,7 @@ export class BLELayer extends BaseLayer {
         });
     }
 
-    public async stopScanningAsync() {
+    public stopScanning() {
         noble.stopScanning();
     }
 

@@ -1,6 +1,6 @@
 import path from 'path';
 import { logDebug } from '../extension/debug-channel';
-import { reportPythonError, showInfo } from '../extension/diagnostics';
+import { reportPythonError, showInfoAsync } from '../extension/diagnostics';
 import { PlotManager } from './plot';
 import { parsePlotCommand } from './stdout-plot-helper';
 import {
@@ -10,8 +10,8 @@ import {
 
 function handleReportPythonError(filename: string, line: number, message: string) {
     // onReport callback
-    setTimeout(async () => {
-        await reportPythonError(filename, line, message);
+    setTimeout(() => {
+        reportPythonError(filename, line, message).catch(console.error);
     }, 0);
 }
 
@@ -20,19 +20,21 @@ export async function handleStdOutDataHelpers(line: string) {
     await parsePlotCommand(line, plotManager);
 
     // equal to  "Traceback (most recent call last):"
-    await parsePythonError(line, handleReportPythonError);
+    parsePythonError(line, handleReportPythonError);
 }
 
 export function clearStdOutDataHelpers() {
-    plotManager?.resetPlotParser();
     clearPythonErrorParser();
+    plotManager?.resetPlotParser().catch(console.error);
 }
 
 export function registerStdoutHelper() {
     plotManager = PlotManager.createWithCb((filepath: string) => {
         // onCreate callback
         logDebug(`Started datalogging to ${filepath}`);
-        showInfo(`Started datalogging to ${path.basename(filepath)}`);
+        showInfoAsync(`Started datalogging to ${path.basename(filepath)}`).catch(
+            console.error,
+        );
     });
 }
 

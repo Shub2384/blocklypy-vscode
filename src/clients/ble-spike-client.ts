@@ -2,8 +2,8 @@ import noble from '@abandonware/noble';
 import crc32 from 'crc-32';
 import { DeviceMetadata } from '.';
 import { logDebug } from '../extension/debug-channel';
-import { showWarning } from '../extension/diagnostics';
-import { handleDeviceNotification } from '../logic/appdata-devicenotification-helper';
+import { showWarningAsync } from '../extension/diagnostics';
+import { handleDeviceNotificationAsync } from '../logic/appdata-devicenotification-helper';
 import { FILENAME_SAMPLE_COMPILED } from '../logic/compile';
 import { setState, StateProp } from '../logic/state';
 import {
@@ -96,7 +96,7 @@ export class BleSpikeClient extends BleBaseClient {
         //     logDebug(`Disconnected from ${peripheral?.advertisement.localName}`);
         //     await clearPythonErrors();
         //     // Do not call disconnectAsync recursively
-        //     this.runExitStack();
+        //     await this.runExitStack();
         //     this._device = undefined;
         // });
 
@@ -113,7 +113,7 @@ export class BleSpikeClient extends BleBaseClient {
         [this._rxCharacteristic, this._txCharacteristic] = chars?.characteristics;
         this._txCharacteristic.on(
             'data',
-            async (data) => await this.handleIncomingData(data),
+            (data) => void this.handleIncomingDataAsync(data),
         );
         await this._txCharacteristic.subscribeAsync();
 
@@ -168,13 +168,14 @@ export class BleSpikeClient extends BleBaseClient {
         //     SPIKE_RECEIVE_MESSAGE_TIMEOUT,
         // );
 
-        return await withTimeout<TResponse>(
+        const response = await withTimeout<TResponse>(
             resultPromise as Promise<TResponse>,
             SPIKE_RECEIVE_MESSAGE_TIMEOUT,
         );
+        return response;
     }
 
-    protected async handleIncomingData(data: Buffer) {
+    protected async handleIncomingDataAsync(data: Buffer) {
         const unpacked = unpack(data);
         try {
             const [id, response] = decodeSpikeMessage(unpacked);
@@ -190,7 +191,7 @@ export class BleSpikeClient extends BleBaseClient {
                 switch (id) {
                     case DeviceNotificationMessage.Id: {
                         const deviceMsg = response as DeviceNotificationMessage;
-                        handleDeviceNotification(deviceMsg.payloads);
+                        await handleDeviceNotificationAsync(deviceMsg.payloads);
                         break;
                     }
                     case ProgramFlowNotificationMessage.Id: {
@@ -207,12 +208,13 @@ export class BleSpikeClient extends BleBaseClient {
                 }
             }
         } catch (e) {
-            logDebug(`Error decoding message:  ${e}`);
+            logDebug(`Error decoding message: ${String(e)}`);
             return;
         }
     }
 
-    public async sendTerminalUserInput(text: string) {
+    // eslint-disable-next-line @typescript-eslint/require-await
+    public async sendTerminalUserInputAsync(_text: string) {
         if (!this.connected) throw new Error('Not connected to a device');
 
         // In SPIKE Prime, TunnelMessage allows sending arbitrary data between the robot's program and a custom application
@@ -243,7 +245,7 @@ export class BleSpikeClient extends BleBaseClient {
             const uploadSize = data.byteLength;
             const slot = slot_input ?? 0;
             if (slot_input === undefined) {
-                showWarning(
+                await showWarningAsync(
                     'No slot specified, defaulting to slot 0. To specify a different slot, add a comment like "# LEGO slot: 1" at the top of your code.',
                 );
             }

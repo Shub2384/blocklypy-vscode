@@ -113,6 +113,7 @@ export async function acquireLock(
 
                     // Now we own the lock and it will be held until the returned
                     // promise is resolved.
+                    // eslint-disable-next-line @typescript-eslint/no-misused-promises
                     resolve(() => {
                         // This function will be called to release the lock
                         return new Promise<void>((resolve2) => resolve2());

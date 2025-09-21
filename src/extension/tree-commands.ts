@@ -11,12 +11,12 @@ class CommandsTreeDataProvider extends BaseTreeDataProvider<TreeItemData> {
         const retval = super.getTreeItem(element);
 
         // customize label for some commands
-        if (element.command === Commands.DisconnectDevice) {
+        if (element.command === String(Commands.DisconnectDevice)) {
             retval.label =
                 hasState(StateProp.Connected) && bleLayer.client?.connected
                     ? `Disconnect from ${bleLayer.client?.name}`
                     : 'Disconnect';
-        } else if (element.command === Commands.StatusPlaceHolder) {
+        } else if (element.command === String(Commands.StatusPlaceHolder)) {
             retval.label = 'Status: ' + ToCapialized(getStateString());
         }
         return retval;

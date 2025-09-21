@@ -1,7 +1,7 @@
 import noble from '@abandonware/noble';
 import semver from 'semver';
 import { DeviceMetadata } from '.';
-import { handleDeviceNotification } from '../logic/appdata-devicenotification-helper';
+import { handleDeviceNotificationAsync } from '../logic/appdata-devicenotification-helper';
 import { setState, StateProp } from '../logic/state';
 import {
     decodePnpId,
@@ -102,7 +102,7 @@ export class BlePybricksClient extends BleBaseClient {
         //     logDebug(`Disconnected from ${peripheral?.advertisement.localName}`);
         //     await clearPythonErrors();
         //     // Do not call disconnectAsync recursively
-        //     this.runExitStack();
+        //     await this.runExitStack();
         //     this._device = undefined;
         // });
 
@@ -119,8 +119,8 @@ export class BlePybricksClient extends BleBaseClient {
                 ].map((uuid16) => uuidStr(uuid16)),
             );
 
-        const [pybricksService, deviceInfoService] =
-            discoveredServicesandCharacterisitics.services;
+        // const [pybricksService, deviceInfoService] =
+        //     discoveredServicesandCharacterisitics.services;
         const [
             pybricksControlChar,
             pybricksHubCapabilitiesChar,
@@ -149,7 +149,7 @@ export class BlePybricksClient extends BleBaseClient {
         this._rxtxCharacteristic = pybricksControlChar;
         this._rxtxCharacteristic.on(
             'data',
-            async (data) => await this.handleIncomingData(data),
+            (data) => void this.handleIncomingDataAsync(data).catch(console.error),
         );
         await this._rxtxCharacteristic.subscribeAsync();
 
@@ -171,7 +171,7 @@ export class BlePybricksClient extends BleBaseClient {
         const rssiUpdater = setInterval(() => peripheral.updateRssi(), 1000);
         // Notify listeners of RSSI update
         peripheral.on('rssiUpdate', () => onDeviceUpdated && onDeviceUpdated(device));
-        this._exitStack.push(async () => {
+        this._exitStack.push(() => {
             clearInterval(rssiUpdater);
             peripheral.removeAllListeners();
         });
@@ -181,7 +181,7 @@ export class BlePybricksClient extends BleBaseClient {
         await this._rxtxCharacteristic?.writeAsync(Buffer.from(data), withoutResponse);
     }
 
-    protected async handleIncomingData(data: Buffer) {
+    protected async handleIncomingDataAsync(data: Buffer): Promise<void> {
         // this is pybricks specific - move to pybricks client?
         const dataView = new DataView(data.buffer);
         const eventType = getEventType(dataView);
@@ -208,7 +208,6 @@ export class BlePybricksClient extends BleBaseClient {
             case EventType.WriteAppData:
                 // parse and handle app data
                 await this.handleIncomingAppData(Buffer.from(data.buffer.slice(1)));
-
                 break;
             default:
                 console.warn('Unknown event type:', eventType);
@@ -216,15 +215,15 @@ export class BlePybricksClient extends BleBaseClient {
         }
     }
 
-    private async handleIncomingAppData(data: Buffer) {
-        // await this.handleIncomingData_DeviceNotification(data);
+    private async handleIncomingAppData(_data: Buffer) {
+        // await this.handleIncomingDataAsync_DeviceNotification(data);
     }
 
     private readonly APPDATA_BUFFER_SIZE = 1024;
     private readonly appdataBuffer = Buffer.alloc(this.APPDATA_BUFFER_SIZE);
     private appdataBufferOffset = 0;
     private appdataExpectedLength = 0;
-    private async handleIncomingData_DeviceNotification(data: Uint8Array) {
+    private async handleIncomingDataAsync_DeviceNotification(data: Uint8Array) {
         try {
             if (this.appdataBufferOffset === 0) {
                 const payloadSize = checkIsDeviceNotification(data);
@@ -250,7 +249,7 @@ export class BlePybricksClient extends BleBaseClient {
 
             if (this.appdataBufferOffset >= this.appdataExpectedLength) {
                 const payloads = parseDeviceNotificationPayloads(this.appdataBuffer);
-                handleDeviceNotification(payloads);
+                await handleDeviceNotificationAsync(payloads);
 
                 // reset buffer
                 this.appdataBufferOffset = 0;
@@ -261,7 +260,7 @@ export class BlePybricksClient extends BleBaseClient {
         }
     }
 
-    public async sendTerminalUserInput(text: string) {
+    public async sendTerminalUserInputAsync(text: string) {
         if (!this.connected) throw new Error('Not connected to a device');
         if (!this._capabilities?.maxWriteSize) return;
 
@@ -272,10 +271,7 @@ export class BlePybricksClient extends BleBaseClient {
         const data = encoder.encode(value);
 
         for (let i = 0; i < data.length; i += maxBleWriteSize) {
-            await this.write(
-                createWriteStdinCommand(data.buffer as ArrayBuffer),
-                false,
-            );
+            await this.write(createWriteStdinCommand(data.buffer), false);
         }
     }
 
@@ -287,7 +283,7 @@ export class BlePybricksClient extends BleBaseClient {
         await this.write(createStopUserProgramCommand(), false);
     }
 
-    public async action_upload(data: Uint8Array, slot?: number, filename?: string) {
+    public async action_upload(data: Uint8Array, _slot?: number, _filename?: string) {
         // const packetSize = this._capabilities?.maxWriteSize ?? blob.bytes.length;
 
         if (
@@ -310,7 +306,7 @@ export class BlePybricksClient extends BleBaseClient {
             const writeSize = this._capabilities.maxWriteSize - 5; // 5 bytes for the header
             for (let offset = 0; offset < data.byteLength; offset += writeSize) {
                 const chunk = data.slice(offset, offset + writeSize);
-                const chunkBuffer = chunk.buffer as ArrayBuffer;
+                const chunkBuffer = chunk.buffer;
                 const buffer = createWriteUserRamCommand(offset, chunkBuffer);
                 await this.write(buffer, false);
             }

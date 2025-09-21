@@ -13,6 +13,7 @@ export abstract class CustomEditorProviderBase<TState extends DocumentState>
     implements vscode.CustomReadonlyEditorProvider
 {
     private static providerByType = new Map<
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
         Function,
         CustomEditorProviderBase<DocumentState>
     >();
@@ -43,16 +44,17 @@ export abstract class CustomEditorProviderBase<TState extends DocumentState>
     }
 
     public static getProviderByType(
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
         providerType: Function,
     ): CustomEditorProviderBase<DocumentState> | undefined {
         return this.providerByType.get(providerType);
     }
 
-    async openCustomDocument(
+    openCustomDocument(
         uri: vscode.Uri,
-        openContext: { backupId?: string },
+        _openContext: { backupId?: string },
         _token: vscode.CancellationToken,
-    ): Promise<vscode.CustomDocument> {
+    ): vscode.CustomDocument {
         const document: vscode.CustomDocument = {
             uri,
             dispose: () => {
@@ -69,6 +71,7 @@ export abstract class CustomEditorProviderBase<TState extends DocumentState>
         return document;
     }
 
+    // eslint-disable-next-line @typescript-eslint/require-await
     async resolveCustomEditor(
         document: vscode.CustomDocument,
         webviewPanel: vscode.WebviewPanel,
@@ -81,12 +84,12 @@ export abstract class CustomEditorProviderBase<TState extends DocumentState>
         state.panel = webviewPanel;
 
         webviewPanel.onDidChangeViewState(
-            async (e: vscode.WebviewPanelOnDidChangeViewStateEvent) => {
+            async (_e: vscode.WebviewPanelOnDidChangeViewStateEvent) => {
                 const state = this.documents.get(document.uri);
                 if (webviewPanel.active) {
                     this.activeUri = document.uri;
                     if (state?.dirty) {
-                        await this.refreshWebview(document, webviewPanel, true);
+                        await this.refreshWebviewAsync(document, webviewPanel, true);
                         // setContextContentAvailability is called in refreshWebview
                     } else {
                         await this.activateWithoutRefresh(document, webviewPanel);
@@ -107,12 +110,17 @@ export abstract class CustomEditorProviderBase<TState extends DocumentState>
         webviewPanel.webview.options = { enableScripts: true };
         webviewPanel.webview.html = this.getHtmlForWebview(webviewPanel);
 
-        await this.refreshWebview(document, webviewPanel, true);
+        // intentionally not awaited
+        setTimeout(() => {
+            void this.refreshWebviewAsync(document, webviewPanel, true);
+        }, 0);
+
+        return;
     }
 
     protected abstract createDocumentState(document: vscode.CustomDocument): TState;
     protected abstract getHtmlForWebview(webviewPanel: vscode.WebviewPanel): string;
-    protected abstract refreshWebview(
+    protected abstract refreshWebviewAsync(
         document: vscode.CustomDocument,
         webviewPanel: vscode.WebviewPanel,
         forced?: boolean,

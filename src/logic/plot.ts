@@ -44,13 +44,13 @@ export class PlotManager {
 
         pm.onPlotStarted.event((columns: string[]) => {
             // send to webview
-            DatalogView.Instance?.setHeaders(columns, undefined);
+            DatalogView.Instance?.setHeaders(columns, undefined).catch(console.error);
         });
         pm.onPlotData.event((data) => {
             // send to webview
             DatalogView.Instance?.addData(
                 data.map((v) => (typeof v === 'number' ? v : NaN)),
-            );
+            ).catch(console.error);
         });
 
         return pm;
@@ -135,8 +135,8 @@ export class PlotManager {
         this.bufferTimeout = null;
     }
 
-    public resetPlotParser() {
-        this.closeLogFile();
+    public async resetPlotParser() {
+        await this.closeLogFile();
         this.columns = undefined;
         this.buffer = undefined;
         this.startTime = 0;

@@ -10,7 +10,6 @@
  * such as message delimiters or other control characters.
  */
 
-/* eslint-disable no-bitwise */
 const DELIMITER = 0x02;
 const NO_DELIMITER = 0xff;
 const COBS_CODE_OFFSET = DELIMITER;

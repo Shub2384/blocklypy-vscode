@@ -18,7 +18,7 @@ export async function checkExtraFilesForConversion(
                 name: imageName,
                 buffer: imageData.buffer as ArrayBuffer,
             });
-        } catch (e) {
+        } catch (_e) {
             // Image not found, ignore
         }
     }

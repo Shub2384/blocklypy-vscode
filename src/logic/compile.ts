@@ -36,7 +36,7 @@ function getPythonCode(): { content: string; folder?: string } | undefined {
 }
 
 export async function compileAsync(
-    ...args: any[]
+    ...args: unknown[]
 ): Promise<{ data: Uint8Array; filename: string; slot: number | undefined }> {
     await vscode.commands.executeCommand('workbench.action.files.saveAll');
     const mode = args[0];
@@ -136,7 +136,9 @@ async function compileInternal(
     content: string,
 ): Promise<[number, Uint8Array | undefined]> {
     // HACK: This is a workaround for https://github.com/pybricks/support/issues/2185
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     const fetch_backup = (global as any).fetch;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     (global as any).fetch = undefined;
     const compiled = await compile(path, content, undefined, undefined)
         .catch((e) => {
@@ -144,6 +146,7 @@ async function compileInternal(
             return { status: 1, mpy: undefined };
         })
         .finally(() => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
             (global as any).fetch = fetch_backup;
         });
 

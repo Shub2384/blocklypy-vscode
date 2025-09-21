@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { showError } from '../extension/diagnostics';
+import { showErrorAsync } from '../extension/diagnostics';
 
 export abstract class CustomEditorFileWatcherBase {
     protected pollInterval?: NodeJS.Timeout;
@@ -35,7 +35,7 @@ export abstract class CustomEditorFileWatcherBase {
                 );
             });
             if (isMainInWorkspace && hasNonWorkspaceWatched) {
-                showError(
+                await showErrorAsync(
                     'Mixing workspace and non-workspace files for monitoring is not supported.',
                 );
             }
@@ -68,6 +68,7 @@ export abstract class CustomEditorFileWatcherBase {
             }
 
             let polling = false;
+            // eslint-disable-next-line @typescript-eslint/no-misused-promises
             this.pollInterval = setInterval(async () => {
                 if (polling) return;
                 polling = true;

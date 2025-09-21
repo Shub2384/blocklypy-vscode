@@ -1,7 +1,7 @@
 import { bleLayer } from '../clients/ble-layer';
 import { hasState, StateProp } from '../logic/state';
 
-export async function startUserProgramAsync(slot_input: number): Promise<void> {
+export async function startUserProgramAsync(slot_input?: number): Promise<void> {
     if (!hasState(StateProp.Connected)) {
         throw new Error('No device selected. Please connect to a device first.');
         return;

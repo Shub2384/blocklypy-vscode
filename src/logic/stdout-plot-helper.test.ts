@@ -15,7 +15,7 @@ jest.mock('../utils/files', () => ({
 }));
 
 expect.extend({
-    toEndsWith(received, suffix) {
+    toEndsWith(received, suffix: string) {
         const pass = typeof received === 'string' && received.endsWith(suffix);
         return {
             pass,
@@ -26,6 +26,7 @@ expect.extend({
 });
 
 declare global {
+    // eslint-disable-next-line @typescript-eslint/no-namespace
     namespace jest {
         interface Matchers<R> {
             toEndsWith(suffix: string): R;
@@ -189,11 +190,7 @@ describe('plot-helper', () => {
     });
 });
 
-function delay(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-afterEach(async () => {
+afterEach(() => {
     jest.useRealTimers();
     onPlotStartedMock.mockClear();
     onPlotDataMock.mockClear();

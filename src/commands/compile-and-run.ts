@@ -41,7 +41,7 @@ export async function compileAndRunAsync(
                     `User program compiled (${data.byteLength} bytes) and started successfully.`,
                 );
             } catch (e) {
-                logDebug(`${e}`);
+                logDebug(`${String(e)}`);
             }
         },
     );

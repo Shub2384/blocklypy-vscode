@@ -63,9 +63,9 @@ export function activate(context: vscode.ExtensionContext) {
 
     // clear python errors on document change
     context.subscriptions.push(
-        vscode.workspace.onDidChangeTextDocument(async (e) => {
+        vscode.workspace.onDidChangeTextDocument((e) => {
             if (e.document.languageId === 'python') {
-                await clearPythonErrors();
+                clearPythonErrors();
             }
         }),
     );
@@ -73,9 +73,12 @@ export function activate(context: vscode.ExtensionContext) {
     // listen to state changes and update contexts
     registerContextUtils(context);
     // context.subscriptions.push(registerDebugTerminal(sendDataToHubStdin));
-    registerDebugTerminal(context, onTerminalUserInput);
+    registerDebugTerminal(context, (input) => {
+        void onTerminalUserInput(input);
+    });
 
     // Start BLE scanning at startup and keep it running
+    // eslint-disable-next-line @typescript-eslint/no-misused-promises
     setTimeout(async () => {
         logDebug('BlocklyPy Commander started up successfully.', true);
 
@@ -96,9 +99,9 @@ export function activate(context: vscode.ExtensionContext) {
 export async function deactivate() {
     try {
         // Place cleanup logic here
-        await wrapErrorHandling(stopUserProgramAsync);
-        await wrapErrorHandling(disconnectDeviceAsync);
-        await bleLayer.stopScanningAsync();
+        await wrapErrorHandling(stopUserProgramAsync)();
+        await wrapErrorHandling(disconnectDeviceAsync)();
+        bleLayer.stopScanning();
     } catch (err) {
         console.error('Error during deactivation:', err);
     }
@@ -125,14 +128,14 @@ export function delay(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-// process.on('uncaughtException', (err) => {
-//     if (isDevelopmentMode) console.error('Uncaught Exception:', err);
-//     // Optionally show a VS Code error message:
-//     // vscode.window.showErrorMessage('Uncaught Exception: ' + err.message);
-// });
+process.on('uncaughtException', (err) => {
+    if (isDevelopmentMode) console.error('Uncaught Exception:', err);
+    // Optionally show a VS Code error message:
+    // vscode.window.showErrorMessage('Uncaught Exception: ' + err.message);
+});
 
-// process.on('unhandledRejection', (reason, promise) => {
-//     if (isDevelopmentMode) console.error('Unhandled Rejection:', reason);
-//     // Optionally show a VS Code error message:
-//     // vscode.window.showErrorMessage('Unhandled Rejection: ' + String(reason));
-// });
+process.on('unhandledRejection', (reason, promise) => {
+    if (isDevelopmentMode) console.error('Unhandled Rejection:', reason);
+    // Optionally show a VS Code error message:
+    // vscode.window.showErrorMessage('Unhandled Rejection: ' + String(reason));
+});

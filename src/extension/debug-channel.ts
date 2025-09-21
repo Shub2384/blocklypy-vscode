@@ -33,7 +33,7 @@ class DebugTerminal implements vscode.Pseudoterminal {
         });
     }
 
-    open(initialDimensions: vscode.TerminalDimensions | undefined): void {
+    open(_initialDimensions: vscode.TerminalDimensions | undefined): void {
         // NOOP
     }
 

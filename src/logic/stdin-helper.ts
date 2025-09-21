@@ -1,8 +1,7 @@
 import { bleLayer } from '../clients/ble-layer';
-import { StateProp, withState } from './state';
+import { hasState, StateProp } from './state';
 
 export async function onTerminalUserInput(message: string): Promise<void> {
-    withState(StateProp.Connected, () =>
-        bleLayer.client?.sendTerminalUserInput(message),
-    );
+    if (hasState(StateProp.Connected)) return;
+    await bleLayer.client?.sendTerminalUserInputAsync(message);
 }

@@ -48,9 +48,9 @@ export class BlocklypyViewer {
         public panel: vscode.WebviewPanel | undefined,
         public provider: BlocklypyViewerProvider,
     ) {}
-    public async setErrorLine(line: number, message: string) {
+    public async setErrorLineAsync(line: number, message: string) {
         if (this.viewtype !== ViewType.Pycode) {
-            await this.provider.showView(ViewType.Pycode);
+            await this.provider.showViewAsync(ViewType.Pycode);
             await this.panel?.webview.postMessage({
                 command: 'setErrorLine',
                 line,
@@ -66,7 +66,7 @@ export class BlocklypyViewerProvider
 {
     public static get Get(): BlocklypyViewerProvider | undefined {
         const provider = BlocklypyViewerProvider.getProviderByType(
-            BlocklypyViewerProvider.prototype.constructor as Function,
+            BlocklypyViewerProvider.prototype.constructor,
         );
         return provider as BlocklypyViewerProvider | undefined;
     }
@@ -82,7 +82,9 @@ export class BlocklypyViewerProvider
 
     constructor(context: vscode.ExtensionContext) {
         super(context);
-        vscode.languages.onDidChangeDiagnostics(this.handleDiagnosticsChange, this);
+        vscode.languages.onDidChangeDiagnostics(() =>
+            this.handleDiagnosticsChangeAsync().catch(console.error),
+        );
     }
 
     protected createDocumentState(document: vscode.CustomDocument): BlocklypyViewer {
@@ -105,26 +107,33 @@ export class BlocklypyViewerProvider
     ): Promise<void> {
         await super.resolveCustomEditor(document, webviewPanel, _token);
 
-        // refresh of data is done in refreshWebview super.resolveCustomEditor
-        const state = this.documents.get(document.uri);
-        await this.showView(this.guardViewType(state, state?.viewtype));
-        const filename = path.basename(document.uri.path);
-        logDebug(
-            state?.content
-                ? `Successfully converted ${filename} to Python (${state.content.pycode?.length} bytes).`
-                : `Failed to convert ${filename} to Python.`,
-        );
+        const handleDelayedOpen = async () => {
+            // refresh of data is done in refreshWebview super.resolveCustomEditor
+            const state = this.documents.get(document.uri);
+            await this.showViewAsync(this.guardViewType(state, state?.viewtype));
+            const filename = path.basename(document.uri.path);
+            logDebug(
+                state?.content
+                    ? `Successfully converted ${filename} to Python (${state.content.pycode?.length} bytes).`
+                    : `Failed to convert ${filename} to Python.`,
+            );
 
-        // Set up file change monitoring
-        await this.monitorFileChanges(
-            document,
-            webviewPanel,
-            async () => await this.refreshWebview(document, webviewPanel),
-            undefined, // or pass a Set<string> of watched URIs if needed
-        );
+            // Set up file change monitoring
+            await this.monitorFileChanges(
+                document,
+                webviewPanel,
+                () =>
+                    this.refreshWebviewAsync(document, webviewPanel).catch(
+                        console.error,
+                    ),
+                undefined, // or pass a Set<string> of watched URIs if needed
+            );
+        };
+
+        handleDelayedOpen().catch(console.error);
     }
 
-    protected async refreshWebview(
+    protected async refreshWebviewAsync(
         document: vscode.CustomDocument,
         _webviewPanel: vscode.WebviewPanel,
         forced = false,
@@ -147,7 +156,7 @@ export class BlocklypyViewerProvider
                 } satisfies BlocklypyViewerContentAvailabilityMap;
                 await setContextContentAvailability(state.contentAvailability);
 
-                await this.showView(this.guardViewType(state, state.viewtype));
+                await this.showViewAsync(this.guardViewType(state, state.viewtype));
                 state.dirty = false;
             } else {
                 state.dirty = true; // Mark as dirty, don't refresh yet
@@ -185,7 +194,7 @@ export class BlocklypyViewerProvider
                 showExplainingComments: true,
             },
             log: {
-                callback: (level, ...args: unknown[]) => {
+                callback: (_level, ...args: unknown[]) => {
                     const line = Array.isArray(args) ? args.join(' ') : String(args);
                     logDebug(line);
                 },
@@ -209,9 +218,10 @@ export class BlocklypyViewerProvider
         const graphviz = await GraphvizLoader();
 
         const dependencygraph = result.dependencygraph;
-        const graph: string | undefined = dependencygraph
-            ? await graphviz.dot(dependencygraph)
-            : undefined;
+        let graph: string | undefined = undefined;
+        if (dependencygraph) {
+            graph = await graphviz?.dot(dependencygraph);
+        }
 
         const content = {
             filename,
@@ -223,14 +233,14 @@ export class BlocklypyViewerProvider
         return content;
     }
 
-    public async rotateViews(forward: boolean) {
+    public async rotateViewsAsync(forward: boolean) {
         const state = this.documents.get(this.activeUri);
 
         const view = this.guardViewType(
             state,
             this.nextView(state?.viewtype, forward ? +1 : -1),
         );
-        await this.showView(view);
+        await this.showViewAsync(view);
     }
 
     private contentForView(
@@ -256,11 +266,14 @@ export class BlocklypyViewerProvider
     ): ViewType {
         let effectiveView = current;
         let content: string | undefined;
+        const triedViews = new Set<ViewType>();
         do {
+            if (triedViews.has(effectiveView!)) break; // prevent infinite loop
+
             content = this.contentForView(state, effectiveView);
             if (!content) {
-                // try next view
                 effectiveView = this.nextView(effectiveView);
+                triedViews.add(effectiveView);
             }
         } while (!content && effectiveView !== current);
 
@@ -279,7 +292,7 @@ export class BlocklypyViewerProvider
         return Views[nextIndex];
     }
 
-    public async showView(view: ViewType | undefined) {
+    public async showViewAsync(view: ViewType | undefined) {
         const state = this.documents.get(this.activeUri);
         if (!state) throw new Error('No active document state');
 
@@ -294,7 +307,7 @@ export class BlocklypyViewerProvider
         });
     }
 
-    private async handleDiagnosticsChange() {
+    private async handleDiagnosticsChangeAsync() {
         const state = this.documents.get(this.activeUri);
         // NOTE: We might get a URI that does not match the current activeUri
         // in case of multiple open editors with different files.
@@ -309,7 +322,7 @@ export class BlocklypyViewerProvider
                 (d) => d.severity === vscode.DiagnosticSeverity.Error,
             );
             if (firstError) {
-                await state.setErrorLine(
+                await state.setErrorLineAsync(
                     firstError.range.start.line,
                     firstError.message,
                 );
@@ -347,7 +360,7 @@ export class BlocklypyViewerProvider
             <html lang="en">
             <head>
             <meta charset="UTF-8">
-            <link rel="preload" href="${imageUri}" as="image">
+            <link rel="preload" href="${String(imageUri)}" as="image">
             <style>
             html, body, #container, #editor {
                 height: 100%;
@@ -389,7 +402,7 @@ export class BlocklypyViewerProvider
             </head>
             <body>
             <div id="container">
-                <img id="loading" src="${imageUri}"/>
+                <img id="loading" src="${String(imageUri)}"/>
                 <div id="editor" style="display:none"></div>
                 <div id="preview" style="display:none"></div>
                 <div id="graph" style="display:none"></div>
@@ -397,10 +410,10 @@ export class BlocklypyViewerProvider
 
             <script>
             window.workerUrls = {
-                'editorWorkerService': '${editorWorkerUri}'
+                'editorWorkerService': '${String(editorWorkerUri)}'
             };
             </script>
-            <script deferred src="${scriptUri}"></script>
+            <script deferred src="${String(scriptUri)}"></script>
 
             </body>
             </html>

@@ -34,19 +34,19 @@ export async function reportPythonError(
     }
 }
 
-export async function clearPythonErrors() {
+export function clearPythonErrors() {
     DiagnosticsCollection.clear();
 }
 
-async function showEditorErrorDecoration(
-    filename: string,
-    line: number,
-    errorMsg: string,
-) {
-    const { editor, blviewer } = await findEditorForFile(filename);
-    const active = editor ?? blviewer;
-    if (!active) return;
-}
+// async function showEditorErrorDecoration(
+//     filename: string,
+//     line: number,
+//     errorMsg: string,
+// ) {
+//     const { editor, blviewer } = await findEditorForFile(filename);
+//     const active = editor ?? blviewer;
+//     if (!active) return;
+// }
 
 async function findEditorForFile(
     filename: string,
@@ -89,12 +89,12 @@ async function findEditorForFile(
     }
 }
 
-export function showInfo(message: string) {
-    vscode.window?.showInformationMessage(message);
+export async function showInfoAsync(message: string) {
+    await vscode.window?.showInformationMessage(message);
 }
-export function showWarning(message: string) {
-    vscode.window?.showWarningMessage(message);
+export async function showWarningAsync(message: string) {
+    await vscode.window?.showWarningMessage(message);
 }
-export function showError(message: string) {
-    vscode.window?.showErrorMessage(message);
+export async function showErrorAsync(message: string) {
+    await vscode.window?.showErrorMessage(message);
 }

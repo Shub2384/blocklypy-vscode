@@ -7,8 +7,7 @@
 import * as monaco from 'monaco-editor';
 import svgPanZoom from 'svg-pan-zoom';
 
-declare const acquireVsCodeApi: any;
-const vscode = acquireVsCodeApi();
+// const vscode = acquireVsCodeApi();
 
 let monacoInstance: monaco.editor.IStandaloneCodeEditor | undefined = undefined;
 
@@ -48,14 +47,18 @@ const decorationType = {
 let diagnosticsDecorations: monaco.editor.IEditorDecorationsCollection | undefined =
     undefined;
 
+type BlocklypyWebviewMessage =
+    | { command: 'showView'; view: string; content: string }
+    | { command: 'setErrorLine'; line: number; message: string };
+
 window.addEventListener('message', (event) => {
-    const { command } = event.data || {};
-    if (command === 'showView') {
-        const { view, content } = event.data || {};
+    const data = event.data as BlocklypyWebviewMessage;
+    if (data.command === 'showView') {
+        const { view, content } = data || {};
         const effectiveView = view;
         showView(effectiveView, content);
-    } else if (command === 'setErrorLine') {
-        const { line, message } = event.data || {};
+    } else if (data.command === 'setErrorLine') {
+        const { line } = data || {};
         if (monacoInstance && typeof line === 'number' && line >= 0) {
             const line1 = line + 1; // Convert to 0-based
             const lineLen = monacoInstance.getModel()?.getLineMaxColumn(line1) ?? 1;
@@ -148,12 +151,16 @@ function showView(view: string, content: string) {
 
 // Monaco Editor Web Worker fix for VS Code webview (local/offline)
 self.MonacoEnvironment = {
-    getWorkerUrl: function (moduleId, label) {
+    getWorkerUrl: function (_moduleId, label) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
         const workerUrls = (window as any).workerUrls;
+
         // The worker files are output to dist/ by MonacoWebpackPlugin
         // Use the VS Code webview API to get the correct URI
         // You must pass the worker URL from your extension to the webview via postMessage or as a global variable
         // Example assumes you have a global variable set by your extension:
+
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access
         return workerUrls[label] || workerUrls['default'];
     },
 };

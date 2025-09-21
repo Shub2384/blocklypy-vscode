@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { EXTENSION_KEY } from '../const';
 
-const CONFIG_BASEKEY = EXTENSION_KEY + '.';
+// const CONFIG_BASEKEY = EXTENSION_KEY + '.';
 export const enum ConfigKeys {
     DeviceLastConnected = 'lastconnected-device',
     DeviceAutoConnect = 'autoconnect-device',
@@ -15,7 +15,7 @@ export function getConfig<T>(key: string) {
     return vscode.workspace.getConfiguration(EXTENSION_KEY).get<T>(key);
 }
 
-export async function updateConfig(key: string, value: any) {
+export async function updateConfig(key: string, value: unknown) {
     await vscode.workspace
         .getConfiguration(EXTENSION_KEY)
         .update(key, value, vscode.ConfigurationTarget.Global);
@@ -25,7 +25,7 @@ class Config {
     private static read<T>(key: ConfigKeys, defaultValue?: T): T | undefined {
         return getConfig<T>(key) ?? defaultValue;
     }
-    private static async write(key: ConfigKeys, value: any) {
+    private static async write(key: ConfigKeys, value: unknown) {
         await updateConfig(key, value);
     }
     public static getKey(key: ConfigKeys) {
@@ -59,7 +59,7 @@ class Config {
     public static getConfigValue<T>(key: ConfigKeys, defaultValue?: T) {
         return this.read<T>(key, defaultValue);
     }
-    public static async setConfigValue(key: ConfigKeys, value: any) {
+    public static async setConfigValue(key: ConfigKeys, value: unknown) {
         await this.write(key, value);
     }
     public static toggleConfigValue(key: ConfigKeys, value?: boolean) {

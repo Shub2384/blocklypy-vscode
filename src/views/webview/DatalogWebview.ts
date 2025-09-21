@@ -30,20 +30,24 @@ let chart: uPlot | undefined;
 let chartData: number[][] = [];
 let chartSeries: string[] = [];
 
-declare const acquireVsCodeApi: any;
-const vscode = acquireVsCodeApi();
+// const vscode = acquireVsCodeApi();
 
-window.addEventListener('message', (event) => {
-    const { command, payload } = event.data || {};
-    if (command === 'setHeaders') {
-        const { cols, rows } = payload;
+type DatalogWebviewMessage =
+    | { command: 'setHeaders'; cols: string[]; rows: number[][] }
+    | { command: 'addData'; row: number[] };
+
+window.addEventListener('message', (event: MessageEvent) => {
+    const data = event.data as DatalogWebviewMessage;
+    if (data.command === 'setHeaders') {
+        const { cols, rows } = data;
         setHeaders(cols, rows);
-    } else if (command === 'addData') {
-        addData(payload);
+    } else if (data.command === 'addData') {
+        const { row } = data;
+        addData(row);
     }
 });
 
-window.addEventListener('resize', (e) => {
+window.addEventListener('resize', (_e) => {
     chart?.setSize(getSize());
 });
 

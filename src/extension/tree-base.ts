@@ -10,7 +10,7 @@ export interface TreeItemData {
     description?: string;
     icon?: string;
     check?: boolean;
-    commandArguments?: any[];
+    commandArguments?: unknown[];
     collapsibleState?: vscode.TreeItemCollapsibleState;
     contextValue?: string;
 }
@@ -22,7 +22,7 @@ export class BaseTreeItem extends vscode.TreeItem {
         icon?: string | { light: string; dark: string },
         id?: string,
         command?: string,
-        commandArguments?: any[],
+        commandArguments?: unknown[],
         check?: boolean,
 
         // tooltip?: string,
@@ -63,7 +63,7 @@ export abstract class BaseTreeDataProvider<T extends TreeItemData>
     protected context?: vscode.ExtensionContext;
     protected commands: CommandMetaDataEntry[] = [];
 
-    async init(context: vscode.ExtensionContext) {
+    init(context: vscode.ExtensionContext) {
         this.context = context;
         this.commands = getCommandsFromPackageJson(context);
     }
@@ -71,7 +71,7 @@ export abstract class BaseTreeDataProvider<T extends TreeItemData>
     getTreeItem(element: T): vscode.TreeItem {
         // read the commands from the extension package.json
         let cmd = {
-            ...this.commands?.find((c) => c.command === element.command),
+            ...this.commands?.find((c) => String(c.command) === element.command),
             ...element,
         };
         const title = element.title ?? cmd.title ?? '';

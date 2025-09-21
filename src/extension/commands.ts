@@ -10,9 +10,9 @@ import { compileAsync } from '../logic/compile';
 import Config, { ConfigKeys } from '../utils/config';
 import { BlocklypyViewerProvider, ViewType } from '../views/BlocklypyViewerProvider';
 import { PybricksPythonPreviewProvider } from '../views/PybricksPythonPreviewProvider';
-import { showInfo } from './diagnostics';
+import { showInfoAsync } from './diagnostics';
 import { SettingsTree } from './tree-settings';
-import { openOrActivate, wrapErrorHandling } from './utils';
+import { openOrActivate as openOrActivateAsync, wrapErrorHandling } from './utils';
 
 // Define the BlocklyPyCommand enum for all command strings
 export enum Commands {
@@ -49,7 +49,7 @@ export const CommandMetaData: CommandMetaDataEntryExtended[] = [
     },
     {
         command: Commands.ToggleAutoConnect,
-        title: 'Toggle Auto-Clear Terminal',
+        title: 'Toggle Auto-Connect',
         icon: '$(clear-all)',
         tooltip: 'Auto-connect to last device connected.',
         configkeyForHandler: ConfigKeys.DeviceAutoConnect,
@@ -77,30 +77,33 @@ export const CommandMetaData: CommandMetaDataEntryExtended[] = [
     {
         command: Commands.DisplayNextView,
         handler: async () => {
-            BlocklypyViewerProvider.Get?.rotateViews(true);
+            await BlocklypyViewerProvider.Get?.rotateViewsAsync(true);
         },
     },
     {
         command: Commands.DisplayPreviousView,
         handler: async () => {
-            BlocklypyViewerProvider.Get?.rotateViews(false);
+            await BlocklypyViewerProvider.Get?.rotateViewsAsync(false);
         },
     },
     {
         command: Commands.DisplayPycode,
-        handler: async () => BlocklypyViewerProvider.Get?.showView(ViewType.Pycode),
+        handler: async () =>
+            BlocklypyViewerProvider.Get?.showViewAsync(ViewType.Pycode),
     },
     {
         command: Commands.DisplayPseudo,
-        handler: async () => BlocklypyViewerProvider.Get?.showView(ViewType.Pseudo),
+        handler: async () =>
+            BlocklypyViewerProvider.Get?.showViewAsync(ViewType.Pseudo),
     },
     {
         command: Commands.DisplayPreview,
-        handler: async () => BlocklypyViewerProvider.Get?.showView(ViewType.Preview),
+        handler: async () =>
+            BlocklypyViewerProvider.Get?.showViewAsync(ViewType.Preview),
     },
     {
         command: Commands.DisplayGraph,
-        handler: async () => BlocklypyViewerProvider.Get?.showView(ViewType.Graph),
+        handler: async () => BlocklypyViewerProvider.Get?.showViewAsync(ViewType.Graph),
     },
     {
         command: Commands.ShowPythonPreview,
@@ -117,7 +120,7 @@ export const CommandMetaData: CommandMetaDataEntryExtended[] = [
                     },
                 );
             } else {
-                showInfo('Open a Python file to preview.');
+                await showInfoAsync('Open a Python file to preview.');
             }
         },
     },
@@ -128,7 +131,7 @@ export const CommandMetaData: CommandMetaDataEntryExtended[] = [
                 PybricksPythonPreviewProvider.Get?.ActiveUri;
             if (!uri) return;
             const origialUri = PybricksPythonPreviewProvider.decodeUri(uri);
-            openOrActivate(origialUri);
+            await openOrActivateAsync(origialUri);
         },
     },
     {
@@ -141,11 +144,11 @@ export const CommandMetaData: CommandMetaDataEntryExtended[] = [
     },
     {
         command: Commands.CompileAndRun,
-        handler: compileAndRunAsync,
+        handler: async () => void (await compileAndRunAsync()),
     },
     {
         command: Commands.StartUserProgram,
-        handler: startUserProgramAsync,
+        handler: async () => void (await startUserProgramAsync()),
     },
     {
         command: Commands.StopUserProgram,
@@ -173,12 +176,12 @@ type CommandMetaDataEntryExtended = CommandMetaDataEntry & {
     handler?: CommandHandler;
 };
 
-type CommandHandler =
-    | ((...args: any[]) => Promise<any>)
-    | ((...args: any[]) => Thenable<any>);
+type CommandHandler = (...args: unknown[]) => Promise<unknown>;
 
 function getHandler(entry: CommandMetaDataEntryExtended): CommandHandler | undefined {
-    if (entry.handler) return wrapErrorHandling(entry.handler);
+    if (entry.handler) {
+        return wrapErrorHandling((...args: unknown[]) => entry.handler!(...args));
+    }
     if (entry.configkeyForHandler) {
         return async () => {
             await Config.toggleConfigValue(entry.configkeyForHandler!);
@@ -195,7 +198,9 @@ export function registerCommands(context: vscode.ExtensionContext) {
                 cmd.command,
                 getHandler(cmd) ??
                     (async () => {
-                        showInfo(`Command "${cmd.command}" not implemented yet.`);
+                        await showInfoAsync(
+                            `Command "${cmd.command}" not implemented yet.`,
+                        );
                     }),
             ),
         ),
@@ -215,9 +220,11 @@ export function getCommandsFromPackageJson(
 ): CommandMetaDataEntry[] {
     if (_commandsFromPackageJsonCache) return _commandsFromPackageJsonCache;
 
-    const packageEntries = context.extension.packageJSON.contributes.commands;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    const packageEntries = context.extension.packageJSON.contributes
+        .commands as CommandMetaDataEntry[];
     for (const entry of packageEntries) {
-        if (entry.title.startsWith(PACKAGEJSON_COMMAND_PREFIX)) {
+        if (entry.title?.startsWith(PACKAGEJSON_COMMAND_PREFIX)) {
             entry.title = entry.title.replace(PACKAGEJSON_COMMAND_PREFIX, '');
         }
     }

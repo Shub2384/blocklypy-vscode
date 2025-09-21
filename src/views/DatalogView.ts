@@ -36,11 +36,11 @@ export class DatalogView implements vscode.WebviewViewProvider {
         return provider;
     }
 
-    public async resolveWebviewView(
+    public resolveWebviewView(
         webviewView: vscode.WebviewView,
         _context: vscode.WebviewViewResolveContext,
         _token: vscode.CancellationToken,
-    ): Promise<void> {
+    ): void {
         this.currentWebviewView = webviewView;
 
         webviewView.webview.options = {
@@ -61,9 +61,11 @@ export class DatalogView implements vscode.WebviewViewProvider {
         webviewView.webview.html = this.getHtmlForWebview(scriptUri);
 
         // Initialize the from the webview with the last header data
-        setTimeout(async () => {
+        setTimeout(() => {
             if (!plotManager) return;
-            await this.setHeaders(plotManager.datalogcolumns, plotManager.data);
+            this.setHeaders(plotManager.datalogcolumns, plotManager.data).catch(
+                console.error,
+            );
         }, 100);
     }
 
@@ -74,14 +76,15 @@ export class DatalogView implements vscode.WebviewViewProvider {
 
         await this.currentWebviewView?.webview.postMessage({
             command: 'setHeaders',
-            payload: { cols, rows },
+            cols,
+            rows,
         });
     }
 
     public async addData(row: number[]) {
         await this.currentWebviewView?.webview.postMessage({
             command: 'addData',
-            payload: row,
+            row,
         });
     }
 
@@ -105,7 +108,7 @@ export class DatalogView implements vscode.WebviewViewProvider {
             </head>
             <body>
                 <div id="chart-container"></div>
-                <script src="${scriptSrc}"></script>
+                <script src="${scriptSrc.toString()}"></script>
             </body>
             </html>
         `;

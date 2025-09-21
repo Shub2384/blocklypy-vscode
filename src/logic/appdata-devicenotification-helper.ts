@@ -1,7 +1,7 @@
 import { DeviceNotificationPayload } from '../spike/utils/device-notification';
 
-export async function handleDeviceNotification(
-    payloads: DeviceNotificationPayload[] | undefined,
+export async function handleDeviceNotificationAsync(
+    _payloads: DeviceNotificationPayload[] | undefined,
 ) {
     // const data = payloads?.find((p) => p.type === 'imu');
     // // const data = payloads?.find((p) => p.type === 'force');

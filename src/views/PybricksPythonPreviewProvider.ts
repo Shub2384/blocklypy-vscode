@@ -20,7 +20,7 @@ export class PybricksPythonPreviewProvider
 {
     public static get Get(): PybricksPythonPreviewProvider | undefined {
         const provider = PybricksPythonPreviewProvider.getProviderByType(
-            PybricksPythonPreviewProvider.prototype.constructor as Function,
+            PybricksPythonPreviewProvider.prototype.constructor,
         );
         return provider as PybricksPythonPreviewProvider | undefined;
     }
@@ -65,7 +65,7 @@ export class PybricksPythonPreviewProvider
         };
     }
 
-    protected async refreshWebview(
+    protected async refreshWebviewAsync(
         document: vscode.CustomDocument,
         webviewPanel: vscode.WebviewPanel,
         _forced = false,
@@ -86,18 +86,24 @@ export class PybricksPythonPreviewProvider
             const result = await convertProjectToPython(files, {});
             const dependencygraph = result.dependencygraph;
             let content = '';
+
             if (dependencygraph) {
                 const graphviz = await GraphvizLoader();
-                content = await graphviz.dot(dependencygraph);
+                if (dependencygraph) {
+                    content = (await graphviz?.dot(dependencygraph)) ?? '';
+                }
             }
 
-            this.setContent(content, webviewPanel);
+            await this.setContentAsync(content, webviewPanel);
 
             // Set up file change monitoring (re-do every time to catch new imports)
             await this.monitorFileChanges(
                 document,
                 webviewPanel,
-                async () => await this.refreshWebview(document, webviewPanel),
+                () =>
+                    this.refreshWebviewAsync(document, webviewPanel).catch(
+                        console.error,
+                    ),
                 new Set<string>(modules.map((m) => m.path)),
             );
         } catch (error) {
@@ -112,8 +118,8 @@ export class PybricksPythonPreviewProvider
         // do nothing
     }
 
-    private setContent(content: string, webviewPanel: vscode.WebviewPanel) {
-        webviewPanel.webview.postMessage({
+    private async setContentAsync(content: string, webviewPanel: vscode.WebviewPanel) {
+        await webviewPanel.webview.postMessage({
             command: 'setContent',
             content,
         });
@@ -153,7 +159,7 @@ export class PybricksPythonPreviewProvider
             </style>
             <body>
                 <div id="graph-container"></div>
-                <script defer src="${scriptUri}"></script>
+                <script defer src="${String(scriptUri)}"></script>
             </body>
             </html>
         `;

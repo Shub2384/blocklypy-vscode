@@ -9,7 +9,7 @@ export abstract class BaseClient {
     static readonly supportsModularMpy: boolean;
 
     protected _device: DeviceMetadata | undefined;
-    protected _exitStack: (() => Promise<void>)[] = [];
+    protected _exitStack: (() => Promise<void> | void)[] = [];
     private _stdoutBuffer: string = '';
     private _stdoutTimer: NodeJS.Timeout | undefined = undefined;
 
@@ -37,19 +37,18 @@ export abstract class BaseClient {
         onFinalizing: (device: DeviceMetadata, name?: string) => void,
     ): Promise<void> {
         try {
-            this.runExitStack();
+            await this.runExitStack();
             this._device = device;
 
             //await withTimeout(
-            await this.connectWorker(device, onDeviceUpdated, onFinalizing),
-                //    10000,
-                //);
-                // if (!this.connected) {
-                //     throw new Error('Failed to connect');
-                // }
+            await this.connectWorker(device, onDeviceUpdated, onFinalizing);
+            //    10000,
+            //);
+            // if (!this.connected) {
+            //     throw new Error('Failed to connect');
+            // }
 
-                logDebug(`Connected to ${this.name}, ${this.description}`);
-            const connectedName = this.name;
+            logDebug(`Connected to ${this.name}, ${this.description}`);
             await Config.setConfigValue(ConfigKeys.DeviceLastConnected, this.name);
         } catch (error) {
             this._device = undefined;
@@ -58,8 +57,11 @@ export abstract class BaseClient {
     }
 
     protected connectWorker(
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         device: DeviceMetadata,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         onDeviceUpdated: (device: DeviceMetadata) => void,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         onFinalizing: (device: DeviceMetadata, name?: string) => void,
     ): Promise<void> {
         // Override in subclass if needed
@@ -71,12 +73,12 @@ export abstract class BaseClient {
             try {
                 await fn();
             } catch (error) {
-                logDebug(`Error during cleanup function : ${error}`);
+                logDebug(`Error during cleanup function : ${String(error)}`);
             }
         }
     }
 
-    protected abstract handleIncomingData(data: Buffer): void;
+    protected abstract handleIncomingDataAsync(data: Buffer): Promise<void>;
 
     protected async processStdoutData() {
         if (this._stdoutBuffer.length > 0) {
@@ -105,21 +107,23 @@ export abstract class BaseClient {
         // Set/reset 500ms timeout for any remaining partial line
         if (this._stdoutTimer) clearTimeout(this._stdoutTimer);
         if (this._stdoutBuffer.length > 0) {
-            this._stdoutTimer = setTimeout(async () => {
-                await this.processStdoutData();
-                this._stdoutTimer = undefined;
+            this._stdoutTimer = setTimeout(() => {
+                void this.processStdoutData().then(() => {
+                    this._stdoutTimer = undefined;
+                });
             }, 500);
         }
     }
 
-    public sendTerminalUserInput(text: string): void {
+    // eslint-disable-next-line @typescript-eslint/require-await
+    public async sendTerminalUserInputAsync(_text: string): Promise<void> {
         // Override in subclass if needed
         throw new Error('sendTerminalUserInput not implemented');
     }
 
-    public async action_start(slot?: number) {}
+    public async action_start(_slot?: number) {}
 
     public async action_stop() {}
 
-    public async action_upload(data: Uint8Array, slot?: number, filename?: string) {}
+    public async action_upload(_data: Uint8Array, _slot?: number, _filename?: string) {}
 }

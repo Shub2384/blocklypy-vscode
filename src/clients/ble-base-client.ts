@@ -15,18 +15,20 @@ export abstract class BleBaseClient extends BaseClient {
         const name = peripheral.advertisement.localName;
 
         await peripheral.connectAsync();
-        this._exitStack.push(async () => {
+        this._exitStack.push(() => {
             peripheral.removeAllListeners('disconnect');
-            onDeviceRemoved && onDeviceRemoved(device, name);
+            if (onDeviceRemoved) onDeviceRemoved(device, name);
         });
 
-        peripheral.on('disconnect', async () => {
-            logDebug(`Disconnected from ${name}`);
-            await clearPythonErrors();
-            // Do not call disconnectAsync recursively
-            this.runExitStack();
-            this._device = undefined;
-        });
+        peripheral.on('disconnect', () => void this.handleDisconnectAsync(name));
+    }
+
+    private async handleDisconnectAsync(name: string) {
+        logDebug(`Disconnected from ${name}`);
+        clearPythonErrors();
+        // Do not call disconnectAsync recursively
+        await this.runExitStack();
+        this._device = undefined;
     }
 
     public async disconnect() {
@@ -37,7 +39,7 @@ export abstract class BleBaseClient extends BaseClient {
             peripheral?.disconnect();
             this._device = undefined;
         } catch (error) {
-            logDebug(`Error during disconnect: ${error}`);
+            logDebug(`Error during disconnect: ${String(error)}`);
         }
     }
 }

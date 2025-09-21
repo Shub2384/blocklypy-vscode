@@ -1,5 +1,7 @@
 import svgPanZoom from 'svg-pan-zoom';
 
+console.log('PythonPreviewWebview loaded');
+
 window.addEventListener('DOMContentLoaded', () => {
     getPanZoom();
 });
@@ -8,12 +10,18 @@ window.addEventListener('resize', () => {
     panzoomFitCenter();
 });
 
-window.addEventListener('message', (event) => {
-    const { command, content } = event.data || {};
-    if (command === 'setContent') {
-        setContent(content);
-    }
-});
+type PythonPreviewWebviewMessage = { command: 'setContent'; content: string };
+
+window.addEventListener(
+    'message',
+    (event: MessageEvent<{ command?: string; content?: string }>) => {
+        const data = event.data as PythonPreviewWebviewMessage;
+        const { command, content } = data || {};
+        if (command === 'setContent') {
+            setContent(content || '');
+        }
+    },
+);
 
 function setContent(data: string) {
     _panzoomInstance = undefined;
