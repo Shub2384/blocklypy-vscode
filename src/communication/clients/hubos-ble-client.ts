@@ -1,21 +1,21 @@
 import noble from '@abandonware/noble';
-import { DeviceMetadata } from '.';
+import { DeviceMetadata } from '..';
 import {
     SPIKE_RX_CHAR_UUID,
     SPIKE_SERVICE_UUID,
     SPIKE_TX_CHAR_UUID,
-} from '../spike/protocol';
-import { RequestMessage, ResponseMessage } from '../spike/spike-messages/base-message';
-import { ProductGroupDeviceTypeMap } from '../spike/spike-messages/info-response-message';
-import { BleBaseClient } from './ble-base-client';
-import { HubOSHandler } from './common/hubos-common';
+} from '../../spike/protocol';
+import { ResponseMessage } from '../../spike/spike-messages/base-message';
+import { ProductGroupDeviceTypeMap } from '../../spike/spike-messages/info-response-message';
+import { HubOSHandler } from '../common/hubos-common';
+import { DeviceMetadataWithPeripheral } from '../layers/ble-layer';
+import { HubOSBaseClient } from './hubos-base-client';
 
-export class BleHubOsClient extends BleBaseClient {
+export class HubOSBleClient extends HubOSBaseClient {
     public static readonly devtype = 'hubos-ble';
     public static readonly devname = 'HubOS on BLE';
     public static readonly supportsModularMpy = false;
 
-    private _hubOSHandler: HubOSHandler | undefined;
     private _rxCharacteristic: noble.Characteristic | undefined;
     private _txCharacteristic: noble.Characteristic | undefined;
     private _pendingMessagesPromises = new Map<
@@ -28,14 +28,22 @@ export class BleHubOsClient extends BleBaseClient {
 
     public get description(): string | undefined {
         const capabilities = this._hubOSHandler?.capabilities;
-        if (!capabilities) return BleHubOsClient.devname;
+        if (!capabilities) return HubOSBleClient.devname;
 
         const hubType =
             ProductGroupDeviceTypeMap[capabilities?.productGroupDeviceType] ??
             'Unknown Hub';
         const { rpcMajor, rpcMinor, rpcBuild, fwMajor, fwMinor, fwBuild } =
             capabilities;
-        return `${hubType} with ${BleHubOsClient.devname}, firmware: ${fwMajor}.${fwMinor}.${fwBuild}, software: ${rpcMajor}.${rpcMinor}.${rpcBuild}`;
+        return `${hubType} with ${HubOSBleClient.devname}, firmware: ${fwMajor}.${fwMinor}.${fwBuild}, software: ${rpcMajor}.${rpcMinor}.${rpcBuild}`;
+    }
+
+    public get connected() {
+        return this.metadata?.peripheral?.state === 'connected';
+    }
+
+    protected get metadata() {
+        return this._metadata as DeviceMetadataWithPeripheral;
     }
 
     constructor(metadata: DeviceMetadata | undefined) {
@@ -46,12 +54,32 @@ export class BleHubOsClient extends BleBaseClient {
         );
     }
 
+    protected async disconnectWorker() {
+        if (this.connected) this.metadata.peripheral?.disconnect();
+        return Promise.resolve();
+    }
+
     protected async connectWorker(
         onDeviceUpdated: (device: DeviceMetadata) => void,
-        onDeviceRemoved: (device: DeviceMetadata, name?: string) => void,
+        onDeviceRemoved: (device: DeviceMetadata) => void,
     ) {
-        await super.connectWorker(onDeviceUpdated, onDeviceRemoved);
+        // --- BLE specific stuff
+        const metadata = this.metadata;
+        const device = metadata.peripheral;
+        if (!device) throw new Error('No peripheral in metadata');
 
+        await device.connectAsync();
+        this._exitStack.push(() => {
+            device.removeAllListeners('disconnect');
+            if (onDeviceRemoved) onDeviceRemoved(metadata);
+        });
+
+        device.on(
+            'disconnect',
+            () => void this.handleDisconnectAsync(this.metadata.id),
+        );
+
+        // --- Discover services and characteristics
         const peripheral = this.metadata.peripheral;
         if (!peripheral) throw new Error('No peripheral in metadata');
 
@@ -86,7 +114,7 @@ export class BleHubOsClient extends BleBaseClient {
         });
     }
 
-    public async write(data: Uint8Array, withoutResponse: boolean = false) {
+    public async write(data: Uint8Array, withoutResponse: boolean = true) {
         const packetSize =
             this._hubOSHandler?.capabilities?.maxPacketSize ?? data.length;
         for (let loop = 0; loop < data.length; loop += packetSize) {
@@ -96,16 +124,6 @@ export class BleHubOsClient extends BleBaseClient {
                 withoutResponse,
             );
         }
-    }
-
-    protected async sendMessage<TResponse extends ResponseMessage>(
-        message: RequestMessage,
-    ): Promise<TResponse | undefined> {
-        return this._hubOSHandler?.sendMessage<TResponse>(message);
-    }
-
-    protected async handleIncomingDataAsync(data: Buffer) {
-        await this._hubOSHandler?.handleIncomingDataAsync(data);
     }
 
     // eslint-disable-next-line @typescript-eslint/require-await
@@ -119,25 +137,5 @@ export class BleHubOsClient extends BleBaseClient {
         // const message = new TunnelMessage(Buffer.from(text, 'utf-8'));
         // const response = await this.sendMessage(message);
         // console.log('TunnelMessage response:', response);
-    }
-
-    public async action_start(slot?: number) {
-        await this._hubOSHandler?.action_start(slot);
-    }
-
-    public async action_stop() {
-        await this._hubOSHandler?.action_stop();
-    }
-
-    public async action_upload(
-        data: Uint8Array,
-        slot_input?: number,
-        filename?: string,
-    ) {
-        await this._hubOSHandler?.action_upload(data, slot_input, filename);
-    }
-
-    public async action_clear_all_slots() {
-        await this._hubOSHandler?.action_clear_all_slots();
     }
 }

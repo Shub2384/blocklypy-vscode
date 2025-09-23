@@ -1,10 +1,11 @@
-import { ConnectionStatus, DeviceMetadata } from '.';
-import { logDebug } from '../extension/debug-channel';
-import { CommandsTree } from '../extension/tree-commands';
-import { DevicesTree } from '../extension/tree-devices';
-import { setState, StateProp } from '../logic/state';
-import { withTimeout } from '../utils/async';
-import { BaseClient } from './base-client';
+import { ConnectionStatus, DeviceMetadata } from '..';
+import { logDebug } from '../../extension/debug-channel';
+import { CommandsTree } from '../../extension/tree-commands';
+import { DevicesTree } from '../../extension/tree-devices';
+import { setState, StateProp } from '../../logic/state';
+import { withTimeout } from '../../utils/async';
+import { BaseClient } from '../base-client';
+import { PybricksBleClient } from '../clients/pybricks-ble-client';
 
 // TODO: remove _client / activeCLient from layer -> move it to the manager //!!
 
@@ -49,9 +50,10 @@ export abstract class BaseLayer {
                         (device) => {
                             this._listeners.forEach((fn) => fn(device));
                         },
-                        (_device, id) => {
-                            // need to remove this as pybricks creates a random BLE id on each reconnect
-                            if (id) this._allDevices.delete(id);
+                        (_device) => {
+                            // // need to remove this as pybricks creates a random BLE id on each reconnect
+                            if (_device.devtype === PybricksBleClient.devtype && !!id)
+                                this._allDevices.delete(id);
 
                             this.status = ConnectionStatus.Disconnected;
                             // setState(StateProp.Connected, false);
@@ -64,7 +66,7 @@ export abstract class BaseLayer {
                         console.error('Error during client.connect:', err);
                         throw err;
                     }),
-                10000,
+                10 * 1000,
             );
 
             this._exitStack.push(() => {

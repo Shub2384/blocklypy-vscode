@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
-import { CommLayerManager } from './clients/manager';
 import { connectDeviceAsync } from './commands/connect-device';
 import { disconnectDeviceAsync } from './commands/disconnect-device';
 import { stopUserProgramAsync } from './commands/stop-user-program';
+import { ConnectionManager } from './communication/connection-manager';
 import { Commands, registerCommands } from './extension/commands';
 import { registerContextUtils } from './extension/context-utils';
 import { logDebug, registerDebugTerminal } from './extension/debug-channel';
@@ -78,14 +78,14 @@ export function activate(context: vscode.ExtensionContext) {
         void onTerminalUserInput(input);
     });
 
-    CommLayerManager.startup().catch(console.error);
+    ConnectionManager.startup().catch(console.error);
 
     // Start BLE scanning at startup and keep it running
     // eslint-disable-next-line @typescript-eslint/no-misused-promises
     setTimeout(async () => {
         logDebug('BlocklyPy Commander started up successfully.', true);
 
-        await CommLayerManager.waitForReadyAsync();
+        await ConnectionManager.waitForReadyAsync();
         // await Device.startScanning();
 
         // autoconnect to last connected device
@@ -93,7 +93,7 @@ export function activate(context: vscode.ExtensionContext) {
             const id = Config.deviceLastConnected;
             const { devtype } = Config.decodeDeviceKey(id);
 
-            await CommLayerManager.waitTillDeviceAppearsAsync(id, devtype, 15000);
+            await ConnectionManager.waitTillDeviceAppearsAsync(id, devtype, 15000);
             if (!hasState(StateProp.Connected) && !hasState(StateProp.Connecting))
                 await connectDeviceAsync(id, devtype);
         }
@@ -105,7 +105,7 @@ export async function deactivate() {
         // Place cleanup logic here
         await wrapErrorHandling(stopUserProgramAsync)();
         await wrapErrorHandling(disconnectDeviceAsync)();
-        CommLayerManager.finalize();
+        ConnectionManager.finalize();
     } catch (err) {
         console.error('Error during deactivation:', err);
     }

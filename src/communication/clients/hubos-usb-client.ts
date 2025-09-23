@@ -1,29 +1,18 @@
 import { SerialPort } from 'serialport';
-import { DeviceMetadata } from '.';
-import { RequestMessage, ResponseMessage } from '../spike/spike-messages/base-message';
-import { pack, unpack } from '../spike/spike-messages/cobs';
-import { GetHubNameRequestMessage } from '../spike/spike-messages/get-hub-name-request-message';
-import { GetHubNameResponseMessage } from '../spike/spike-messages/get-hub-name-response-message';
-import { ProductGroupDeviceTypeMap } from '../spike/spike-messages/info-response-message';
-import { BaseClient } from './base-client';
-import { HubOSHandler } from './common/hubos-common';
-import { DeviceMetadataForUSB } from './usb-layer';
+import { DeviceMetadata } from '..';
+import { pack, unpack } from '../../spike/spike-messages/cobs';
+import { GetHubNameRequestMessage } from '../../spike/spike-messages/get-hub-name-request-message';
+import { GetHubNameResponseMessage } from '../../spike/spike-messages/get-hub-name-response-message';
+import { ProductGroupDeviceTypeMap } from '../../spike/spike-messages/info-response-message';
+import { DeviceMetadataForUSB } from '../layers/usb-layer';
+import { HubOSBaseClient } from './hubos-base-client';
 
-export class UsbHubOsClient extends BaseClient {
+export class HubOSUsbClient extends HubOSBaseClient {
     public static readonly devtype = 'hubos-usb';
     public static readonly devname = 'HubOS on USB';
     public static readonly supportsModularMpy = false;
 
-    private _hubOSHandler: HubOSHandler | undefined;
     private _serialPort: SerialPort | undefined;
-
-    constructor(metadata: DeviceMetadata | undefined) {
-        super(metadata);
-        this._hubOSHandler = new HubOSHandler(
-            (data: Uint8Array) => this.write(data),
-            (text) => this.handleWriteStdout(text),
-        );
-    }
 
     public get metadata(): DeviceMetadataForUSB | undefined {
         return this._metadata as DeviceMetadataForUSB;
@@ -31,14 +20,14 @@ export class UsbHubOsClient extends BaseClient {
 
     public get description(): string | undefined {
         const capabilities = this._hubOSHandler?.capabilities;
-        if (!capabilities) return UsbHubOsClient.devname;
+        if (!capabilities) return HubOSUsbClient.devname;
 
         const hubType =
             ProductGroupDeviceTypeMap[capabilities?.productGroupDeviceType] ??
             'Unknown Hub';
         const { rpcMajor, rpcMinor, rpcBuild, fwMajor, fwMinor, fwBuild } =
             capabilities;
-        return `${hubType} with ${UsbHubOsClient.devname}, firmware: ${fwMajor}.${fwMinor}.${fwBuild}, software: ${rpcMajor}.${rpcMinor}.${rpcBuild}`;
+        return `${hubType} with ${HubOSUsbClient.devname}, firmware: ${fwMajor}.${fwMinor}.${fwBuild}, software: ${rpcMajor}.${rpcMinor}.${rpcBuild}`;
     }
 
     public get connected() {
@@ -81,7 +70,7 @@ export class UsbHubOsClient extends BaseClient {
     public static async getNameFromDevice(
         metadata: DeviceMetadataForUSB,
     ): Promise<string | undefined> {
-        const serial = await UsbHubOsClient.connectInternal(metadata);
+        const serial = await HubOSUsbClient.connectInternal(metadata);
 
         const namePromise = new Promise<string | undefined>((resolve, reject) => {
             serial.on('data', (data: Buffer) => {
@@ -98,7 +87,7 @@ export class UsbHubOsClient extends BaseClient {
         const name = await namePromise;
 
         serial.removeAllListeners();
-        await UsbHubOsClient.closeInternal(serial);
+        await HubOSUsbClient.closeInternal(serial);
 
         return name;
     }
@@ -115,7 +104,7 @@ export class UsbHubOsClient extends BaseClient {
     public static async refreshDeviceName(
         metadata: DeviceMetadataForUSB,
     ): Promise<void> {
-        const name = await UsbHubOsClient.getNameFromDevice(metadata);
+        const name = await HubOSUsbClient.getNameFromDevice(metadata);
         if (name) metadata.name = name;
 
         // update and refresh
@@ -123,21 +112,24 @@ export class UsbHubOsClient extends BaseClient {
     }
 
     protected async connectWorker(
-        onDeviceUpdated: (device: DeviceMetadata) => void,
-        onDeviceRemoved: (device: DeviceMetadata, id?: string) => void,
+        _onDeviceUpdated: (device: DeviceMetadata) => void,
+        onDeviceRemoved: (device: DeviceMetadata) => void,
     ) {
-        await super.connectWorker(onDeviceUpdated, onDeviceRemoved);
-
-        const device = this.metadata?.portinfo;
+        const metadata = this.metadata;
+        const device = metadata?.portinfo;
         if (!device) throw new Error('No portinfo in metadata');
 
-        this._serialPort = await UsbHubOsClient.connectInternal(this.metadata);
+        this._serialPort = await HubOSUsbClient.connectInternal(metadata);
+        this._exitStack.push(() => {
+            if (onDeviceRemoved) onDeviceRemoved(metadata);
+        });
+
         this._serialPort.on(
             'data',
             (data) => void this.handleIncomingDataAsync(data as Buffer),
         );
         this._exitStack.push(async () => {
-            await UsbHubOsClient.closeInternal(this._serialPort!);
+            await HubOSUsbClient.closeInternal(this._serialPort!);
             this._serialPort?.removeAllListeners();
             this._hubOSHandler = undefined;
             this._serialPort = undefined;
@@ -147,35 +139,5 @@ export class UsbHubOsClient extends BaseClient {
         await this._hubOSHandler?.initialize();
 
         // await this._hubOSHandler?.setDeviceNotifications(100);
-    }
-
-    protected async sendMessage<TResponse extends ResponseMessage>(
-        message: RequestMessage,
-    ): Promise<TResponse | undefined> {
-        return this._hubOSHandler?.sendMessage<TResponse>(message);
-    }
-
-    protected async handleIncomingDataAsync(data: Buffer) {
-        await this._hubOSHandler?.handleIncomingDataAsync(data);
-    }
-
-    public async action_start(slot?: number) {
-        await this._hubOSHandler?.action_start(slot);
-    }
-
-    public async action_stop() {
-        await this._hubOSHandler?.action_stop();
-    }
-
-    public async action_upload(
-        _data: Uint8Array,
-        _slot?: number,
-        _filename?: string,
-    ): Promise<void> {
-        await this._hubOSHandler?.action_upload(_data, _slot, _filename);
-    }
-
-    public async action_clear_all_slots() {
-        await this._hubOSHandler?.action_clear_all_slots();
     }
 }

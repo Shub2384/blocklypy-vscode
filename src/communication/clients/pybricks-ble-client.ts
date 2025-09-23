@@ -1,8 +1,8 @@
 import noble from '@abandonware/noble';
 import semver from 'semver';
-import { DeviceMetadata } from '.';
-import { handleDeviceNotificationAsync } from '../logic/appdata-devicenotification-helper';
-import { setState, StateProp } from '../logic/state';
+import { DeviceMetadata } from '..';
+import { handleDeviceNotificationAsync } from '../../logic/appdata-devicenotification-helper';
+import { setState, StateProp } from '../../logic/state';
 import {
     decodePnpId,
     deviceInformationServiceUUID,
@@ -11,7 +11,7 @@ import {
     PnpId,
     pnpIdUUID,
     softwareRevisionStringUUID,
-} from '../pybricks/ble-device-info-service/protocol';
+} from '../../pybricks/ble-device-info-service/protocol';
 import {
     createStartUserProgramCommand,
     createStopUserProgramCommand,
@@ -26,13 +26,14 @@ import {
     pybricksServiceUUID,
     Status,
     statusToFlag,
-} from '../pybricks/ble-pybricks-service/protocol';
+} from '../../pybricks/ble-pybricks-service/protocol';
 import {
     checkIsDeviceNotification,
     parseDeviceNotificationPayloads,
-} from '../spike/utils/device-notification';
-import { BleBaseClient } from './ble-base-client';
-import { uuid128, uuidStr } from './utils';
+} from '../../spike/utils/device-notification';
+import { BaseClient } from '../base-client';
+import { DeviceMetadataWithPeripheral } from '../layers/ble-layer';
+import { uuid128, uuidStr } from '../utils';
 
 interface Capabilities {
     maxWriteSize: number;
@@ -47,7 +48,7 @@ interface VersionInfo {
     pnpId: PnpId;
 }
 
-export class BlePybricksClient extends BleBaseClient {
+export class PybricksBleClient extends BaseClient {
     public static readonly devtype = 'pybricks-ble';
     public static readonly devname = 'Pybricks on BLE';
     public static readonly supportsModularMpy = true;
@@ -63,20 +64,47 @@ export class BlePybricksClient extends BleBaseClient {
             : 'Unknown hub';
         const firmware = this._version?.firmware ?? 'unknown';
         const software = this._version?.software ?? 'unknown';
-        return `${hubType} with ${BlePybricksClient.devname}, firmware: ${firmware}, software: ${software}`;
+        return `${hubType} with ${PybricksBleClient.devname}, firmware: ${firmware}, software: ${software}`;
     }
 
     public get capabilities() {
         return this._capabilities;
     }
 
+    public get connected() {
+        return this.metadata?.peripheral?.state === 'connected';
+    }
+
+    protected get metadata() {
+        return this._metadata as DeviceMetadataWithPeripheral;
+    }
+
+    protected async disconnectWorker() {
+        if (this.connected) this.metadata.peripheral?.disconnect();
+        return Promise.resolve();
+    }
+
     protected async connectWorker(
         onDeviceUpdated: (device: DeviceMetadata) => void,
         onDeviceRemoved: (device: DeviceMetadata, id?: string) => void,
     ) {
-        await super.connectWorker(onDeviceUpdated, onDeviceRemoved);
+        // --- BLE specific stuff
+        const metadata = this.metadata;
+        const device = metadata.peripheral;
+        if (!device) throw new Error('No peripheral in metadata');
 
-        const device = this.metadata.peripheral;
+        await device.connectAsync();
+        this._exitStack.push(() => {
+            device.removeAllListeners('disconnect');
+            if (onDeviceRemoved) onDeviceRemoved(metadata);
+        });
+
+        device.on(
+            'disconnect',
+            () => void this.handleDisconnectAsync(this.metadata.id),
+        );
+
+        // --- Discover services and characteristics
         const discoveredServicesandCharacterisitics =
             await device.discoverSomeServicesAndCharacteristicsAsync(
                 [pybricksServiceUUID, uuid128(deviceInformationServiceUUID)],
@@ -143,7 +171,7 @@ export class BlePybricksClient extends BleBaseClient {
         // Notify listeners of RSSI update
         device.on(
             'rssiUpdate',
-            () => onDeviceUpdated && onDeviceUpdated(this.metadata as DeviceMetadata),
+            () => onDeviceUpdated && onDeviceUpdated(metadata as DeviceMetadata),
         );
         this._exitStack.push(() => {
             clearInterval(rssiUpdater);

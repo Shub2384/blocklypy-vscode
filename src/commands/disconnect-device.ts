@@ -1,4 +1,4 @@
-import { CommLayerManager } from '../clients/manager';
+import { ConnectionManager } from '../communication/connection-manager';
 import { hasState, StateProp } from '../logic/state';
 import { stopUserProgramAsync } from './stop-user-program';
 
@@ -11,5 +11,5 @@ export async function disconnectDeviceAsync() {
         await stopUserProgramAsync();
     }
 
-    await CommLayerManager.disconnect();
+    await ConnectionManager.disconnect();
 }

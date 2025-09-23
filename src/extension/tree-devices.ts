@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
-import { DeviceMetadata } from '../clients';
-import { CommLayerManager } from '../clients/manager';
+import { DeviceMetadata } from '../communication';
+import { ConnectionManager } from '../communication/connection-manager';
 import { EXTENSION_KEY } from '../const';
 import { Commands } from './commands';
 import { BaseTreeDataProvider, TreeItemData } from './tree-base';
@@ -18,8 +18,8 @@ class DevicesTreeDataProvider extends BaseTreeDataProvider<TreeItemDeviceData> {
         const item = super.getTreeItem(element);
         if (element.title && element.id) {
             const active =
-                element?.id === CommLayerManager.client?.id &&
-                CommLayerManager.client?.connected
+                element?.id === ConnectionManager.client?.id &&
+                ConnectionManager.client?.connected
                     ? '🔵 '
                     : '';
             item.label = `${active}${element.title} [${element.contextValue}]`;
@@ -48,7 +48,7 @@ class DevicesTreeDataProvider extends BaseTreeDataProvider<TreeItemDeviceData> {
     }
 
     refreshCurrentItem() {
-        const id = CommLayerManager.client?.id;
+        const id = ConnectionManager.client?.id;
         if (!id) return;
         const item = this.deviceMap.get(id);
         if (item) this.refreshItem(item);
@@ -97,7 +97,7 @@ function registerDevicesTree(context: vscode.ExtensionContext) {
             DevicesTree.refreshItem(item);
         }
     };
-    CommLayerManager.addListener(addDevice);
+    ConnectionManager.addListener(addDevice);
 
     // Periodically remove devices not seen for X seconds
     // Except for currently connected device, that will not broadcast, yet it should stay in the list
@@ -105,7 +105,7 @@ function registerDevicesTree(context: vscode.ExtensionContext) {
         const now = Date.now();
         let changed = false;
         for (const [id, item] of DevicesTree.deviceMap.entries()) {
-            if (CommLayerManager.client?.id === id) continue;
+            if (ConnectionManager.client?.id === id) continue;
 
             if (now > (item.validTill ?? 0)) {
                 DevicesTree.deviceMap.delete(id);
@@ -120,7 +120,7 @@ function registerDevicesTree(context: vscode.ExtensionContext) {
     context.subscriptions.push(
         treeview,
         new vscode.Disposable(() => {
-            CommLayerManager.removeListener(addDevice);
+            ConnectionManager.removeListener(addDevice);
             clearInterval(timer);
         }),
     );

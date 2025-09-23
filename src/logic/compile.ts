@@ -2,7 +2,7 @@ import { compile } from '@pybricks/mpy-cross-v6';
 import { parse, walk } from '@pybricks/python-program-analysis';
 import path from 'path';
 import * as vscode from 'vscode';
-import { CommLayerManager } from '../clients/manager';
+import { ConnectionManager } from '../communication/connection-manager';
 import { BlocklypyViewerProvider } from '../views/BlocklypyViewerProvider';
 import { setState, StateProp } from './state';
 
@@ -87,7 +87,7 @@ export async function compileAsync(
             }
 
             // Compile one module
-            if (CommLayerManager.client?.supportsModularMpy || parts.length === 0) {
+            if (ConnectionManager.client?.supportsModularMpy || parts.length === 0) {
                 // Either the device supports modular .mpy files, or there is only one
                 const [status, mpy] = await compileInternal(
                     module.path,
@@ -112,7 +112,7 @@ export async function compileAsync(
     }
 
     // Check if modular .mpy files are supported or just a single file is needed
-    if (CommLayerManager.client?.supportsModularMpy) {
+    if (ConnectionManager.client?.supportsModularMpy) {
         const blob = new Blob(parts);
         const buffer = await blob.arrayBuffer();
         return {

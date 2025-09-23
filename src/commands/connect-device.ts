@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { CommLayerManager } from '../clients/manager';
+import { ConnectionManager } from '../communication/connection-manager';
 import { showError } from '../extension/diagnostics';
 import { hasState, StateProp } from '../logic/state';
 
@@ -14,7 +14,7 @@ export async function connectDeviceAsyncAny(...args: any[]): Promise<any> {
 
 export async function connectDeviceAsync(id: string, devtype: string) {
     if (!id?.length || !devtype?.length) {
-        const items = CommLayerManager.allDevices.map(
+        const items = ConnectionManager.allDevices.map(
             ({ name, devtype, metadata }) => ({
                 label: name,
                 description: devtype,
@@ -32,10 +32,10 @@ export async function connectDeviceAsync(id: string, devtype: string) {
     }
 
     if (hasState(StateProp.Connected)) {
-        await CommLayerManager.disconnect();
+        await ConnectionManager.disconnect();
 
         // same device selected, will disappear, and will need to re-appear
-        await CommLayerManager.waitTillDeviceAppearsAsync(id, devtype, 1000);
+        await ConnectionManager.waitTillDeviceAppearsAsync(id, devtype, 1000);
     }
 
     await vscode.window.withProgress(
@@ -45,7 +45,7 @@ export async function connectDeviceAsync(id: string, devtype: string) {
         },
         async () => {
             // if a name is provided, connect directly
-            await CommLayerManager.connect(id, devtype);
+            await ConnectionManager.connect(id, devtype);
         },
     );
 }

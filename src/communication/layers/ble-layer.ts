@@ -1,20 +1,20 @@
 import noble, { Peripheral } from '@abandonware/noble';
 import _ from 'lodash';
-import { DeviceMetadata } from '.';
-import { isDevelopmentMode } from '../extension';
-import { setState, StateProp } from '../logic/state';
-import { pnpIdUUID } from '../pybricks/ble-device-info-service/protocol';
-import { pybricksServiceUUID } from '../pybricks/ble-pybricks-service/protocol';
+import { DeviceMetadata } from '..';
+import { isDevelopmentMode } from '../../extension';
+import { setState, StateProp } from '../../logic/state';
+import { pnpIdUUID } from '../../pybricks/ble-device-info-service/protocol';
+import { pybricksServiceUUID } from '../../pybricks/ble-pybricks-service/protocol';
 import {
     pybricksDecodeBleBroadcastData,
     PybricksDecodedBleBroadcast,
-} from '../pybricks/protocol-ble-broadcast';
-import { SPIKE_SERVICE_UUID16 } from '../spike/protocol';
-import { withTimeout } from '../utils/async';
+} from '../../pybricks/protocol-ble-broadcast';
+import { SPIKE_SERVICE_UUID16 } from '../../spike/protocol';
+import { withTimeout } from '../../utils/async';
+import { HubOSBleClient } from '../clients/hubos-ble-client';
+import { PybricksBleClient } from '../clients/pybricks-ble-client';
+import { uuid128, uuid16 } from '../utils';
 import { BaseLayer } from './base-layer';
-import { BleHubOsClient } from './ble-hubos-client';
-import { BlePybricksClient } from './ble-pybricks-client';
-import { uuid128, uuid16 } from './utils';
 
 const BLE_DEVICE_VISIBILITY_TIMEOUT = 10000; // milliseconds
 
@@ -45,8 +45,8 @@ export class BLELayer extends BaseLayer {
 
     public supportsDevtype(_devtype: string) {
         return (
-            BlePybricksClient.devtype === _devtype ||
-            BleHubOsClient.devtype === _devtype
+            PybricksBleClient.devtype === _devtype ||
+            HubOSBleClient.devtype === _devtype
         );
     }
 
@@ -91,8 +91,8 @@ export class BLELayer extends BaseLayer {
 
             const devtype =
                 isPybricks || isPybricksAdv
-                    ? BlePybricksClient.devtype
-                    : BleHubOsClient.devtype;
+                    ? PybricksBleClient.devtype
+                    : HubOSBleClient.devtype;
             const targetId = DeviceMetadataWithPeripheral.generateId(
                 devtype,
                 advertisement.localName,
@@ -148,11 +148,11 @@ export class BLELayer extends BaseLayer {
         if (!metadata) throw new Error(`Device ${name} not found.`);
 
         switch (metadata.devtype) {
-            case BlePybricksClient.devtype:
-                this._client = new BlePybricksClient(metadata);
+            case PybricksBleClient.devtype:
+                this._client = new PybricksBleClient(metadata);
                 break;
-            case BleHubOsClient.devtype:
-                this._client = new BleHubOsClient(metadata);
+            case HubOSBleClient.devtype:
+                this._client = new HubOSBleClient(metadata);
                 break;
             default:
                 throw new Error(`Unknown device type: ${metadata.devtype}`);

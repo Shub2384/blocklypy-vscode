@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { DeviceMetadata } from '../clients';
+import { DeviceMetadata } from '../communication';
 import { EXTENSION_KEY } from '../const';
 
 // const CONFIG_BASEKEY = EXTENSION_KEY + '.';

@@ -1,15 +1,15 @@
 import { PortInfo } from '@serialport/bindings-interface';
 import { DelimiterParser, SerialPort } from 'serialport';
 import { usb } from 'usb';
-import { DeviceMetadata } from '.';
+import { DeviceMetadata } from '..';
 import {
     SPIKE_USB_PRODUCT_ID,
     SPIKE_USB_PRODUCT_ID_NUM,
     SPIKE_USB_VENDOR_ID,
     SPIKE_USB_VENDOR_ID_NUM,
-} from '../spike/protocol';
+} from '../../spike/protocol';
+import { HubOSUsbClient } from '../clients/hubos-usb-client';
 import { BaseLayer } from './base-layer';
-import { UsbHubOsClient } from './usb-hubos-client';
 
 export class DeviceMetadataForUSB extends DeviceMetadata {
     private _resolvedName: string | undefined = undefined;
@@ -42,7 +42,7 @@ export class USBLayer extends BaseLayer {
     private _parser?: DelimiterParser;
 
     public supportsDevtype(_devtype: string) {
-        return UsbHubOsClient.devtype === _devtype;
+        return HubOSUsbClient.devtype === _devtype;
     }
 
     constructor() {
@@ -111,7 +111,7 @@ export class USBLayer extends BaseLayer {
             for (const port of portsOk) {
                 const serialNumber = port.serialNumber ?? 'unknown';
                 const newMetadata = new DeviceMetadataForUSB(
-                    UsbHubOsClient.devtype,
+                    HubOSUsbClient.devtype,
                     port,
                     serialNumber,
                 );
@@ -119,10 +119,10 @@ export class USBLayer extends BaseLayer {
                 try {
                     this._allDevices.set(newMetadata.id, newMetadata);
 
-                    if (newMetadata.devtype === UsbHubOsClient.devtype) {
+                    if (newMetadata.devtype === HubOSUsbClient.devtype) {
                         setTimeout(
                             () =>
-                                void UsbHubOsClient.refreshDeviceName(newMetadata)
+                                void HubOSUsbClient.refreshDeviceName(newMetadata)
                                     .then(() =>
                                         this._listeners.forEach((fn) =>
                                             fn(newMetadata),
@@ -148,8 +148,8 @@ export class USBLayer extends BaseLayer {
         if (!metadata) throw new Error(`Device ${id} not found.`);
 
         switch (metadata.devtype) {
-            case UsbHubOsClient.devtype:
-                this._client = new UsbHubOsClient(metadata);
+            case HubOSUsbClient.devtype:
+                this._client = new HubOSUsbClient(metadata);
                 break;
             default:
                 throw new Error(`Unknown device type: ${metadata.devtype}`);

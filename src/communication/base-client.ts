@@ -1,5 +1,6 @@
 import { DeviceMetadata } from '.';
 import { logDebug, logDebugFromHub } from '../extension/debug-channel';
+import { clearPythonErrors } from '../extension/diagnostics';
 import { handleStdOutDataHelpers } from '../logic/stdout-helper';
 import Config, { ConfigKeys } from '../utils/config';
 
@@ -39,11 +40,33 @@ export abstract class BaseClient {
 
     public abstract write(data: Uint8Array, withoutResponse: boolean): Promise<void>;
 
-    public abstract disconnect(): Promise<void>;
+    public async disconnect(): Promise<void> {
+        try {
+            console.log('Disconnecting...');
+            await this.runExitStack();
+            await this.disconnectWorker();
+            this._metadata = undefined;
+        } catch (error) {
+            logDebug(`Error during disconnect: ${String(error)}`);
+        }
+    }
+
+    protected async disconnectWorker(): Promise<void> {
+        // Override in subclass if needed
+        return Promise.resolve();
+    }
+
+    protected async handleDisconnectAsync(id: string) {
+        logDebug(`Disconnected from ${id}`);
+        clearPythonErrors();
+        // Do not call disconnectAsync recursively
+        await this.runExitStack();
+        this._metadata = undefined;
+    }
 
     public async connect(
         onDeviceUpdated: (device: DeviceMetadata) => void,
-        onFinalizing: (device: DeviceMetadata, name?: string) => void,
+        onFinalizing: (device: DeviceMetadata) => void,
     ): Promise<void> {
         try {
             await this.runExitStack();
@@ -68,15 +91,12 @@ export abstract class BaseClient {
         }
     }
 
-    protected connectWorker(
+    protected abstract connectWorker(
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         onDeviceUpdated: (device: DeviceMetadata) => void,
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        onFinalizing: (device: DeviceMetadata, name?: string) => void,
-    ): Promise<void> {
-        // Override in subclass if needed
-        return Promise.resolve();
-    }
+        onFinalizing: (device: DeviceMetadata) => void,
+    ): Promise<void>;
 
     protected async runExitStack() {
         for (const fn of this._exitStack) {

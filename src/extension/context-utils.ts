@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { CommLayerManager } from '../clients/manager';
+import { ConnectionManager } from '../communication/connection-manager';
 import { EXTENSION_KEY } from '../const';
 import {
     hasState,
@@ -38,7 +38,7 @@ export function registerContextUtils(context: vscode.ExtensionContext) {
                 setState(StateProp.Running, false);
 
                 const msg = hasState(StateProp.Connected)
-                    ? `Connected to ${CommLayerManager.client?.name}`
+                    ? `Connected to ${ConnectionManager.client?.name}`
                     : 'Disconnected';
                 setStatusBarItem(event.value, msg, msg);
 

@@ -1,12 +1,12 @@
 import { DeviceMetadata } from '.';
 import { showWarning } from '../extension/diagnostics';
-import { BaseLayer } from './base-layer';
-import { BLELayer } from './ble-layer';
-import { USBLayer } from './usb-layer';
+import { BaseLayer } from './layers/base-layer';
+import { BLELayer } from './layers/ble-layer';
+import { USBLayer } from './layers/usb-layer';
 
 // TODO: remove _client / activeCLient from layer -> move it to the manager //!!
 
-export class CommLayerManager {
+export class ConnectionManager {
     private static busy = false;
     private static layers: BaseLayer[] = [];
     private static bleLayer: BLELayer | undefined = undefined;
@@ -117,4 +117,4 @@ export class CommLayerManager {
     }
 }
 
-CommLayerManager.initialize();
+ConnectionManager.initialize();

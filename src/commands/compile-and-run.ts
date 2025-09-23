@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 
-import { CommLayerManager } from '../clients/manager';
+import { ConnectionManager } from '../communication/connection-manager';
 import { clearDebugLog, logDebug } from '../extension/debug-channel';
 import { clearPythonErrors } from '../extension/diagnostics';
 import { compileAsync } from '../logic/compile';
@@ -21,7 +21,7 @@ export async function compileAndRunAsync(
         },
         async () => {
             try {
-                if (!hasState(StateProp.Connected) || !CommLayerManager.client)
+                if (!hasState(StateProp.Connected) || !ConnectionManager.client)
                     throw new Error(
                         'No device selected. Please connect to a device first.',
                     );
@@ -33,9 +33,9 @@ export async function compileAndRunAsync(
                 } = await compileAsync(compileMode);
 
                 const slot = slot_header ?? slot_input;
-                await CommLayerManager.client.action_stop();
-                await CommLayerManager.client.action_upload(data, slot, filename);
-                await CommLayerManager.client.action_start(slot);
+                await ConnectionManager.client.action_stop();
+                await ConnectionManager.client.action_upload(data, slot, filename);
+                await ConnectionManager.client.action_start(slot);
 
                 logDebug(
                     `User program compiled (${data.byteLength} bytes) and started successfully.`,
