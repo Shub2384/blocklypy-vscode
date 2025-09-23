@@ -2,44 +2,56 @@ import { DeviceMetadata } from '.';
 import { logDebug } from '../extension/debug-channel';
 import { clearPythonErrors } from '../extension/diagnostics';
 import { BaseClient } from './base-client';
+import { DeviceMetadataWithPeripheral } from './ble-layer';
 
 export abstract class BleBaseClient extends BaseClient {
     protected async connectWorker(
-        device: DeviceMetadata,
         onDeviceUpdated: (device: DeviceMetadata) => void,
-        onDeviceRemoved: (device: DeviceMetadata, name?: string) => void,
+        onDeviceRemoved: (device: DeviceMetadata, id?: string) => void,
     ) {
-        await super.connectWorker(device, onDeviceUpdated, onDeviceRemoved);
+        await super.connectWorker(onDeviceUpdated, onDeviceRemoved);
 
-        const peripheral = device.peripheral;
-        const name = peripheral.advertisement.localName;
+        const metadata = this.metadata;
+        const device = metadata.peripheral;
+        if (!device) throw new Error('No peripheral in metadata');
+        const id = device.advertisement.localName;
 
-        await peripheral.connectAsync();
+        await device.connectAsync();
         this._exitStack.push(() => {
-            peripheral.removeAllListeners('disconnect');
-            if (onDeviceRemoved) onDeviceRemoved(device, name);
+            device.removeAllListeners('disconnect');
+            if (onDeviceRemoved) onDeviceRemoved(metadata, id);
         });
 
-        peripheral.on('disconnect', () => void this.handleDisconnectAsync(name));
+        device.on('disconnect', () => void this.handleDisconnectAsync(id));
     }
 
-    private async handleDisconnectAsync(name: string) {
-        logDebug(`Disconnected from ${name}`);
+    private async handleDisconnectAsync(id: string) {
+        logDebug(`Disconnected from ${id}`);
         clearPythonErrors();
         // Do not call disconnectAsync recursively
         await this.runExitStack();
-        this._device = undefined;
+        this._metadata = undefined;
     }
 
     public async disconnect() {
         try {
             console.log('Disconnecting...');
-            const peripheral = this._device?.peripheral;
+            const metadata = this._metadata as DeviceMetadataWithPeripheral;
+            const peripheral = metadata?.peripheral;
             await this.runExitStack();
             peripheral?.disconnect();
-            this._device = undefined;
+            this._metadata = undefined;
         } catch (error) {
             logDebug(`Error during disconnect: ${String(error)}`);
         }
+    }
+
+    public get connected() {
+        const device = this._metadata as DeviceMetadataWithPeripheral | undefined;
+        return device?.peripheral?.state === 'connected';
+    }
+
+    protected get metadata() {
+        return this._metadata as DeviceMetadataWithPeripheral;
     }
 }

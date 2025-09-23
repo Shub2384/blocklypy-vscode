@@ -10,7 +10,7 @@ import { compileAsync } from '../logic/compile';
 import Config, { ConfigKeys } from '../utils/config';
 import { BlocklypyViewerProvider, ViewType } from '../views/BlocklypyViewerProvider';
 import { PybricksPythonPreviewProvider } from '../views/PybricksPythonPreviewProvider';
-import { showInfoAsync } from './diagnostics';
+import { showInfo } from './diagnostics';
 import { SettingsTree } from './tree-settings';
 import { openOrActivate as openOrActivateAsync, wrapErrorHandling } from './utils';
 
@@ -120,7 +120,7 @@ export const CommandMetaData: CommandMetaDataEntryExtended[] = [
                     },
                 );
             } else {
-                await showInfoAsync('Open a Python file to preview.');
+                showInfo('Open a Python file to preview.');
             }
         },
     },
@@ -197,10 +197,8 @@ export function registerCommands(context: vscode.ExtensionContext) {
             vscode.commands.registerCommand(
                 cmd.command,
                 getHandler(cmd) ??
-                    (async () => {
-                        await showInfoAsync(
-                            `Command "${cmd.command}" not implemented yet.`,
-                        );
+                    (() => {
+                        showInfo(`Command "${cmd.command}" not implemented yet.`);
                     }),
             ),
         ),

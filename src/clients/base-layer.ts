@@ -6,14 +6,15 @@ import { setState, StateProp } from '../logic/state';
 import { withTimeout } from '../utils/async';
 import { BaseClient } from './base-client';
 
+// TODO: remove _client / activeCLient from layer -> move it to the manager //!!
+
 export abstract class BaseLayer {
     private _status: ConnectionStatus = ConnectionStatus.Disconnected;
     protected _allDevices = new Map<string, DeviceMetadata>();
     protected _client: BaseClient | undefined = undefined;
     protected _exitStack: (() => Promise<void> | void)[] = [];
-    private _listeners: ((device: DeviceMetadata) => void)[] = [];
-
-    constructor() {}
+    protected _listeners: ((device: DeviceMetadata) => void)[] = [];
+    protected _isStartedUp: boolean = false;
 
     public get client() {
         return this._client;
@@ -23,25 +24,34 @@ export abstract class BaseLayer {
         return this._status;
     }
 
-    public async connect(name: string) {
+    public supportsDevtype(_devtype: string) {
+        return false;
+    }
+
+    public startup(): Promise<void> {
+        this._isStartedUp = true;
+        return Promise.resolve();
+    }
+
+    public async connect(id: string, devtype: string) {
         if (!this._client) throw new Error('Client not initialized');
         if (this._client?.connected) await this._client.disconnect();
 
-        const metadata = this._allDevices.get(name);
-        if (!metadata) throw new Error(`Device ${name} not found.`);
+        const metadata = this._allDevices.get(id);
+        if (!metadata || metadata.devtype !== devtype)
+            throw new Error(`Device ${id} not found with ${devtype}.`);
 
         try {
             this.status = ConnectionStatus.Connecting;
             await withTimeout(
                 this._client
                     .connect(
-                        metadata,
                         (device) => {
                             this._listeners.forEach((fn) => fn(device));
                         },
-                        (_device, name) => {
+                        (_device, id) => {
                             // need to remove this as pybricks creates a random BLE id on each reconnect
-                            if (name) this._allDevices.delete(name);
+                            if (id) this._allDevices.delete(id);
 
                             this.status = ConnectionStatus.Disconnected;
                             // setState(StateProp.Connected, false);
@@ -76,7 +86,7 @@ export abstract class BaseLayer {
 
         if (this.status !== ConnectionStatus.Connected) {
             await this.disconnect();
-            throw new Error(`Failed to connect to ${name}: Timeout`);
+            throw new Error(`Failed to connect to ${id}: Timeout`);
         }
     }
 
@@ -134,11 +144,42 @@ export abstract class BaseLayer {
         DevicesTree.refreshCurrentItem();
     }
 
-    protected get allDevices() {
+    public get allDevices() {
         return this._allDevices;
     }
 
-    public getDeviceByName(name: string): DeviceMetadata | undefined {
-        return this._allDevices.get(name);
+    public hasDevice(id: string): boolean {
+        return this._allDevices.has(id);
+    }
+
+    public getDeviceById(id: string): DeviceMetadata | undefined {
+        return this._allDevices.get(id);
+    }
+
+    public waitForReadyAsync(_timeout: number = 10000): Promise<void> {
+        throw new Error('Not implemented');
+    }
+
+    public waitTillDeviceAppearsAsync(
+        id: string,
+        devtype: string,
+        timeout: number = 10000,
+    ): Promise<void> | void {
+        if (this._allDevices.has(id)) return;
+
+        const start = Date.now();
+        return new Promise<void>((res, rej) => {
+            const listener = (device: DeviceMetadata) => {
+                if (device.id === id && device.devtype === devtype) {
+                    this.removeListener(listener);
+                    res();
+                } else if (Date.now() - start > timeout) {
+                    // TODO: revisit
+                    this.removeListener(listener);
+                    rej(new Error('Timeout waiting for device'));
+                }
+            };
+            this.addListener(listener);
+        });
     }
 }

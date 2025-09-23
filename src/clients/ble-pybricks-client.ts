@@ -57,25 +57,13 @@ export class BlePybricksClient extends BleBaseClient {
     private _capabilities: Capabilities | undefined;
     private _version: VersionInfo | undefined;
 
-    constructor() {
-        super();
-    }
-
-    public get name() {
-        return this._device?.peripheral?.advertisement.localName;
-    }
-
     public get description() {
-        const osType = 'Pybricks';
-        return `${
-            this._version ? getHubTypeName(this._version?.pnpId) : 'Unknown hub'
-        } with ${osType} firmware: ${this._version?.firmware}, software: ${
-            this._version?.software
-        }`;
-    }
-
-    public get connected() {
-        return this._device?.peripheral.state === 'connected';
+        const hubType = this._version
+            ? getHubTypeName(this._version?.pnpId)
+            : 'Unknown hub';
+        const firmware = this._version?.firmware ?? 'unknown';
+        const software = this._version?.software ?? 'unknown';
+        return `${hubType} with ${BlePybricksClient.devname}, firmware: ${firmware}, software: ${software}`;
     }
 
     public get capabilities() {
@@ -83,31 +71,14 @@ export class BlePybricksClient extends BleBaseClient {
     }
 
     protected async connectWorker(
-        device: DeviceMetadata,
         onDeviceUpdated: (device: DeviceMetadata) => void,
-        onDeviceRemoved: (device: DeviceMetadata, name?: string) => void,
+        onDeviceRemoved: (device: DeviceMetadata, id?: string) => void,
     ) {
-        await super.connectWorker(device, onDeviceUpdated, onDeviceRemoved);
+        await super.connectWorker(onDeviceUpdated, onDeviceRemoved);
 
-        const peripheral = device.peripheral;
-        // await peripheral.connectAsync();
-        // this._exitStack.push(async () => {
-        //     peripheral.removeAllListeners('disconnect');
-        //     onDeviceRemoved &&
-        //         onDeviceRemoved(device, device.peripheral.advertisement.localName);
-        // });
-
-        // peripheral.on('disconnect', async () => {
-        //     if (!this.connected) return;
-        //     logDebug(`Disconnected from ${peripheral?.advertisement.localName}`);
-        //     await clearPythonErrors();
-        //     // Do not call disconnectAsync recursively
-        //     await this.runExitStack();
-        //     this._device = undefined;
-        // });
-
+        const device = this.metadata.peripheral;
         const discoveredServicesandCharacterisitics =
-            await peripheral.discoverSomeServicesAndCharacteristicsAsync(
+            await device.discoverSomeServicesAndCharacteristicsAsync(
                 [pybricksServiceUUID, uuid128(deviceInformationServiceUUID)],
                 [
                     pybricksControlEventCharacteristicUUID,
@@ -168,12 +139,15 @@ export class BlePybricksClient extends BleBaseClient {
         }
 
         // Repeatedly update RSSI
-        const rssiUpdater = setInterval(() => peripheral.updateRssi(), 1000);
+        const rssiUpdater = setInterval(() => device.updateRssi(), 1000);
         // Notify listeners of RSSI update
-        peripheral.on('rssiUpdate', () => onDeviceUpdated && onDeviceUpdated(device));
+        device.on(
+            'rssiUpdate',
+            () => onDeviceUpdated && onDeviceUpdated(this.metadata as DeviceMetadata),
+        );
         this._exitStack.push(() => {
             clearInterval(rssiUpdater);
-            peripheral.removeAllListeners();
+            device.removeAllListeners();
         });
     }
 
@@ -215,7 +189,6 @@ export class BlePybricksClient extends BleBaseClient {
         }
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     private async handleIncomingAppData(data: Buffer) {
         await this.handleIncomingDataAsync_DeviceNotification(data);
     }

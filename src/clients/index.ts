@@ -1,10 +1,21 @@
-import { Peripheral } from '@abandonware/noble';
-import { PybricksDecodedBleBroadcast } from '../pybricks/protocol-ble-broadcast';
-
-export interface DeviceMetadata {
-    devtype: string;
-    peripheral: Peripheral;
-    lastBroadcast?: PybricksDecodedBleBroadcast;
+export class DeviceMetadata {
+    constructor(public devtype: string) {}
+    public validTill: number = Number.MAX_VALUE;
+    public get rssi(): number | undefined {
+        return undefined;
+    }
+    public get broadcastAsString(): string | undefined {
+        return undefined;
+    }
+    public get name(): string | undefined {
+        throw new Error('Not implemented');
+    }
+    public get id(): string {
+        return DeviceMetadata.generateId(this.devtype, this.name ?? '');
+    }
+    public static generateId(devtype: string, id: string): string {
+        return `${devtype}:${id}`;
+    }
 }
 
 export enum ConnectionStatus {

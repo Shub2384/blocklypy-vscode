@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { showErrorAsync } from './diagnostics';
+import { showError } from './diagnostics';
 
 export function ToCapialized(s: string) {
     return s.charAt(0).toUpperCase() + s.slice(1);
@@ -40,7 +40,7 @@ export function wrapErrorHandling(fn: (...args: unknown[]) => Promise<unknown>) 
             await fn(...args);
         } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
-            await showErrorAsync(message);
+            showError(message);
             console.error(error);
         }
     };

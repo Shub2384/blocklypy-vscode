@@ -11,6 +11,8 @@ import { DeviceNotificationRequestMessage } from './device-notification-request-
 import { DeviceNotificationResponseMessage } from './device-notification-response-message';
 import { DeviceUuidRequestMessage } from './device-uuid-request-message';
 import { DeviceUuidResponseMessage } from './device-uuid-response-message';
+import { GetHubNameRequestMessage } from './get-hub-name-request-message';
+import { GetHubNameResponseMessage } from './get-hub-name-response-message';
 import { InfoRequestMessage } from './info-request-message';
 import { InfoResponseMessage } from './info-response-message';
 import { ListPathRequestMessage } from './list-path-request-message';
@@ -20,6 +22,8 @@ import { MoveSlotResponseMessage } from './move-slot-response-message';
 import { ProgramFlowNotificationMessage } from './program-flow-notification-message';
 import { ProgramFlowRequestMessage } from './program-flow-request-message';
 import { ProgramFlowResponseMessage } from './program-flow-response-message';
+import { SetHubNameRequestMessage } from './set-hub-name-request-message';
+import { SetHubNameResponseMessage } from './set-hub-name-response-message';
 import { StartFileDownloadRequestMessage } from './start-file-download-request-message';
 import { StartFileDownloadResponseMessage } from './start-file-download-response-message';
 import { StartFileUploadRequestMessage } from './start-file-upload-request-message';
@@ -50,10 +54,10 @@ export const SpikeMessageMap: { [id: number]: MessageConstructor } = {
     [TransferChunkResponseMessage.Id]: TransferChunkResponseMessage, // 0x11
     [BeginFirmwareUpdateRequestMessage.Id]: BeginFirmwareUpdateRequestMessage, // 0x14
     [BeginFirmwareUpdateResponseMessage.Id]: BeginFirmwareUpdateResponseMessage, // 0x15
-    // 0x16	SetHubNameRequest
-    // 0x17	SetHubNameResponse
-    // 0x18	GetHubNameRequest
-    // 0x19	GetHubNameResponse
+    [SetHubNameRequestMessage.Id]: SetHubNameRequestMessage, // 0x16
+    [SetHubNameResponseMessage.Id]: SetHubNameResponseMessage, // 0x17
+    [GetHubNameRequestMessage.Id]: GetHubNameRequestMessage, // 0x18
+    [GetHubNameResponseMessage.Id]: GetHubNameResponseMessage, // 0x19
     [DeviceUuidRequestMessage.Id]: DeviceUuidRequestMessage, // 0x1a
     [DeviceUuidResponseMessage.Id]: DeviceUuidResponseMessage, // 0x1b
     [ProgramFlowRequestMessage.Id]: ProgramFlowRequestMessage, // 0x1e

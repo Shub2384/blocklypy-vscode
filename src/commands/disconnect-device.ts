@@ -1,4 +1,4 @@
-import { bleLayer } from '../clients/ble-layer';
+import { CommLayerManager } from '../clients/manager';
 import { hasState, StateProp } from '../logic/state';
 import { stopUserProgramAsync } from './stop-user-program';
 
@@ -11,5 +11,5 @@ export async function disconnectDeviceAsync() {
         await stopUserProgramAsync();
     }
 
-    await bleLayer.disconnect();
+    await CommLayerManager.disconnect();
 }

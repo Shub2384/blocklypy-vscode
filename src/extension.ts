@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { bleLayer } from './clients/ble-layer';
+import { CommLayerManager } from './clients/manager';
 import { connectDeviceAsync } from './commands/connect-device';
 import { disconnectDeviceAsync } from './commands/disconnect-device';
 import { stopUserProgramAsync } from './commands/stop-user-program';
@@ -78,22 +78,24 @@ export function activate(context: vscode.ExtensionContext) {
         void onTerminalUserInput(input);
     });
 
+    CommLayerManager.startup().catch(console.error);
+
     // Start BLE scanning at startup and keep it running
     // eslint-disable-next-line @typescript-eslint/no-misused-promises
     setTimeout(async () => {
         logDebug('BlocklyPy Commander started up successfully.', true);
 
-        await bleLayer.waitForReadyAsync();
+        await CommLayerManager.waitForReadyAsync();
         // await Device.startScanning();
 
         // autoconnect to last connected device
         if (Config.deviceAutoConnect && Config.deviceLastConnected) {
-            await bleLayer.waitTillDeviceAppearsAsync(
-                Config.deviceLastConnected,
-                15000,
-            );
+            const id = Config.deviceLastConnected;
+            const { devtype } = Config.decodeDeviceKey(id);
+
+            await CommLayerManager.waitTillDeviceAppearsAsync(id, devtype, 15000);
             if (!hasState(StateProp.Connected) && !hasState(StateProp.Connecting))
-                await connectDeviceAsync(Config.deviceLastConnected);
+                await connectDeviceAsync(id, devtype);
         }
     }, 500);
 }
@@ -103,7 +105,7 @@ export async function deactivate() {
         // Place cleanup logic here
         await wrapErrorHandling(stopUserProgramAsync)();
         await wrapErrorHandling(disconnectDeviceAsync)();
-        bleLayer.stopScanning();
+        CommLayerManager.finalize();
     } catch (err) {
         console.error('Error during deactivation:', err);
     }
@@ -136,7 +138,7 @@ process.on('uncaughtException', (err) => {
     // vscode.window.showErrorMessage('Uncaught Exception: ' + err.message);
 });
 
-process.on('unhandledRejection', (reason, promise) => {
+process.on('unhandledRejection', (reason, _promise) => {
     if (isDevelopmentMode) console.error('Unhandled Rejection:', reason);
     // Optionally show a VS Code error message:
     // vscode.window.showErrorMessage('Unhandled Rejection: ' + String(reason));

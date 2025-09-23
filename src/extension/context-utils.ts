@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { bleLayer } from '../clients/ble-layer';
+import { CommLayerManager } from '../clients/manager';
 import { EXTENSION_KEY } from '../const';
 import {
     hasState,
@@ -38,7 +38,7 @@ export function registerContextUtils(context: vscode.ExtensionContext) {
                 setState(StateProp.Running, false);
 
                 const msg = hasState(StateProp.Connected)
-                    ? `Connected to ${bleLayer.client?.name}`
+                    ? `Connected to ${CommLayerManager.client?.name}`
                     : 'Disconnected';
                 setStatusBarItem(event.value, msg, msg);
 

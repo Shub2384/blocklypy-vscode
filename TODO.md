@@ -55,6 +55,8 @@
   72, MoveSlotResponse: 73, ListPathRequest: 74, ListPathResponse: 75,
   DeletePathRequest: 76, DeletePathResponse: 77
 
+- !! move client / state handling to connmanager
+
 ## Reference
 
 - <https://code.visualstudio.com/api/references/contribution-points>

@@ -1,15 +1,14 @@
 import * as vscode from 'vscode';
 import { DeviceMetadata } from '../clients';
-import { bleLayer } from '../clients/ble-layer';
+import { CommLayerManager } from '../clients/manager';
 import { EXTENSION_KEY } from '../const';
 import { Commands } from './commands';
 import { BaseTreeDataProvider, TreeItemData } from './tree-base';
 
-const DEVICE_VISIBILITY_TIMEOUT = 30000; // milliseconds
-const DEVICE_VISIBILITY_CHECK_INTERVAL = 10000; // milliseconds
+const DEVICE_VISIBILITY_CHECK_INTERVAL = 1000; // milliseconds
 
 export interface TreeItemDeviceData extends TreeItemData {
-    lastSeen?: number;
+    validTill?: number;
 }
 
 class DevicesTreeDataProvider extends BaseTreeDataProvider<TreeItemDeviceData> {
@@ -17,12 +16,13 @@ class DevicesTreeDataProvider extends BaseTreeDataProvider<TreeItemDeviceData> {
 
     getTreeItem(element: TreeItemDeviceData): vscode.TreeItem {
         const item = super.getTreeItem(element);
-        if (element.id) {
+        if (element.title && element.id) {
             const active =
-                element?.id === bleLayer.client?.name && bleLayer.client?.connected
+                element?.id === CommLayerManager.client?.id &&
+                CommLayerManager.client?.connected
                     ? '🔵 '
                     : '';
-            item.label = `${active}${element.id} [${element.contextValue}]`;
+            item.label = `${active}${element.title} [${element.contextValue}]`;
         }
         return item;
     }
@@ -48,11 +48,10 @@ class DevicesTreeDataProvider extends BaseTreeDataProvider<TreeItemDeviceData> {
     }
 
     refreshCurrentItem() {
-        const name = bleLayer.client?.name;
-        if (!name) return;
-        const item = this.deviceMap.get(name);
-        if (!item) return;
-        this.refreshItem(item);
+        const id = CommLayerManager.client?.id;
+        if (!id) return;
+        const item = this.deviceMap.get(id);
+        if (item) this.refreshItem(item);
     }
 }
 
@@ -65,48 +64,51 @@ function registerDevicesTree(context: vscode.ExtensionContext) {
         treeDataProvider: DevicesTree,
     });
 
-    const addDevice = (device: DeviceMetadata) => {
-        const peripheral = device.peripheral;
-        const name = peripheral.advertisement.localName;
-        if (!name) return;
+    const addDevice = (metadata: DeviceMetadata) => {
+        const id = metadata.id;
+        if (!id) return;
 
-        const item = DevicesTree.deviceMap.get(name) ?? ({} as TreeItemDeviceData);
+        const item = DevicesTree.deviceMap.get(id) ?? ({} as TreeItemDeviceData);
         const isNew = item.command === undefined;
+        const name = metadata.name ?? 'Unknown';
+        const validTill = metadata.validTill;
         Object.assign(item, {
             name,
-            id: name,
+            id,
             title: name,
             command: Commands.ConnectDevice,
-            commandArguments: [name],
-            icon: getSignalIcon(peripheral.rssi),
-            description: device.lastBroadcast
-                ? `⛁ ${String(device.lastBroadcast.data)}`
+            commandArguments: [id, metadata.devtype],
+            description: metadata.broadcastAsString
+                ? `⛁ ${metadata.broadcastAsString}`
                 : '',
             //  on ch:${device.lastBroadcast.channel}
-            lastSeen: Date.now(),
-            contextValue: device.devtype,
+            validTill,
+            contextValue: metadata.devtype,
         } as TreeItemDeviceData);
 
+        if (metadata.rssi !== undefined) {
+            item.icon = getSignalIcon(metadata.rssi);
+        }
+
         if (isNew) {
-            DevicesTree.deviceMap.set(name, item);
+            DevicesTree.deviceMap.set(id, item);
             DevicesTree.refresh();
         } else {
             DevicesTree.refreshItem(item);
         }
     };
-    bleLayer.addListener(addDevice);
+    CommLayerManager.addListener(addDevice);
 
     // Periodically remove devices not seen for X seconds
     // Except for currently connected device, that will not broadcast, yet it should stay in the list
     const timer = setInterval(() => {
         const now = Date.now();
         let changed = false;
-        for (const [name, item] of DevicesTree.deviceMap.entries()) {
-            if (bleLayer.client?.name === name) continue;
+        for (const [id, item] of DevicesTree.deviceMap.entries()) {
+            if (CommLayerManager.client?.id === id) continue;
 
-            const lastSeen = item.lastSeen;
-            if (lastSeen && now - lastSeen > DEVICE_VISIBILITY_TIMEOUT) {
-                DevicesTree.deviceMap.delete(name);
+            if (now > (item.validTill ?? 0)) {
+                DevicesTree.deviceMap.delete(id);
                 changed = true;
             }
         }
@@ -118,14 +120,14 @@ function registerDevicesTree(context: vscode.ExtensionContext) {
     context.subscriptions.push(
         treeview,
         new vscode.Disposable(() => {
-            bleLayer.removeListener(addDevice);
+            CommLayerManager.removeListener(addDevice);
             clearInterval(timer);
         }),
     );
 }
 
 function getSignalIcon(rssi?: number) {
-    if (rssi === undefined) return '';
+    if (rssi === undefined) return undefined;
     const levels = [-85, -70, -60, -45];
     // const levels = [-95, -80, -70, -60]; // chrome values
     const idx = levels.findIndex((level) => rssi <= level);

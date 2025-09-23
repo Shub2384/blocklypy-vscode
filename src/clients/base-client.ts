@@ -8,10 +8,14 @@ export abstract class BaseClient {
     static readonly devname: string;
     static readonly supportsModularMpy: boolean;
 
-    protected _device: DeviceMetadata | undefined;
+    protected _metadata: DeviceMetadata | undefined;
     protected _exitStack: (() => Promise<void> | void)[] = [];
     private _stdoutBuffer: string = '';
     private _stdoutTimer: NodeJS.Timeout | undefined = undefined;
+
+    constructor(metadata: DeviceMetadata | undefined) {
+        this._metadata = metadata;
+    }
 
     public get devtype(): string {
         return (this.constructor as typeof BaseClient).devtype;
@@ -21,7 +25,13 @@ export abstract class BaseClient {
         return (this.constructor as typeof BaseClient).supportsModularMpy;
     }
 
-    public abstract get name(): string | undefined;
+    public get name(): string | undefined {
+        return this._metadata?.name;
+    }
+
+    public get id(): string | undefined {
+        return this._metadata?.id;
+    }
 
     public abstract get description(): string | undefined;
 
@@ -32,33 +42,33 @@ export abstract class BaseClient {
     public abstract disconnect(): Promise<void>;
 
     public async connect(
-        device: DeviceMetadata,
         onDeviceUpdated: (device: DeviceMetadata) => void,
         onFinalizing: (device: DeviceMetadata, name?: string) => void,
     ): Promise<void> {
         try {
             await this.runExitStack();
-            this._device = device;
 
             //await withTimeout(
-            await this.connectWorker(device, onDeviceUpdated, onFinalizing);
+            await this.connectWorker(onDeviceUpdated, onFinalizing);
             //    10000,
             //);
             // if (!this.connected) {
             //     throw new Error('Failed to connect');
             // }
 
+            if (!this.name) throw new Error('Failed to get device name');
+
             logDebug(`Connected to ${this.name}, ${this.description}`);
-            await Config.setConfigValue(ConfigKeys.DeviceLastConnected, this.name);
+            Config.encodeDeviceKey(this.name, this.devtype);
+
+            await Config.setConfigValue(ConfigKeys.DeviceLastConnected, this.id);
         } catch (error) {
-            this._device = undefined;
+            this._metadata = undefined;
             throw error;
         }
     }
 
     protected connectWorker(
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        device: DeviceMetadata,
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         onDeviceUpdated: (device: DeviceMetadata) => void,
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -76,6 +86,7 @@ export abstract class BaseClient {
                 logDebug(`Error during cleanup function : ${String(error)}`);
             }
         }
+        this._exitStack = [];
     }
 
     protected abstract handleIncomingDataAsync(data: Buffer): Promise<void>;

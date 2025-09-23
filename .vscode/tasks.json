@@ -5,11 +5,11 @@
     "tasks": [
         {
             "type": "npm",
-            "script": "watch",
+            "script": "watch-dev",
             "problemMatcher": "$ts-webpack-watch",
             "isBackground": true,
             "presentation": {
-                "reveal": "never",
+                "reveal": "silent",
                 "group": "watchers"
             },
             "group": {

@@ -1,34 +1,41 @@
 import * as vscode from 'vscode';
-import { bleLayer } from '../clients/ble-layer';
-import { showErrorAsync } from '../extension/diagnostics';
+import { CommLayerManager } from '../clients/manager';
+import { showError } from '../extension/diagnostics';
 import { hasState, StateProp } from '../logic/state';
-
-// const items: vscode.QuickPickItem[] = [];
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function connectDeviceAsyncAny(...args: any[]): Promise<any> {
-    await connectDeviceAsync(args[0] as string);
+    const id = args[0] as string | undefined;
+    const devtype = args[1] as string | undefined;
+    if (!id || !devtype) return;
+
+    await connectDeviceAsync(id, devtype);
 }
 
-export async function connectDeviceAsync(name: string) {
-    if (!name?.length) {
-        const items = [...bleLayer.allDevices.entries()].map(([name, _metadata]) => ({
-            label: name,
-        }));
+export async function connectDeviceAsync(id: string, devtype: string) {
+    if (!id?.length || !devtype?.length) {
+        const items = CommLayerManager.allDevices.map(
+            ({ name, devtype, metadata }) => ({
+                label: name,
+                description: devtype,
+                devtype,
+                id: metadata.id,
+            }),
+        );
         if (!items.length) {
-            await showErrorAsync('No devices found. Please make sure Bluetooth is on.');
+            showError('No devices found. Please make sure Bluetooth is on.');
             return;
         }
-        name =
+        id =
             (await vscode.window.showQuickPick(items, { placeHolder: 'Select device' }))
-                ?.label ?? '';
+                ?.id ?? '';
     }
 
     if (hasState(StateProp.Connected)) {
-        await bleLayer.disconnect();
+        await CommLayerManager.disconnect();
 
         // same device selected, will disappear, and will need to re-appear
-        await bleLayer.waitTillDeviceAppearsAsync(name, 1000);
+        await CommLayerManager.waitTillDeviceAppearsAsync(id, devtype, 1000);
     }
 
     await vscode.window.withProgress(
@@ -38,7 +45,7 @@ export async function connectDeviceAsync(name: string) {
         },
         async () => {
             // if a name is provided, connect directly
-            await bleLayer.connect(name);
+            await CommLayerManager.connect(id, devtype);
         },
     );
 }

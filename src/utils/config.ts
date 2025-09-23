@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { DeviceMetadata } from '../clients';
 import { EXTENSION_KEY } from '../const';
 
 // const CONFIG_BASEKEY = EXTENSION_KEY + '.';
@@ -64,6 +65,14 @@ class Config {
     }
     public static toggleConfigValue(key: ConfigKeys, value?: boolean) {
         return this.toggleBoolean(key, value);
+    }
+
+    public static encodeDeviceKey(name: string, devtype: string) {
+        DeviceMetadata.generateId(name, devtype);
+    }
+    public static decodeDeviceKey(value: string) {
+        const [devtype, name] = value ? value.split(/:(.+)/).slice(0, 2) : [];
+        return { name, devtype };
     }
 }
 export default Config;

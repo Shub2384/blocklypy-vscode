@@ -1,17 +1,22 @@
 import * as vscode from 'vscode';
 
-import { bleLayer } from '../clients/ble-layer';
-import { BleSpikeClient } from '../clients/ble-spike-client';
+import { BleHubOsClient } from '../clients/ble-hubos-client';
+import { CommLayerManager } from '../clients/manager';
+import { UsbHubOsClient } from '../clients/usb-hubos-client';
 import { hasState, StateProp } from '../logic/state';
 
 export async function clearAllSlots() {
-    if (!hasState(StateProp.Connected) || !bleLayer.client) {
+    if (!hasState(StateProp.Connected) || !CommLayerManager.client) {
         throw new Error('No device selected. Please connect to a device first.');
     }
 
-    if (bleLayer.client.devtype !== BleSpikeClient.devtype) {
+    if (
+        ![BleHubOsClient.devtype, UsbHubOsClient.devtype].includes(
+            CommLayerManager.client.devtype,
+        )
+    ) {
         throw new Error(
-            `The connected device (${bleLayer.client.devtype}) does not support clearing all slots.`,
+            `The connected device (${CommLayerManager.client.devtype}) does not support clearing all slots.`,
         );
     }
 
@@ -23,8 +28,11 @@ export async function clearAllSlots() {
         )) === 'Yes';
     if (!confirmed) return;
 
-    await (bleLayer.client as BleSpikeClient).action_clear_all_slots();
+    if (CommLayerManager.client.devtype === BleHubOsClient.devtype)
+        await (CommLayerManager.client as BleHubOsClient).action_clear_all_slots();
+    if (CommLayerManager.client.devtype === UsbHubOsClient.devtype)
+        await (CommLayerManager.client as UsbHubOsClient).action_clear_all_slots();
 
     // workaround to reset to heart slot
-    await bleLayer.client.action_start(0);
+    await CommLayerManager.client.action_start(0);
 }

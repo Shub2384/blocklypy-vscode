@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { showErrorAsync } from '../extension/diagnostics';
+import { showError } from '../extension/diagnostics';
 
 export abstract class CustomEditorFileWatcherBase {
     protected pollInterval?: NodeJS.Timeout;
@@ -35,7 +35,7 @@ export abstract class CustomEditorFileWatcherBase {
                 );
             });
             if (isMainInWorkspace && hasNonWorkspaceWatched) {
-                await showErrorAsync(
+                showError(
                     'Mixing workspace and non-workspace files for monitoring is not supported.',
                 );
             }

@@ -1,6 +1,6 @@
 import path from 'path';
 import { logDebug } from '../extension/debug-channel';
-import { reportPythonError, showInfoAsync } from '../extension/diagnostics';
+import { reportPythonError, showInfo } from '../extension/diagnostics';
 import { PlotManager } from './plot';
 import { parsePlotCommand } from './stdout-plot-helper';
 import {
@@ -32,9 +32,7 @@ export function registerStdoutHelper() {
     plotManager = PlotManager.createWithCb((filepath: string) => {
         // onCreate callback
         logDebug(`Started datalogging to ${filepath}`);
-        showInfoAsync(`Started datalogging to ${path.basename(filepath)}`).catch(
-            console.error,
-        );
+        showInfo(`Started datalogging to ${path.basename(filepath)}`);
     });
 }
 

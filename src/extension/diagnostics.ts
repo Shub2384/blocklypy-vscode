@@ -89,12 +89,25 @@ async function findEditorForFile(
     }
 }
 
+export function showInfo(message: string) {
+    void vscode.window?.showInformationMessage(message);
+}
+export function showWarning(message: string) {
+    void vscode.window?.showWarningMessage(message);
+}
+export function showError(message: string) {
+    void vscode.window?.showErrorMessage(message);
+}
+
+// show information and wait for user to dismiss
 export async function showInfoAsync(message: string) {
     await vscode.window?.showInformationMessage(message);
 }
+// show warning and wait for user to dismiss
 export async function showWarningAsync(message: string) {
     await vscode.window?.showWarningMessage(message);
 }
+// show error and wait for user to dismiss
 export async function showErrorAsync(message: string) {
     await vscode.window?.showErrorMessage(message);
 }

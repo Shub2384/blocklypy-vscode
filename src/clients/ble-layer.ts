@@ -1,20 +1,54 @@
-import noble from '@abandonware/noble';
+import noble, { Peripheral } from '@abandonware/noble';
 import _ from 'lodash';
 import { DeviceMetadata } from '.';
 import { isDevelopmentMode } from '../extension';
 import { setState, StateProp } from '../logic/state';
 import { pnpIdUUID } from '../pybricks/ble-device-info-service/protocol';
 import { pybricksServiceUUID } from '../pybricks/ble-pybricks-service/protocol';
-import { pybricksDecodeBleBroadcastData } from '../pybricks/protocol-ble-broadcast';
+import {
+    pybricksDecodeBleBroadcastData,
+    PybricksDecodedBleBroadcast,
+} from '../pybricks/protocol-ble-broadcast';
 import { SPIKE_SERVICE_UUID16 } from '../spike/protocol';
 import { withTimeout } from '../utils/async';
 import { BaseLayer } from './base-layer';
+import { BleHubOsClient } from './ble-hubos-client';
 import { BlePybricksClient } from './ble-pybricks-client';
-import { BleSpikeClient } from './ble-spike-client';
 import { uuid128, uuid16 } from './utils';
+
+const BLE_DEVICE_VISIBILITY_TIMEOUT = 10000; // milliseconds
+
+export class DeviceMetadataWithPeripheral extends DeviceMetadata {
+    constructor(
+        public devtype: string,
+        public peripheral: Peripheral,
+        public lastBroadcast?: PybricksDecodedBleBroadcast,
+    ) {
+        super(devtype);
+    }
+
+    public get rssi(): number | undefined {
+        return this.peripheral.rssi;
+    }
+
+    public get broadcastAsString(): string | undefined {
+        return this.lastBroadcast ? JSON.stringify(this.lastBroadcast) : undefined;
+    }
+
+    public get name(): string | undefined {
+        return this.peripheral.advertisement.localName;
+    }
+}
 
 export class BLELayer extends BaseLayer {
     private _isScanning: boolean = false;
+
+    public supportsDevtype(_devtype: string) {
+        return (
+            BlePybricksClient.devtype === _devtype ||
+            BleHubOsClient.devtype === _devtype
+        );
+    }
 
     constructor() {
         super();
@@ -55,20 +89,24 @@ export class BLELayer extends BaseLayer {
                 return;
             }
 
+            const devtype =
+                isPybricks || isPybricksAdv
+                    ? BlePybricksClient.devtype
+                    : BleHubOsClient.devtype;
+            const targetId = DeviceMetadataWithPeripheral.generateId(
+                devtype,
+                advertisement.localName,
+            );
             const metadata =
-                this._allDevices.get(advertisement.localName) ??
+                this._allDevices.get(targetId) ??
                 (() => {
-                    const devtype =
-                        isPybricks || isPybricksAdv
-                            ? BlePybricksClient.devtype
-                            : BleSpikeClient.devtype;
-
-                    const newMetadata = {
+                    const newMetadata = new DeviceMetadataWithPeripheral(
                         devtype,
                         peripheral,
-                        lastBroadcast: undefined,
-                    } as DeviceMetadata;
-                    this._allDevices.set(advertisement.localName, newMetadata);
+                        undefined,
+                    );
+                    newMetadata.validTill = Date.now() + BLE_DEVICE_VISIBILITY_TIMEOUT;
+                    this._allDevices.set(targetId, newMetadata);
                     return newMetadata;
                 })();
 
@@ -77,10 +115,10 @@ export class BLELayer extends BaseLayer {
                 const manufacturerDataBuffer =
                     peripheral.advertisement.manufacturerData;
                 const decoded = pybricksDecodeBleBroadcastData(manufacturerDataBuffer);
-                metadata.lastBroadcast = decoded;
+                (metadata as DeviceMetadataWithPeripheral).lastBroadcast = decoded;
             }
 
-            this.listeners.forEach((fn) => fn(metadata));
+            this._listeners.forEach((fn) => fn(metadata));
             // }, 0);
         });
     }
@@ -92,32 +130,41 @@ export class BLELayer extends BaseLayer {
             console.log(`Noble state changed to: ${state}`);
             // TODO: handle disconnect and restart scanning!
         }
-        if (state === 'poweredOn') {
-            this.restartScanning().catch(console.error);
+        if (state === 'poweredOn' && this._isStartedUp) {
+            void this.restartScanning();
         }
     }
 
-    public async connect(name: string): Promise<void> {
+    public async startup() {
+        await super.startup();
+
+        if (noble._state === 'poweredOn') {
+            await this.restartScanning();
+        }
+    }
+
+    public async connect(name: string, devtype: string): Promise<void> {
         const metadata = this._allDevices.get(name);
         if (!metadata) throw new Error(`Device ${name} not found.`);
 
         switch (metadata.devtype) {
             case BlePybricksClient.devtype:
-                this._client = new BlePybricksClient();
+                this._client = new BlePybricksClient(metadata);
                 break;
-            case BleSpikeClient.devtype:
-                this._client = new BleSpikeClient();
+            case BleHubOsClient.devtype:
+                this._client = new BleHubOsClient(metadata);
                 break;
             default:
                 throw new Error(`Unknown device type: ${metadata.devtype}`);
         }
 
-        await super.connect(name);
+        await super.connect(name, devtype);
     }
 
     public async disconnect() {
-        await this.restartScanning();
         await super.disconnect();
+
+        await this.restartScanning();
     }
 
     private async restartScanning() {
@@ -137,21 +184,7 @@ export class BLELayer extends BaseLayer {
         );
     }
 
-    // add listeners here and not on noble
-    private listeners: ((device: DeviceMetadata) => void)[] = [];
-    public addListener(fn: (device: DeviceMetadata) => void) {
-        if (this.listeners.indexOf(fn) === -1) {
-            this.listeners.push(fn);
-        }
-    }
-    public removeListener(fn: (device: DeviceMetadata) => void) {
-        const idx = this.listeners.indexOf(fn);
-        if (idx !== -1) {
-            this.listeners.splice(idx, 1);
-        }
-    }
-
-    public waitForReadyAsync(timeout: number = 10000) {
+    public waitForReadyAsync(timeout: number = 10000): Promise<void> {
         return withTimeout(
             new Promise<void>((resolve, reject) => {
                 if (noble._state === 'poweredOn') {
@@ -172,37 +205,6 @@ export class BLELayer extends BaseLayer {
         );
     }
 
-    public async waitTillDeviceAppearsAsync(
-        name: string,
-        timeout: number = 10000,
-    ): Promise<string> {
-        const start = Date.now();
-        return new Promise<string>((resolve, reject) => {
-            if (this._allDevices.has(name)) {
-                resolve(name);
-                return;
-            }
-
-            withTimeout(
-                new Promise<string>((res, rej) => {
-                    const listener = (device: DeviceMetadata) => {
-                        if (device.peripheral.advertisement.localName === name) {
-                            this.removeListener(listener);
-                            res(name);
-                        } else if (Date.now() - start > timeout) {
-                            this.removeListener(listener);
-                            rej(new Error('Timeout waiting for device'));
-                        }
-                    };
-                    this.addListener(listener);
-                }),
-                timeout,
-            )
-                .then((value) => resolve(value as string))
-                .catch(reject);
-        });
-    }
-
     public stopScanning() {
         noble.stopScanning();
     }
@@ -215,5 +217,3 @@ export class BLELayer extends BaseLayer {
         return this._allDevices;
     }
 }
-
-export const bleLayer = new BLELayer();

@@ -1,4 +1,4 @@
-import { bleLayer } from '../clients/ble-layer';
+import { CommLayerManager } from '../clients/manager';
 import { hasState, StateProp } from '../logic/state';
 
 export async function startUserProgramAsync(slot_input?: number): Promise<void> {
@@ -9,5 +9,5 @@ export async function startUserProgramAsync(slot_input?: number): Promise<void> 
 
     //TODO: check if we have a magic header and want to process that
 
-    await bleLayer.client?.action_start(slot_input);
+    await CommLayerManager.client?.action_start(slot_input);
 }
