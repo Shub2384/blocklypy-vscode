@@ -56,6 +56,7 @@
   DeletePathRequest: 76, DeletePathResponse: 77
 
 - !! move client / state handling to connmanager
+- check usb with pyb!
 
 ## Reference
 

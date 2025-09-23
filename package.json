@@ -1,6 +1,6 @@
 {
   "name": "blocklypy-vscode",
-  "displayName": "BlocklyPy Commander for VSCode",
+  "displayName": "BlocklyPy Commander for LEGO Robots",
   "description": "Interact with LEGO® Hubs running Pybricks firmware: compile and upload Python scripts, convert LEGO robotics files.",
   "version": "0.6.0",
   "engines": {
@@ -285,28 +285,28 @@
         {
           "command": "blocklypy-vscode.compileAndRun",
           "group": "navigation",
-          "when": "(editorLangId == python || activeCustomEditorId == blocklypy-vscode.blocklypyViewer) && !blocklypy-vscode.isProgramRunning && blocklypy-vscode.isConnected"
+          "when": "(editorLangId == python || activeCustomEditorId == blocklypy-vscode-blocklypyViewer) && !blocklypy-vscode.isProgramRunning && blocklypy-vscode.isConnected"
         },
         {
           "command": "blocklypy-vscode.stopUserProgram",
           "group": "navigation",
-          "when": "(editorLangId == python || activeCustomEditorId == blocklypy-vscode.blocklypyViewer) && blocklypy-vscode.isProgramRunning && blocklypy-vscode.isConnected"
+          "when": "(editorLangId == python || activeCustomEditorId == blocklypy-vscode-blocklypyViewer) && blocklypy-vscode.isProgramRunning && blocklypy-vscode.isConnected"
         }
       ],
       "editor/title": [
         {
           "command": "blocklypy-vscode.blocklypyViewer.displayPreview",
-          "when": "activeCustomEditorId == blocklypy-vscode.blocklypyViewer && blocklypy-vscode.customViewType !== 'preview' && blocklypy-vscode.contentAvailability.hasPreview",
+          "when": "activeCustomEditorId == blocklypy-vscode-blocklypyViewer && blocklypy-vscode.customViewType !== 'preview' && blocklypy-vscode.contentAvailability.hasPreview",
           "group": "navigation@2"
         },
         {
           "command": "blocklypy-vscode.blocklypyViewer.displayPseudo",
-          "when": "activeCustomEditorId == blocklypy-vscode.blocklypyViewer && blocklypy-vscode.customViewType !== 'pseudo' && blocklypy-vscode.contentAvailability.hasPseudo",
+          "when": "activeCustomEditorId == blocklypy-vscode-blocklypyViewer && blocklypy-vscode.customViewType !== 'pseudo' && blocklypy-vscode.contentAvailability.hasPseudo",
           "group": "navigation@3"
         },
         {
           "command": "blocklypy-vscode.blocklypyViewer.displayPycode",
-          "when": "activeCustomEditorId == blocklypy-vscode.blocklypyViewer && blocklypy-vscode.customViewType !== 'pycode' && blocklypy-vscode.contentAvailability.hasPycode",
+          "when": "activeCustomEditorId == blocklypy-vscode-blocklypyViewer && blocklypy-vscode.customViewType !== 'pycode' && blocklypy-vscode.contentAvailability.hasPycode",
           "group": "navigation@5"
         },
         {
