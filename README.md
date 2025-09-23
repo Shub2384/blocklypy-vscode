@@ -4,13 +4,13 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 A Visual Studio Code extension to interact with LEGO® Hubs running the Pybricks
-and official HubOSv3 firmware.
+and official HubOS v3 firmware.
 
 ## Features
 
 Streamline your Pybricks and LEGO SPIKE coding experience with:
 
-- **Connect/disconnect your Hub** via Bluetooth
+- **Connect/disconnect your Hub** via Bluetooth or USB
 - **Start/stop programs** directly from VS Code
 - **Compile and upload Python scripts** from your workspace
 - **View compilation and runtime errors** in your code
@@ -18,7 +18,7 @@ Streamline your Pybricks and LEGO SPIKE coding experience with:
 - **Auto-start** your script on save
 - **Open and convert** majority of the LEGO robotics file formats
 - **Receive program status** and **display hub output messages**
-- **Visualize** live sensor data and save
+- **Plot** live sensor data and save to csv
 
 ## Getting Started
 
@@ -65,6 +65,14 @@ Streamline your Pybricks and LEGO SPIKE coding experience with:
 
 This extension opens, displays, analyzes, and converts most major LEGO robotics
 file formats for easy onboarding, backup, and analysis.
+
+<img src='./screenshots/devtypes/devtype_ev3b.png'>
+<img src='./screenshots/devtypes/devtype_ev3classroom.png'>
+<img src='./screenshots/devtypes/devtype_ev3g.png'>
+<img src='./screenshots/devtypes/devtype_pybricks.png'>
+<img src='./screenshots/devtypes/devtype_robotinventor.png'>
+<img src='./screenshots/devtypes/devtype_spike.png'>
+<img src='./screenshots/devtypes/devtype_wedo2.png'>
 
 ### Features for LEGO Files
 
@@ -206,4 +214,13 @@ This project is licensed under the [MIT License](LICENSE).
 ## Screenshot
 
 ![Screenshot: Overview](./screenshots/1.gif)
+
 ![Screenshot: Plot handling](./screenshots/plot.gif)
+
+![Screenshot: View](./screenshots/view-3.png)
+
+![Screenshot: View](./screenshots/view-1.png)
+
+![Screenshot: View](./screenshots/view-4.png)
+
+![Screenshot: View](./screenshots/view-2.png)

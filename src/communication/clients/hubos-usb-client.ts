@@ -41,10 +41,6 @@ export class HubOSUsbClient extends HubOSBaseClient {
         return Promise.resolve();
     }
 
-    public async disconnect(): Promise<void> {
-        await this.runExitStack();
-    }
-
     public static async connectInternal(
         metadata: DeviceMetadataForUSB,
     ): Promise<SerialPort> {

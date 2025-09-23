@@ -4,7 +4,7 @@ import { CommandsTree } from '../../extension/tree-commands';
 import { DevicesTree } from '../../extension/tree-devices';
 import { setState, StateProp } from '../../logic/state';
 import { withTimeout } from '../../utils/async';
-import { BaseClient } from '../base-client';
+import { BaseClient } from '../clients/base-client';
 import { PybricksBleClient } from '../clients/pybricks-ble-client';
 
 // TODO: remove _client / activeCLient from layer -> move it to the manager //!!

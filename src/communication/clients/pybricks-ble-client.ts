@@ -31,9 +31,9 @@ import {
     checkIsDeviceNotification,
     parseDeviceNotificationPayloads,
 } from '../../spike/utils/device-notification';
-import { BaseClient } from '../base-client';
 import { DeviceMetadataWithPeripheral } from '../layers/ble-layer';
 import { uuid128, uuidStr } from '../utils';
+import { BaseClient } from './base-client';
 
 interface Capabilities {
     maxWriteSize: number;

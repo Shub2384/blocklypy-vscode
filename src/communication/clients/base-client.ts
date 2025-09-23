@@ -1,8 +1,8 @@
-import { DeviceMetadata } from '.';
-import { logDebug, logDebugFromHub } from '../extension/debug-channel';
-import { clearPythonErrors } from '../extension/diagnostics';
-import { handleStdOutDataHelpers } from '../logic/stdout-helper';
-import Config, { ConfigKeys } from '../utils/config';
+import { DeviceMetadata } from '..';
+import { logDebug, logDebugFromHub } from '../../extension/debug-channel';
+import { clearPythonErrors } from '../../extension/diagnostics';
+import { handleStdOutDataHelpers } from '../../logic/stdout-helper';
+import Config, { ConfigKeys } from '../../utils/config';
 
 export abstract class BaseClient {
     static readonly devtype: string;

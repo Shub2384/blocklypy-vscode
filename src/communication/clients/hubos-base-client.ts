@@ -3,8 +3,8 @@ import {
     RequestMessage,
     ResponseMessage,
 } from '../../spike/spike-messages/base-message';
-import { BaseClient } from '../base-client';
-import { HubOSHandler } from '../common/hubos-common';
+import { HubOSHandler } from '../common/hubos-handler';
+import { BaseClient } from './base-client';
 
 export abstract class HubOSBaseClient extends BaseClient {
     protected _hubOSHandler: HubOSHandler | undefined;

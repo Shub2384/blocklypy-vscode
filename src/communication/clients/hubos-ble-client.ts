@@ -7,7 +7,7 @@ import {
 } from '../../spike/protocol';
 import { ResponseMessage } from '../../spike/spike-messages/base-message';
 import { ProductGroupDeviceTypeMap } from '../../spike/spike-messages/info-response-message';
-import { HubOSHandler } from '../common/hubos-common';
+import { HubOSHandler } from '../common/hubos-handler';
 import { DeviceMetadataWithPeripheral } from '../layers/ble-layer';
 import { HubOSBaseClient } from './hubos-base-client';
 
