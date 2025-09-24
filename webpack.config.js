@@ -28,10 +28,8 @@ const extensionConfig = {
     externals: [
         {
             vscode: 'commonjs vscode',
-            serialport: 'commonjs serialport',
-            usb: 'commonjs usb',
         },
-        '@abandonware/bluetooth-hci-socket',
+        '@stoprocent/bluetooth-hci-socket',
         'ws',
     ],
     resolve: {

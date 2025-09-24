@@ -1,4 +1,4 @@
-import noble from '@abandonware/noble';
+import { Characteristic } from '@stoprocent/noble';
 import semver from 'semver';
 import { DeviceMetadata } from '..';
 import { handleDeviceNotificationAsync } from '../../logic/appdata-devicenotification-helper';
@@ -34,7 +34,6 @@ import {
 import { DeviceMetadataWithPeripheral } from '../layers/ble-layer';
 import { uuid128, uuidStr } from '../utils';
 import { BaseClient } from './base-client';
-
 interface Capabilities {
     maxWriteSize: number;
     flags: number;
@@ -53,8 +52,8 @@ export class PybricksBleClient extends BaseClient {
     public static readonly devname = 'Pybricks on BLE';
     public static readonly supportsModularMpy = true;
 
-    private _rxtxCharacteristic: noble.Characteristic | undefined;
-    private _capabilitiesCharacteristic: noble.Characteristic | undefined;
+    private _rxtxCharacteristic: Characteristic | undefined;
+    private _capabilitiesCharacteristic: Characteristic | undefined;
     private _capabilities: Capabilities | undefined;
     private _version: VersionInfo | undefined;
 

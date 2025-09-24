@@ -1,4 +1,4 @@
-import noble, { Peripheral } from '@abandonware/noble';
+import noble, { Peripheral } from '@stoprocent/noble';
 import _ from 'lodash';
 import { DeviceMetadata } from '..';
 import { isDevelopmentMode } from '../../extension';
@@ -118,6 +118,8 @@ export class BLELayer extends BaseLayer {
                 (metadata as DeviceMetadataWithPeripheral).lastBroadcast = decoded;
             }
 
+            // update the validTill value
+            metadata.validTill = Date.now() + BLE_DEVICE_VISIBILITY_TIMEOUT;
             this._listeners.forEach((fn) => fn(metadata));
             // }, 0);
         });
@@ -138,7 +140,7 @@ export class BLELayer extends BaseLayer {
     public async startup() {
         await super.startup();
 
-        if (noble._state === 'poweredOn') {
+        if (noble.state === 'poweredOn') {
             await this.restartScanning();
         }
     }
@@ -187,7 +189,7 @@ export class BLELayer extends BaseLayer {
     public waitForReadyAsync(timeout: number = 10000): Promise<void> {
         return withTimeout(
             new Promise<void>((resolve, reject) => {
-                if (noble._state === 'poweredOn') {
+                if (noble.state === 'poweredOn') {
                     resolve();
                     return;
                 }

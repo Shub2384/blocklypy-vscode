@@ -1,4 +1,4 @@
-import noble from '@abandonware/noble';
+import { Characteristic } from '@stoprocent/noble';
 import { DeviceMetadata } from '..';
 import {
     SPIKE_RX_CHAR_UUID,
@@ -16,8 +16,8 @@ export class HubOSBleClient extends HubOSBaseClient {
     public static readonly devname = 'HubOS on BLE';
     public static readonly supportsModularMpy = false;
 
-    private _rxCharacteristic: noble.Characteristic | undefined;
-    private _txCharacteristic: noble.Characteristic | undefined;
+    private _rxCharacteristic: Characteristic | undefined;
+    private _txCharacteristic: Characteristic | undefined;
     private _pendingMessagesPromises = new Map<
         number,
         [
