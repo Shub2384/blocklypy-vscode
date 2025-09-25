@@ -110,7 +110,7 @@ export class PybricksBleClient extends BaseClient {
             if (onDeviceRemoved) onDeviceRemoved(metadata);
 
             // need to remove this as pybricks creates a random BLE id on each reconnect
-            //this.parent.startScanning().catch(console.error);
+            this.parent.allDevices.delete(metadata.id);
         });
 
         device.on(

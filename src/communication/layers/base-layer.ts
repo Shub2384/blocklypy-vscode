@@ -116,6 +116,9 @@ export abstract class BaseLayer {
             await this.runExitStack();
             await this.disconnect();
             this.removeClient(client);
+
+            // TODO: on connect error, maybe remove device so that rescan can find it again
+            // would be a problem for non polled (e.g. hotplug) layers
         }
 
         if (this.state !== ConnectionState.Connected) {
