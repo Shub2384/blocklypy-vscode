@@ -4,13 +4,14 @@ import {
     ResponseMessage,
 } from '../../spike/spike-messages/base-message';
 import { HubOSHandler } from '../common/hubos-handler';
+import { BaseLayer } from '../layers/base-layer';
 import { BaseClient } from './base-client';
 
 export abstract class HubOSBaseClient extends BaseClient {
     protected _hubOSHandler: HubOSHandler | undefined;
 
-    constructor(metadata: DeviceMetadata | undefined) {
-        super(metadata);
+    constructor(_metadata: DeviceMetadata | undefined, parent: BaseLayer) {
+        super(_metadata, parent);
         this._hubOSHandler = new HubOSHandler(
             (data: Uint8Array) => this.write(data, true),
             (text) => this.handleWriteStdout(text),

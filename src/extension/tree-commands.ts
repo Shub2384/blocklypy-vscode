@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { ConnectionManager } from '../communication/connection-manager';
 import { EXTENSION_KEY } from '../const';
-import { getStateString, hasState, StateProp } from '../logic/state';
+import { getStateString, hasState, onStateChange, StateProp } from '../logic/state';
 import { Commands } from './commands';
 import { BaseTreeDataProvider, TreeItemData } from './tree-base';
 import { ToCapialized } from './utils';
@@ -48,6 +48,13 @@ export function registerCommandsTree(context: vscode.ExtensionContext) {
 
     const treeview = vscode.window.createTreeView(EXTENSION_KEY + '-commands', {
         treeDataProvider: CommandsTree,
+    });
+
+    onStateChange(() => {
+        treeview.badge = {
+            value: hasState(StateProp.Connected) ? 1 : 0,
+            tooltip: 'Connected devices',
+        };
     });
 
     context.subscriptions.push(treeview);

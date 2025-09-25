@@ -18,7 +18,8 @@ export class DeviceMetadata {
     }
 }
 
-export enum ConnectionStatus {
+export enum ConnectionState {
+    Initializing = 'initializing',
     Disconnected = 'disconnected',
     Connecting = 'connecting',
     Connected = 'connected',

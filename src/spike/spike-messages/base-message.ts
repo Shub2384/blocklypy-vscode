@@ -2,6 +2,7 @@
 
 export abstract class BaseMessage {
     public static readonly Id: number;
+    // public length = 0;
 
     public get Id(): number {
         return (this.constructor as typeof BaseMessage).Id;
@@ -18,9 +19,7 @@ export abstract class RequestMessage extends BaseMessage {
 }
 
 export abstract class ResponseMessage extends BaseMessage {
-    static fromBytes(_data: Uint8Array): BaseMessage {
-        throw new Error('Method not implemented.');
-    }
+    // intentionally empty
 }
 
 export abstract class ResponseMessageWithStatus extends ResponseMessage {

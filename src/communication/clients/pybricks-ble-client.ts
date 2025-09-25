@@ -27,10 +27,13 @@ import {
     Status,
     statusToFlag,
 } from '../../pybricks/ble-pybricks-service/protocol';
+import { maybe } from '../../pybricks/utils';
 import {
     checkIsDeviceNotification,
     parseDeviceNotificationPayloads,
 } from '../../spike/utils/device-notification';
+import { withTimeout } from '../../utils/async';
+import Config, { ConfigKeys } from '../../utils/config';
 import { DeviceMetadataWithPeripheral } from '../layers/ble-layer';
 import { uuid128, uuidStr } from '../utils';
 import { BaseClient } from './base-client';
@@ -79,7 +82,9 @@ export class PybricksBleClient extends BaseClient {
     }
 
     protected async disconnectWorker() {
-        if (this.connected) this.metadata.peripheral?.disconnect();
+        if (this.connected) {
+            this.metadata.peripheral?.disconnect();
+        }
         return Promise.resolve();
     }
 
@@ -92,10 +97,20 @@ export class PybricksBleClient extends BaseClient {
         const device = metadata.peripheral;
         if (!device) throw new Error('No peripheral in metadata');
 
-        await device.connectAsync();
+        const [, connErr] = await maybe(
+            withTimeout(
+                device.connectAsync(),
+                Config.getConfigValue(ConfigKeys.ConnectionTimeout, 10000),
+            ),
+        );
+        if (connErr) return device.cancelConnect();
+
         this._exitStack.push(() => {
-            device.removeAllListeners('disconnect');
+            device.removeAllListeners();
             if (onDeviceRemoved) onDeviceRemoved(metadata);
+
+            // need to remove this as pybricks creates a random BLE id on each reconnect
+            //this.parent.startScanning().catch(console.error);
         });
 
         device.on(
@@ -117,8 +132,6 @@ export class PybricksBleClient extends BaseClient {
                 ].map((uuid16) => uuidStr(uuid16)),
             );
 
-        // const [pybricksService, deviceInfoService] =
-        //     discoveredServicesandCharacterisitics.services;
         const [
             pybricksControlChar,
             pybricksHubCapabilitiesChar,
@@ -249,7 +262,9 @@ export class PybricksBleClient extends BaseClient {
             this.appdataBufferOffset += data.length;
 
             if (this.appdataBufferOffset >= this.appdataExpectedLength) {
-                const payloads = parseDeviceNotificationPayloads(this.appdataBuffer);
+                const { payloads } = parseDeviceNotificationPayloads(
+                    this.appdataBuffer,
+                );
                 await handleDeviceNotificationAsync(payloads);
 
                 // reset buffer

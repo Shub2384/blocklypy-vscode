@@ -159,6 +159,16 @@
         "command": "blocklypy-vscode.clearAllSlots",
         "title": "BlocklyPy Commander: Clear All Slots in HubOS",
         "icon": "$(trash)"
+      },
+      {
+        "command": "blocklypy-vscode.startScanning",
+        "title": "BlocklyPy Commander: Start Scanning",
+        "icon": "$(eye)"
+      },
+      {
+        "command": "blocklypy-vscode.stopScanning",
+        "title": "BlocklyPy Commander: Stop Scanning",
+        "icon": "$(eye-closed)"
       }
     ],
     "viewsContainers": {
@@ -277,15 +287,51 @@
           "type": "boolean",
           "default": false,
           "description": "Automatically save plot data to a CSV file when receiving #plot commands."
+        },
+        "blocklypy-vscode.connection-timeout": {
+          "type": "number",
+          "default": 15000,
+          "minimum": 5000,
+          "description": "The timeout in milliseconds for connecting to a device."
+        },
+        "blocklypy-vscode.device-visibility-timeout": {
+          "type": "number",
+          "default": 10000,
+          "minimum": 1000,
+          "description": "The time in milliseconds after which a device is considered not visible if not seen during scanning."
         }
       }
     },
     "menus": {
+      "view/title": [
+        {
+          "command": "blocklypy-vscode.startScanning",
+          "group": "navigation",
+          "when": "view == blocklypy-vscode-devices && !blocklypy-vscode.isScanning"
+        },
+        {
+          "command": "blocklypy-vscode.stopScanning",
+          "group": "navigation",
+          "when": "view == blocklypy-vscode-devices && blocklypy-vscode.isScanning"
+        }
+      ],
       "editor/title/run": [
         {
           "command": "blocklypy-vscode.compileAndRun",
           "group": "navigation",
           "when": "(editorLangId == python || activeCustomEditorId == blocklypy-vscode-blocklypyViewer) && !blocklypy-vscode.isProgramRunning && blocklypy-vscode.isConnected"
+        },
+        {
+          "command": "blocklypy-vscode.stopUserProgram",
+          "group": "navigation",
+          "when": "(editorLangId == python || activeCustomEditorId == blocklypy-vscode-blocklypyViewer) && blocklypy-vscode.isProgramRunning && blocklypy-vscode.isConnected"
+        }
+      ],
+      "debug/toolBar": [
+        {
+          "command": "blocklypy-vscode.startUserProgram",
+          "group": "navigation",
+          "when": "(editorLangId == python || activeCustomEditorId == blocklypy-vscode-blocklypyViewer) && blocklypy-vscode.isProgramRunning && blocklypy-vscode.isConnected"
         },
         {
           "command": "blocklypy-vscode.stopUserProgram",
@@ -402,7 +448,6 @@
     "watch-dev": "NODE_ENV=development webpack --watch --config-node-env development --devtool source-map",
     "package": "webpack --mode production --devtool hidden-source-map",
     "compile-tests": "tsc -p . --outDir out",
-    "watch-tests": "NODE_ENV=development tsc -p . -w --outDir out",
     "pretest": "npm run compile-tests && npm run compile && npm run lint",
     "lint": "eslint src",
     "test": "vscode-test",

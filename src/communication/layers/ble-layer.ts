@@ -1,6 +1,6 @@
-import noble, { Peripheral } from '@stoprocent/noble';
+import { Peripheral, PeripheralAdvertisement, withBindings } from '@stoprocent/noble';
 import _ from 'lodash';
-import { DeviceMetadata } from '..';
+import { ConnectionState, DeviceMetadata } from '..';
 import { isDevelopmentMode } from '../../extension';
 import { setState, StateProp } from '../../logic/state';
 import { pnpIdUUID } from '../../pybricks/ble-device-info-service/protocol';
@@ -11,12 +11,13 @@ import {
 } from '../../pybricks/protocol-ble-broadcast';
 import { SPIKE_SERVICE_UUID16 } from '../../spike/protocol';
 import { withTimeout } from '../../utils/async';
+import Config, { ConfigKeys } from '../../utils/config';
 import { HubOSBleClient } from '../clients/hubos-ble-client';
 import { PybricksBleClient } from '../clients/pybricks-ble-client';
 import { uuid128, uuid16 } from '../utils';
-import { BaseLayer } from './base-layer';
+import { BaseLayer, ConnectionStateChangeEvent, DeviceChangeEvent } from './base-layer';
 
-const BLE_DEVICE_VISIBILITY_TIMEOUT = 10000; // milliseconds
+const noble = withBindings('default'); // 'hci', 'win', 'mac'
 
 export class DeviceMetadataWithPeripheral extends DeviceMetadata {
     constructor(
@@ -42,6 +43,15 @@ export class DeviceMetadataWithPeripheral extends DeviceMetadata {
 
 export class BLELayer extends BaseLayer {
     private _isScanning: boolean = false;
+    private _advertisementQueue: Map<
+        string,
+        {
+            peripheral: Peripheral;
+            devtype: string;
+            advertisement: PeripheralAdvertisement;
+        }
+    > = new Map();
+    private _advertisementHandle: NodeJS.Timeout | undefined = undefined;
 
     public supportsDevtype(_devtype: string) {
         return (
@@ -50,28 +60,33 @@ export class BLELayer extends BaseLayer {
         );
     }
 
-    constructor() {
-        super();
+    constructor(
+        onStateChange?: (event: ConnectionStateChangeEvent) => void,
+        onDeviceChange?: (device: DeviceChangeEvent) => void,
+    ) {
+        super(onStateChange, onDeviceChange);
 
         // setup noble listeners
-        noble.on('stateChange', (state) => void this.handleStateChange(state));
+        noble.on('stateChange', (state) => void this.handleNobleStateChange(state));
         noble.on('scanStart', () => {
             this._isScanning = true;
             setState(StateProp.Scanning, true);
+            this._advertisementHandle = setInterval(
+                () => this.processAdvertisementQueue(),
+                1000,
+            );
         });
         noble.on('scanStop', () => {
             this._isScanning = false;
-            setState(StateProp.Scanning, false);
+            clearInterval(this._advertisementHandle);
+            this._advertisementHandle = undefined;
         });
         noble.on('discover', (peripheral) => {
-            // Deep copy the advertisement object to avoid mutation issues
             if (!peripheral.advertisement.localName) return;
 
             const advertisement = _.cloneDeep(peripheral.advertisement);
 
-            // seenDevices.add(advertisement.localName);
-            // setTimeout(() => {
-            //!! todo optimize to align with BleLayer
+            // Identify device type and id
             const isPybricks = advertisement.serviceUuids?.includes(
                 uuid128(pybricksServiceUUID),
             );
@@ -93,39 +108,69 @@ export class BLELayer extends BaseLayer {
                 isPybricks || isPybricksAdv
                     ? PybricksBleClient.devtype
                     : HubOSBleClient.devtype;
-            const targetId = DeviceMetadataWithPeripheral.generateId(
+            const targetid = DeviceMetadataWithPeripheral.generateId(
                 devtype,
                 advertisement.localName,
             );
-            const metadata =
-                this._allDevices.get(targetId) ??
-                (() => {
-                    const newMetadata = new DeviceMetadataWithPeripheral(
-                        devtype,
-                        peripheral,
-                        undefined,
-                    );
-                    newMetadata.validTill = Date.now() + BLE_DEVICE_VISIBILITY_TIMEOUT;
-                    this._allDevices.set(targetId, newMetadata);
-                    return newMetadata;
-                })();
 
-            // only update on (passive) advertisement data
-            if (isPybricksAdv) {
-                const manufacturerDataBuffer =
-                    peripheral.advertisement.manufacturerData;
-                const decoded = pybricksDecodeBleBroadcastData(manufacturerDataBuffer);
-                (metadata as DeviceMetadataWithPeripheral).lastBroadcast = decoded;
-            }
-
-            // update the validTill value
-            metadata.validTill = Date.now() + BLE_DEVICE_VISIBILITY_TIMEOUT;
-            this._listeners.forEach((fn) => fn(metadata));
-            // }, 0);
+            // Add to queue, replacing any previous advertisement for this device
+            this._advertisementQueue.set(targetid, {
+                peripheral,
+                devtype,
+                advertisement,
+            });
         });
     }
 
-    private handleStateChange(state: string) {
+    private processAdvertisementQueue() {
+        // Debounce: process only the last advertisement after a short delay
+        for (const [targetid, { peripheral, devtype, advertisement }] of this
+            ._advertisementQueue) {
+            this._advertisementQueue.delete(targetid);
+            this.processAdvertisement(targetid, devtype, peripheral, advertisement);
+        }
+    }
+
+    private processAdvertisement(
+        targetid: string,
+        devtype: string,
+        peripheral: Peripheral,
+        advertisement: PeripheralAdvertisement,
+    ) {
+        // const queued = this._advertisementQueue.get(targetId);
+        // if (!queued) return;
+        // const { peripheral, advertisement } = queued;
+
+        const metadata =
+            this._allDevices.get(targetid) ??
+            (() => {
+                const newMetadata = new DeviceMetadataWithPeripheral(
+                    devtype,
+                    peripheral,
+                    undefined,
+                );
+                this._allDevices.set(targetid, newMetadata);
+                return newMetadata;
+            })();
+
+        // only update on (passive) advertisement data
+        const isPybricksAdv = advertisement.serviceData
+            ?.map((sd) => sd?.uuid)
+            .includes(uuid16(pnpIdUUID));
+        if (isPybricksAdv) {
+            const manufacturerDataBuffer = advertisement.manufacturerData;
+            const decoded = pybricksDecodeBleBroadcastData(manufacturerDataBuffer);
+            (metadata as DeviceMetadataWithPeripheral).lastBroadcast = decoded;
+        }
+
+        // update the validTill value
+        metadata.validTill =
+            Date.now() +
+            Config.getConfigValue<number>(ConfigKeys.DeviceVisibilityTimeout, 10000);
+        this._deviceChange.fire({ metadata });
+    }
+
+    private handleNobleStateChange(state: string) {
         // state = <"unknown" | "resetting" | "unsupported" | "unauthorized" | "poweredOff" | "poweredOn">
 
         if (isDevelopmentMode) {
@@ -141,37 +186,35 @@ export class BLELayer extends BaseLayer {
         await super.startup();
 
         if (noble.state === 'poweredOn') {
-            await this.restartScanning();
+            this.restartScanning();
         }
     }
 
-    public async connect(name: string, devtype: string): Promise<void> {
-        const metadata = this._allDevices.get(name);
-        if (!metadata) throw new Error(`Device ${name} not found.`);
+    public async connect(id: string, devtype: string): Promise<void> {
+        const metadata = this._allDevices.get(id);
+        if (!metadata) throw new Error(`Device ${id} not found.`);
 
         switch (metadata.devtype) {
             case PybricksBleClient.devtype:
-                this._client = new PybricksBleClient(metadata);
+                this._client = new PybricksBleClient(metadata, this);
                 break;
             case HubOSBleClient.devtype:
-                this._client = new HubOSBleClient(metadata);
+                this._client = new HubOSBleClient(metadata, this);
                 break;
             default:
                 throw new Error(`Unknown device type: ${metadata.devtype}`);
         }
 
-        await super.connect(name, devtype);
+        await super.connect(id, devtype);
     }
 
     public async disconnect() {
         await super.disconnect();
-
-        await this.restartScanning();
     }
 
-    private async restartScanning() {
+    private restartScanning() {
         this.stopScanning();
-        await this.startScanning();
+        void this.startScanning();
     }
 
     public async startScanning() {
@@ -190,11 +233,13 @@ export class BLELayer extends BaseLayer {
         return withTimeout(
             new Promise<void>((resolve, reject) => {
                 if (noble.state === 'poweredOn') {
+                    this.state = ConnectionState.Disconnected; // initialized successfully
                     resolve();
                     return;
                 }
                 noble.once('stateChange', (state) => {
                     if (state === 'poweredOn') {
+                        this.state = ConnectionState.Disconnected; // initialized successfully
                         resolve();
                     } else {
                         reject(
@@ -211,7 +256,7 @@ export class BLELayer extends BaseLayer {
         noble.stopScanning();
     }
 
-    public get isScanning() {
+    public get scanning() {
         return this._isScanning;
     }
 

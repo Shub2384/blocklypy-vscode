@@ -12,7 +12,7 @@ export class DeviceNotificationMessage extends ResponseMessage {
     }
 
     public static fromBytes(data: Uint8Array): DeviceNotificationMessage {
-        const payloads = parseDeviceNotificationPayloads(data) || [];
+        const { payloads } = parseDeviceNotificationPayloads(data);
         return new DeviceNotificationMessage(payloads);
     }
 }

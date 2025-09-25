@@ -1,7 +1,8 @@
 import * as vscode from 'vscode';
-import { DeviceMetadata } from '../communication';
 import { ConnectionManager } from '../communication/connection-manager';
+import { DeviceChangeEvent } from '../communication/layers/base-layer';
 import { EXTENSION_KEY } from '../const';
+import { hasState, StateProp } from '../logic/state';
 import { Commands } from './commands';
 import { BaseTreeDataProvider, TreeItemData } from './tree-base';
 
@@ -37,13 +38,24 @@ class DevicesTreeDataProvider extends BaseTreeDataProvider<TreeItemDeviceData> {
         if (this.deviceMap.size > 0) {
             return Array.from(this.deviceMap.values());
         } else {
-            return [
-                {
-                    title: 'Scanning for devices...',
-                    icon: '$(loading~spin)',
-                    command: '',
-                },
-            ];
+            if (hasState(StateProp.Scanning)) {
+                return [
+                    {
+                        title: 'Scanning for devices...',
+                        icon: '$(loading~spin)',
+                        command: Commands.StopScanning,
+                    },
+                ];
+            } else {
+                return [
+                    {
+                        title: 'No devices found.',
+                        icon: '$(circle-slash)',
+                        command: Commands.StartScanning,
+                        description: 'Click to start scanning',
+                    },
+                ];
+            }
         }
     }
 
@@ -64,7 +76,23 @@ function registerDevicesTree(context: vscode.ExtensionContext) {
         treeDataProvider: DevicesTree,
     });
 
-    const addDevice = (metadata: DeviceMetadata) => {
+    treeview.onDidChangeVisibility(async (e) => {
+        if (e.visible) {
+            try {
+                await ConnectionManager.startScanning();
+
+                if (!hasState(StateProp.Connected))
+                    await ConnectionManager.autoConnectLastDevice();
+            } catch {
+                // noop - will fail with the startup
+            }
+        } else {
+            ConnectionManager.stopScanning();
+        }
+    });
+
+    const addDevice = (event: DeviceChangeEvent) => {
+        const metadata = event.metadata;
         const id = metadata.id;
         if (!id) return;
 
@@ -97,7 +125,7 @@ function registerDevicesTree(context: vscode.ExtensionContext) {
             DevicesTree.refreshItem(item);
         }
     };
-    ConnectionManager.addListener(addDevice);
+    context.subscriptions.push(ConnectionManager.onDeviceChange(addDevice));
 
     // Periodically remove devices not seen for X seconds
     // Except for currently connected device, that will not broadcast, yet it should stay in the list
@@ -119,10 +147,7 @@ function registerDevicesTree(context: vscode.ExtensionContext) {
 
     context.subscriptions.push(
         treeview,
-        new vscode.Disposable(() => {
-            ConnectionManager.removeListener(addDevice);
-            clearInterval(timer);
-        }),
+        new vscode.Disposable(() => clearInterval(timer)),
     );
 }
 

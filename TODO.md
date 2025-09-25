@@ -58,6 +58,8 @@
 - !! move client / state handling to connmanager
 - check usb with pyb!
 
+- todo: handle COBS multiple messages when decoding
+
 ## Reference
 
 - <https://code.visualstudio.com/api/references/contribution-points>

@@ -8,6 +8,7 @@ import {
 import { ResponseMessage } from '../../spike/spike-messages/base-message';
 import { ProductGroupDeviceTypeMap } from '../../spike/spike-messages/info-response-message';
 import { HubOSHandler } from '../common/hubos-handler';
+import { BaseLayer } from '../layers/base-layer';
 import { DeviceMetadataWithPeripheral } from '../layers/ble-layer';
 import { HubOSBaseClient } from './hubos-base-client';
 
@@ -46,8 +47,8 @@ export class HubOSBleClient extends HubOSBaseClient {
         return this._metadata as DeviceMetadataWithPeripheral;
     }
 
-    constructor(metadata: DeviceMetadata | undefined) {
-        super(metadata);
+    constructor(metadata: DeviceMetadata | undefined, parent: BaseLayer) {
+        super(metadata, parent);
         this._hubOSHandler = new HubOSHandler(
             (data: Uint8Array) => this.write(data, true),
             (text) => this.handleWriteStdout(text),

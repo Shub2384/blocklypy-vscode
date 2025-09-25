@@ -9,6 +9,8 @@ export const enum ConfigKeys {
     ProgramAutoStart = 'autostart-program',
     TerminalAutoClear = 'autoclear-terminal',
     PlotAutosave = 'autosave-plot',
+    ConnectionTimeout = 'connection-timeout',
+    DeviceVisibilityTimeout = 'device-visibility-timeout',
 }
 
 export function getConfig<T>(key: string) {
@@ -23,8 +25,12 @@ export async function updateConfig(key: string, value: unknown) {
 }
 
 class Config {
-    private static read<T>(key: ConfigKeys, defaultValue?: T): T | undefined {
-        return getConfig<T>(key) ?? defaultValue;
+    private static read<T>(key: ConfigKeys, defaultValue?: T): T {
+        const value = getConfig<T>(key);
+        if (value === undefined && defaultValue !== undefined) {
+            return defaultValue;
+        }
+        return value as T;
     }
     private static async write(key: ConfigKeys, value: unknown) {
         await updateConfig(key, value);

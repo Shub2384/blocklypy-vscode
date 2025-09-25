@@ -1,7 +1,7 @@
 import { PortInfo } from '@serialport/bindings-interface';
 import { SerialPort } from 'serialport';
 import { usb } from 'usb';
-import { DeviceMetadata } from '..';
+import { ConnectionState, DeviceMetadata } from '..';
 import {
     SPIKE_USB_PRODUCT_ID,
     SPIKE_USB_PRODUCT_ID_NUM,
@@ -9,10 +9,11 @@ import {
     SPIKE_USB_VENDOR_ID_NUM,
 } from '../../spike/protocol';
 import { HubOSUsbClient } from '../clients/hubos-usb-client';
-import { BaseLayer } from './base-layer';
+import { BaseLayer, ConnectionStateChangeEvent, DeviceChangeEvent } from './base-layer';
 
 export class DeviceMetadataForUSB extends DeviceMetadata {
     private _resolvedName: string | undefined = undefined;
+
     constructor(
         public devtype: string,
         public portinfo: PortInfo,
@@ -44,14 +45,20 @@ export class DeviceMetadataForUSB extends DeviceMetadata {
 
 export class USBLayer extends BaseLayer {
     private _supportsHotPlug: boolean = false;
-    private _scanning = false;
+    private _scanHandle: NodeJS.Timeout | undefined = undefined;
+    private _isWithinScan: boolean = false;
 
     public supportsDevtype(_devtype: string) {
         return HubOSUsbClient.devtype === _devtype;
     }
 
-    constructor() {
-        super();
+    constructor(
+        onStateChange?: (event: ConnectionStateChangeEvent) => void,
+        onDeviceChange?: (device: DeviceChangeEvent) => void,
+    ) {
+        super(onStateChange, onDeviceChange);
+
+        this.state = ConnectionState.Disconnected; // initialized successfully
     }
 
     private usbRegistrySerial = new Map<usb.Device, string>();
@@ -88,7 +95,7 @@ export class USBLayer extends BaseLayer {
                     ) {
                         metadata.validTill = 0;
                         this._allDevices.delete(id);
-                        this._listeners.forEach((fn) => fn(metadata));
+                        this._deviceChange.fire({ metadata });
                     }
                 }
             }
@@ -108,17 +115,32 @@ export class USBLayer extends BaseLayer {
             this._supportsHotPlug = false;
 
             // Fallback: Periodic scanning
-            setInterval(() => {
-                void this.scan().catch(console.error);
-            }, 10000);
+            await this.startScanning();
         }
 
         await this.scan();
     }
 
+    public stopScanning() {
+        if (this._scanHandle) {
+            clearInterval(this._scanHandle);
+            this._scanHandle = undefined;
+        }
+    }
+
+    public async startScanning() {
+        if (this.scanning) return;
+
+        this._scanHandle = setInterval(() => {
+            void this.scan().catch(console.error);
+        }, 10000);
+
+        return Promise.resolve();
+    }
+
     private async scan() {
-        if (this._scanning) return;
-        this._scanning = true;
+        if (this._isWithinScan) return;
+        this._isWithinScan = true;
         try {
             const ports = await SerialPort.list();
             const portsOk = ports.filter(
@@ -152,17 +174,10 @@ export class USBLayer extends BaseLayer {
                         metadata.devtype === HubOSUsbClient.devtype &&
                         !metadata.hasResolvedName
                     ) {
-                        setTimeout(
-                            () =>
-                                void HubOSUsbClient.refreshDeviceName(metadata)
-                                    .then(() =>
-                                        this._listeners.forEach((fn) => fn(metadata)),
-                                    )
-                                    .catch(console.error),
-                            0,
-                        );
+                        // try to get the real name from the device
+                        await HubOSUsbClient.refreshDeviceName(metadata);
                     }
-                    this._listeners.forEach((fn) => fn(metadata));
+                    this._deviceChange.fire({ metadata });
                 } catch (_e) {
                     metadata.validTill = 0;
                     this._allDevices.delete(metadata.id);
@@ -171,17 +186,20 @@ export class USBLayer extends BaseLayer {
         } catch (e) {
             console.error('Error scanning USB devices:', e);
         } finally {
-            this._scanning = false;
+            this._isWithinScan = false;
         }
     }
 
     public async connect(id: string, devtype: string): Promise<void> {
         const metadata = this._allDevices.get(id);
-        if (!metadata) throw new Error(`Device ${id} not found.`);
+        if (!metadata) {
+            console.log(this._allDevices);
+            throw new Error(`Device ${id} not found.`);
+        }
 
         switch (metadata.devtype) {
             case HubOSUsbClient.devtype:
-                this._client = new HubOSUsbClient(metadata);
+                this._client = new HubOSUsbClient(metadata, this);
                 break;
             // case PybricksUsbClient.devtype:
             //     this._client = new PybricksUsbClient(metadata);
@@ -199,6 +217,10 @@ export class USBLayer extends BaseLayer {
 
     public get allDevices() {
         return this._allDevices;
+    }
+
+    public get scanning() {
+        return !!this._scanHandle;
     }
 
     public waitForReadyAsync(_timeout: number = 10000): Promise<void> {

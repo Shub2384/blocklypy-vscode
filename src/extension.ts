@@ -1,18 +1,16 @@
 import * as vscode from 'vscode';
-import { connectDeviceAsync } from './commands/connect-device';
 import { disconnectDeviceAsync } from './commands/disconnect-device';
 import { stopUserProgramAsync } from './commands/stop-user-program';
 import { ConnectionManager } from './communication/connection-manager';
 import { Commands, registerCommands } from './extension/commands';
 import { registerContextUtils } from './extension/context-utils';
-import { logDebug, registerDebugTerminal } from './extension/debug-channel';
+import { registerDebugTerminal } from './extension/debug-channel';
 import { clearPythonErrors } from './extension/diagnostics';
 import { registerCommandsTree } from './extension/tree-commands';
 import { registerDevicesTree } from './extension/tree-devices';
 import { registerSettingsTree } from './extension/tree-settings';
 import { wrapErrorHandling } from './extension/utils';
 import { checkMagicHeaderComment } from './logic/compile';
-import { hasState, StateProp } from './logic/state';
 import { onTerminalUserInput } from './logic/stdin-helper';
 import Config from './utils/config';
 import { BlocklypyViewerProvider } from './views/BlocklypyViewerProvider';
@@ -81,22 +79,8 @@ export function activate(context: vscode.ExtensionContext) {
     ConnectionManager.startup().catch(console.error);
 
     // Start BLE scanning at startup and keep it running
-    // eslint-disable-next-line @typescript-eslint/no-misused-promises
-    setTimeout(async () => {
-        logDebug('BlocklyPy Commander started up successfully.', true);
-
-        await ConnectionManager.waitForReadyAsync();
-        // await Device.startScanning();
-
-        // autoconnect to last connected device
-        if (Config.deviceAutoConnect && Config.deviceLastConnected) {
-            const id = Config.deviceLastConnected;
-            const { devtype } = Config.decodeDeviceKey(id);
-
-            await ConnectionManager.waitTillDeviceAppearsAsync(id, devtype, 15000);
-            if (!hasState(StateProp.Connected) && !hasState(StateProp.Connecting))
-                await connectDeviceAsync(id, devtype);
-        }
+    setTimeout(() => {
+        void ConnectionManager.autoConnectLastDevice();
     }, 500);
 }
 

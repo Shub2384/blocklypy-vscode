@@ -3,20 +3,21 @@ import { logDebug, logDebugFromHub } from '../../extension/debug-channel';
 import { clearPythonErrors } from '../../extension/diagnostics';
 import { handleStdOutDataHelpers } from '../../logic/stdout-helper';
 import Config, { ConfigKeys } from '../../utils/config';
+import { BaseLayer } from '../layers/base-layer';
 
 export abstract class BaseClient {
     static readonly devtype: string;
     static readonly devname: string;
     static readonly supportsModularMpy: boolean;
 
-    protected _metadata: DeviceMetadata | undefined;
     protected _exitStack: (() => Promise<void> | void)[] = [];
     private _stdoutBuffer: string = '';
     private _stdoutTimer: NodeJS.Timeout | undefined = undefined;
 
-    constructor(metadata: DeviceMetadata | undefined) {
-        this._metadata = metadata;
-    }
+    constructor(
+        protected _metadata: DeviceMetadata | undefined,
+        protected parent: BaseLayer,
+    ) {}
 
     public get devtype(): string {
         return (this.constructor as typeof BaseClient).devtype;
@@ -45,7 +46,6 @@ export abstract class BaseClient {
             console.log('Disconnecting...');
             await this.runExitStack();
             await this.disconnectWorker();
-            this._metadata = undefined;
         } catch (error) {
             logDebug(`Error during disconnect: ${String(error)}`);
         }
@@ -62,6 +62,9 @@ export abstract class BaseClient {
         // Do not call disconnectAsync recursively
         await this.runExitStack();
         this._metadata = undefined;
+
+        // notify parent layer
+        this.parent.removeClient(this);
     }
 
     public async connect(
@@ -71,18 +74,11 @@ export abstract class BaseClient {
         try {
             await this.runExitStack();
 
-            //await withTimeout(
             await this.connectWorker(onDeviceUpdated, onFinalizing);
-            //    10000,
-            //);
-            // if (!this.connected) {
-            //     throw new Error('Failed to connect');
-            // }
 
             if (!this.name) throw new Error('Failed to get device name');
 
             logDebug(`Connected to ${this.name}, ${this.description}`);
-            Config.encodeDeviceKey(this.name, this.devtype);
 
             await Config.setConfigValue(ConfigKeys.DeviceLastConnected, this.id);
         } catch (error) {

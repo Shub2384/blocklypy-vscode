@@ -6,6 +6,7 @@ import { FILENAME_SAMPLE_COMPILED } from '../../logic/compile';
 import { setState, StateProp } from '../../logic/state';
 import { decodeSpikeMessage } from '../../spike/spike-messages';
 import {
+    BaseMessage,
     RequestMessage,
     ResponseMessage,
 } from '../../spike/spike-messages/base-message';
@@ -81,37 +82,55 @@ export class HubOSHandler {
 
     public async handleIncomingDataAsync(data: Buffer) {
         const unpacked = unpack(data);
-        try {
-            const [id, response] = decodeSpikeMessage(unpacked);
-            // logDebug(`Received message: 0x${id.toString(16)}`);
-            if (!response)
-                throw new Error(`Failed to decode message: ${data.toString('hex')}`);
 
+        // for (const unpacked of unpackedMulti) {
+        try {
+            const [_, message] = decodeSpikeMessage(unpacked);
+            if (!message)
+                throw new Error(`Failed to decode message: ${data.toString('hex')}`);
+            // console.log(
+            //     `Received message: 0x${message.Id.toString(16)}, ${
+            //         message.constructor.name
+            //     }`,
+            // );
+
+            await this.handleIncomingMessage(message);
+        } catch (e) {
+            logDebug(`Error handling message: ${String(e)}`);
+        }
+        // }
+    }
+
+    private async handleIncomingMessage(message: BaseMessage) {
+        try {
+            // logDebug(`Received message: 0x${id.toString(16)}`);
+            const id = message.Id;
             const pending = this._pendingMessagesPromises.get(id);
             if (pending) {
-                pending[0](response);
+                pending[0](message);
+                pending[1] = () => {}; // prevent memory leaks
                 this._pendingMessagesPromises.delete(id);
             }
 
-            // console.log('Handling message id', id, response, !!pending);
             switch (id) {
                 case InfoResponseMessage.Id: {
-                    const infoMsg = response as InfoResponseMessage;
+                    const infoMsg = message as InfoResponseMessage;
                     this._capabilities = infoMsg.info;
                     break;
                 }
                 case DeviceNotificationMessage.Id: {
-                    const deviceMsg = response as DeviceNotificationMessage;
+                    const deviceMsg = message as DeviceNotificationMessage;
                     await handleDeviceNotificationAsync(deviceMsg.payloads);
                     break;
                 }
                 case ProgramFlowNotificationMessage.Id: {
-                    const programFlowMsg = response as ProgramFlowNotificationMessage;
+                    const programFlowMsg = message as ProgramFlowNotificationMessage;
                     setState(StateProp.Running, programFlowMsg.action === 0);
                     break;
                 }
                 case ConsoleNotificationMessage.Id: {
-                    const consoleMsg = response as ConsoleNotificationMessage;
+                    const consoleMsg = message as ConsoleNotificationMessage;
+                    console.log(' >> ', consoleMsg.text.length);
                     await this.dataHandler(consoleMsg.text);
                     break;
                 }

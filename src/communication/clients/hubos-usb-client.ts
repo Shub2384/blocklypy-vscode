@@ -35,7 +35,7 @@ export class HubOSUsbClient extends HubOSBaseClient {
     }
 
     public async write(data: Uint8Array): Promise<void> {
-        //!! if (!this.connected || !this.metadata) return;
+        if (!this.connected || !this.metadata) return; // before connecting use serial.write directly for getName
 
         this._serialPort?.write(data);
         return Promise.resolve();
@@ -68,27 +68,31 @@ export class HubOSUsbClient extends HubOSBaseClient {
     ): Promise<string | undefined> {
         const serial = await HubOSUsbClient.connectInternal(metadata);
 
+        let dataHandler: ((data: Buffer) => void) | undefined = undefined;
         const namePromise = new Promise<string | undefined>((resolve, reject) => {
-            serial.on('data', (data: Buffer) => {
+            dataHandler = (data: Buffer) => {
                 const data2 = unpack(data);
                 const response = GetHubNameResponseMessage.fromBytes(data2);
                 // console.log('Received line from SPIKE USB:', hex, response);
                 if (resolve) resolve(response.hubName);
                 else reject(new Error('No response'));
-            });
+            };
+            serial.on('data', dataHandler);
         });
         const message = new GetHubNameRequestMessage();
         const payload = pack(message.serialize());
         serial.write(payload);
         const name = await namePromise;
 
-        serial.removeAllListeners();
+        serial.removeListener('data', dataHandler!);
         await HubOSUsbClient.closeInternal(serial);
 
         return name;
     }
 
     public static closeInternal(serial: SerialPort): Promise<void> {
+        if (!serial.isOpen) return Promise.resolve();
+
         return new Promise<void>((resolve, reject) => {
             serial.close((err) => {
                 if (err) return reject(err);
@@ -135,5 +139,13 @@ export class HubOSUsbClient extends HubOSBaseClient {
         await this._hubOSHandler?.initialize();
 
         // await this._hubOSHandler?.setDeviceNotifications(100);
+    }
+
+    protected async disconnectWorker() {
+        await super.disconnectWorker();
+
+        this._serialPort?.removeAllListeners();
+        if (this._serialPort) await HubOSUsbClient.closeInternal(this._serialPort);
+        this._serialPort = undefined;
     }
 }

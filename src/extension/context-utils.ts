@@ -22,19 +22,10 @@ const CONTEXT_BASE = EXTENSION_KEY + '.';
 
 // saga like bahaviour for context management
 export function registerContextUtils(context: vscode.ExtensionContext) {
-    const handleStateChange = async (event: StateChangeEvent) => {
-        // refresh commands tree on any state change
-        CommandsTree.refresh();
-
-        // handle specific state changes
+    const handleStateChange = (event: StateChangeEvent) => {
+        // --- Saga like behavior to handle specific state changes ---
         switch (event.prop) {
             case StateProp.Connected:
-                await vscode.commands.executeCommand(
-                    'setContext',
-                    CONTEXT_BASE + 'isConnected',
-                    event.value,
-                );
-                setState(StateProp.Connecting, false);
                 setState(StateProp.Running, false);
 
                 const msg = hasState(StateProp.Connected)
@@ -46,34 +37,29 @@ export function registerContextUtils(context: vscode.ExtensionContext) {
                 break;
 
             case StateProp.Running:
-                await vscode.commands.executeCommand(
-                    'setContext',
-                    EXTENSION_KEY + '.isProgramRunning',
-                    event.value,
-                );
-
                 // program state notification arrives at a regular pace
                 // it might happen that program sends text before program start notification arrives
                 // as a workaround on stadout we set running to true
                 clearStdOutDataHelpers();
                 break;
         }
+
+        // set all states as context
+        Object.values(StateProp).forEach((prop) => {
+            vscode.commands.executeCommand(
+                'setContext',
+                CONTEXT_BASE + 'is' + ToCapialized(String(prop)),
+                hasState(prop),
+            );
+        });
+
+        // refresh commands tree on any state change
+        CommandsTree.refresh();
     };
 
     context.subscriptions.push(onStateChange(handleStateChange));
 }
 
-// export function setContextIsProgramRunning(value: boolean) {
-//     // TODO: do this automatically when the status characteristic changes
-//     vscode.commands.executeCommand(
-//         'setContext',
-//         CONTEXT_BASE + 'isProgramRunning',
-//         value,
-//     );
-// }
-// export function setContextIsConnected(value: boolean) {
-//     vscode.commands.executeCommand('setContext', CONTEXT_BASE + 'isConnected', value);
-// }
 export async function setContextCustomViewType(value: ViewType | undefined) {
     await vscode.commands.executeCommand(
         'setContext',

@@ -47,9 +47,10 @@ export function checkIsDeviceNotification(data: Uint8Array): number | undefined 
     return payloadSize;
 }
 
-export function parseDeviceNotificationPayloads(
-    data: Uint8Array,
-): DeviceNotificationPayload[] | undefined {
+export function parseDeviceNotificationPayloads(data: Uint8Array): {
+    payloads: DeviceNotificationPayload[];
+    length: number;
+} {
     const payloadSize = checkIsDeviceNotification(data);
     if (!payloadSize) throw new Error('Invalid DeviceNotification');
 
@@ -173,5 +174,5 @@ export function parseDeviceNotificationPayloads(
         }
     }
 
-    return payloads;
+    return { payloads, length: offset };
 }

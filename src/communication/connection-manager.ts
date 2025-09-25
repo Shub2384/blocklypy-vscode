@@ -1,6 +1,17 @@
-import { DeviceMetadata } from '.';
+import * as vscode from 'vscode';
+import { ConnectionState, DeviceMetadata } from '.';
+import { connectDeviceAsync } from '../commands/connect-device';
+import { logDebug } from '../extension/debug-channel';
 import { showWarning } from '../extension/diagnostics';
-import { BaseLayer } from './layers/base-layer';
+import { CommandsTree } from '../extension/tree-commands';
+import { DevicesTree } from '../extension/tree-devices';
+import { hasState, setState, StateProp } from '../logic/state';
+import Config from '../utils/config';
+import {
+    BaseLayer,
+    ConnectionStateChangeEvent,
+    DeviceChangeEvent,
+} from './layers/base-layer';
 import { BLELayer } from './layers/ble-layer';
 import { USBLayer } from './layers/usb-layer';
 
@@ -11,8 +22,7 @@ export class ConnectionManager {
     private static layers: BaseLayer[] = [];
     private static bleLayer: BLELayer | undefined = undefined;
     private static usbLayer: USBLayer | undefined = undefined;
-    // private static listeners: ((device: DeviceMetadata) => void)[] = [];
-    // public static onDevice = new EventEmitter<DeviceMetadata>();
+    private static _deviceChange = new vscode.EventEmitter<DeviceChangeEvent>();
 
     public static get allDevices() {
         const devices: {
@@ -40,8 +50,14 @@ export class ConnectionManager {
 
     public static initialize() {
         // Initialization code here
-        this.bleLayer = new BLELayer();
-        this.usbLayer = new USBLayer();
+        this.bleLayer = new BLELayer(
+            (event) => ConnectionManager.handleStateChange(event),
+            (event) => ConnectionManager.handleDeviceChange(event),
+        );
+        this.usbLayer = new USBLayer(
+            (event) => ConnectionManager.handleStateChange(event),
+            (event) => ConnectionManager.handleDeviceChange(event),
+        );
         this.layers.push(this.bleLayer, this.usbLayer);
     }
 
@@ -51,7 +67,7 @@ export class ConnectionManager {
     }
 
     public static async connect(id: string, devtype: string) {
-        if (this.busy) throw new Error('Manager is busy');
+        if (this.busy) throw new Error('Connection manager is busy, try again later');
         this.busy = true;
         try {
             for (const layer of this.layers) {
@@ -68,24 +84,68 @@ export class ConnectionManager {
     }
 
     public static async disconnect() {
-        // if (this.busy) throw new Error('Manager is busy');
-        // this.busy = true;
-        // try {
-        //     const client = this.client;
-        //     if (client) await client.disconnect();
-        // } catch (error) {
-        //     showWarning(`Failed to disconnect: ${String(error)}`);
-        // } finally {
-        //     this.busy = false;
-        // }
-        for (const layer of this.layers) {
-            if (layer.client?.connected) await layer.disconnect();
+        if (this.busy) throw new Error('Connection manager is busy, try again later');
+        this.busy = true;
+        try {
+            for (const layer of this.layers) {
+                if (layer.client?.connected) {
+                    await layer.disconnect();
+                    return;
+                }
+            }
+        } catch (error) {
+            showWarning(`Failed to disconnect from device: ${String(error)}`);
+        } finally {
+            this.busy = false;
         }
     }
 
     public static finalize() {
-        // Cleanup code here
-        this.bleLayer?.stopScanning();
+        this.stopScanning();
+    }
+
+    private static handleStateChange(event: ConnectionStateChangeEvent) {
+        if (event.client === this.client && event.client !== undefined) {
+            setState(
+                StateProp.Connected,
+                event.state === ConnectionState.Connected &&
+                    event.client.connected === true,
+            );
+            setState(StateProp.Connecting, event.state === ConnectionState.Connecting);
+        } else {
+            console.log(
+                `Ignoring state change from non-active client: ${event.client?.id} (${event.state})`,
+            );
+            return;
+        }
+
+        CommandsTree.refresh();
+        DevicesTree.refreshCurrentItem();
+    }
+
+    private static handleDeviceChange(event: DeviceChangeEvent) {
+        ConnectionManager._deviceChange.fire(event);
+    }
+
+    public static async startScanning() {
+        await Promise.all(
+            this.layers.map(async (layer) => {
+                if (!layer.ready) return;
+                layer.stopScanning();
+                await layer.startScanning();
+            }),
+        );
+
+        if (this.layers.some((layer) => layer.ready)) {
+            setState(StateProp.Scanning, true);
+            DevicesTree.refresh();
+        }
+    }
+
+    public static stopScanning() {
+        this.layers.forEach((layer) => layer.stopScanning());
+        setState(StateProp.Scanning, false);
+        DevicesTree.refresh();
     }
 
     public static waitForReadyAsync(timeout: number = 10000) {
@@ -108,12 +168,27 @@ export class ConnectionManager {
             await targetlayer.waitTillDeviceAppearsAsync(id, devtype, timeout);
     }
 
-    public static addListener(fn: (device: DeviceMetadata) => void) {
-        for (const layer of this.layers) layer.addListener(fn);
+    public static onDeviceChange(
+        fn: (event: DeviceChangeEvent) => void,
+    ): vscode.Disposable {
+        return this._deviceChange.event(fn);
     }
 
-    public static removeListener(fn: (device: DeviceMetadata) => void) {
-        for (const layer of this.layers) layer.removeListener(fn);
+    public static async autoConnectLastDevice() {
+        logDebug('BlocklyPy Commander started up successfully.', true);
+
+        await ConnectionManager.waitForReadyAsync();
+        // await Device.startScanning();
+
+        // autoconnect to last connected device
+        if (Config.deviceAutoConnect && Config.deviceLastConnected) {
+            const id = Config.deviceLastConnected;
+            const { devtype } = Config.decodeDeviceKey(id);
+
+            await ConnectionManager.waitTillDeviceAppearsAsync(id, devtype, 15000);
+            if (!hasState(StateProp.Connected) && !hasState(StateProp.Connecting))
+                await connectDeviceAsync(id, devtype);
+        }
     }
 }
 

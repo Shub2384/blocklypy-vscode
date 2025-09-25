@@ -1,29 +1,59 @@
-import { ConnectionStatus, DeviceMetadata } from '..';
+import * as vscode from 'vscode';
+import { ConnectionState, DeviceMetadata } from '..';
+import { delay } from '../../extension';
 import { logDebug } from '../../extension/debug-channel';
-import { CommandsTree } from '../../extension/tree-commands';
 import { DevicesTree } from '../../extension/tree-devices';
-import { setState, StateProp } from '../../logic/state';
 import { withTimeout } from '../../utils/async';
+import Config, { ConfigKeys } from '../../utils/config';
 import { BaseClient } from '../clients/base-client';
 import { PybricksBleClient } from '../clients/pybricks-ble-client';
 
 // TODO: remove _client / activeCLient from layer -> move it to the manager //!!
 
+export type ConnectionStateChangeEvent = {
+    client: BaseClient;
+    state: ConnectionState;
+};
+export type DeviceChangeEvent = {
+    metadata: DeviceMetadata;
+};
+
 export abstract class BaseLayer {
-    private _status: ConnectionStatus = ConnectionStatus.Disconnected;
+    private _state: ConnectionState = ConnectionState.Initializing;
     protected _allDevices = new Map<string, DeviceMetadata>();
     protected _client: BaseClient | undefined = undefined;
     protected _exitStack: (() => Promise<void> | void)[] = [];
-    protected _listeners: ((device: DeviceMetadata) => void)[] = [];
     protected _isStartedUp: boolean = false;
+    protected _stateChange = new vscode.EventEmitter<ConnectionStateChangeEvent>();
+    protected _deviceChange = new vscode.EventEmitter<DeviceChangeEvent>();
+
+    public constructor(
+        onStateChange?: (event: ConnectionStateChangeEvent) => void,
+        onDeviceChange?: (event: DeviceChangeEvent) => void,
+    ) {
+        if (onStateChange) this._stateChange.event(onStateChange);
+        if (onDeviceChange) this._deviceChange.event(onDeviceChange);
+    }
 
     public get client() {
         return this._client;
     }
 
-    public get status() {
-        return this._status;
+    public get state() {
+        return this._state;
     }
+
+    public get ready() {
+        return this._state !== ConnectionState.Initializing;
+    }
+
+    protected set state(newState: ConnectionState) {
+        if (this._state === newState) return;
+        this._state = newState;
+        this._stateChange.fire({ client: this._client!, state: this._state });
+    }
+
+    public abstract get scanning(): boolean;
 
     public supportsDevtype(_devtype: string) {
         return false;
@@ -35,27 +65,28 @@ export abstract class BaseLayer {
     }
 
     public async connect(id: string, devtype: string) {
-        if (!this._client) throw new Error('Client not initialized');
-        if (this._client?.connected) await this._client.disconnect();
+        const client = this._client; // this is already set in the subclass connect, calling prior with super.connect
+        if (!client) throw new Error('Client not initialized');
+        if (client.connected) await this.disconnect();
 
         const metadata = this._allDevices.get(id);
         if (!metadata || metadata.devtype !== devtype)
             throw new Error(`Device ${id} not found with ${devtype}.`);
 
         try {
-            this.status = ConnectionStatus.Connecting;
+            this.state = ConnectionState.Connecting;
             await withTimeout(
-                this._client
+                client
                     .connect(
                         (device) => {
-                            this._listeners.forEach((fn) => fn(device));
+                            this._deviceChange.fire({ metadata: device });
                         },
                         (_device) => {
-                            // // need to remove this as pybricks creates a random BLE id on each reconnect
+                            // need to remove this as pybricks creates a random BLE id on each reconnect
                             if (_device.devtype === PybricksBleClient.devtype && !!id)
                                 this._allDevices.delete(id);
 
-                            this.status = ConnectionStatus.Disconnected;
+                            this.state = ConnectionState.Disconnected;
                             // setState(StateProp.Connected, false);
                             // setState(StateProp.Connecting, false);
                             // setState(StateProp.Running, false);
@@ -66,27 +97,28 @@ export abstract class BaseLayer {
                         console.error('Error during client.connect:', err);
                         throw err;
                     }),
-                10 * 1000,
+                Config.getConfigValue<number>(ConfigKeys.ConnectionTimeout, 15000),
             );
 
             this._exitStack.push(() => {
-                this.status = ConnectionStatus.Disconnected;
-                this._client = undefined;
+                console.debug('Running cleanup function after disconnect');
+                this.state = ConnectionState.Disconnected;
+                this.removeClient(client);
             });
 
-            if (this._client.connected !== true)
+            if (client.connected !== true)
                 throw new Error('Client failed to connect for unknown reason.');
 
-            this.status = ConnectionStatus.Connected;
+            this.state = ConnectionState.Connected;
         } catch (error) {
             console.error('Error during connect:', error);
-            this.status = ConnectionStatus.Disconnected;
+            this.state = ConnectionState.Disconnected;
             await this.runExitStack();
             await this.disconnect();
-            this._client = undefined;
+            this.removeClient(client);
         }
 
-        if (this.status !== ConnectionStatus.Connected) {
+        if (this.state !== ConnectionState.Connected) {
             await this.disconnect();
             throw new Error(`Failed to connect to ${id}: Timeout`);
         }
@@ -96,14 +128,16 @@ export abstract class BaseLayer {
         if (!this._client) return;
 
         try {
-            this.status = ConnectionStatus.Disconnecting;
+            this.state = ConnectionState.Disconnecting;
             await this._client.disconnect();
             await this.runExitStack();
-            this._client = undefined;
         } catch (error) {
             logDebug(`Error during disconnectAsync: ${String(error)}`);
         }
-        this.status = ConnectionStatus.Disconnected;
+        this.removeClient(this.client);
+        this.state = ConnectionState.Disconnected;
+
+        await delay(500);
     }
 
     private async runExitStack() {
@@ -117,33 +151,11 @@ export abstract class BaseLayer {
         this._exitStack = [];
     }
 
-    public addListener(fn: (device: DeviceMetadata) => void) {
-        if (this._listeners.indexOf(fn) === -1) {
-            this._listeners.push(fn);
-        }
+    public onDeviceChange(fn: (event: DeviceChangeEvent) => void) {
+        return this._deviceChange.event(fn);
     }
-    public removeListener(fn: (device: DeviceMetadata) => void) {
-        const idx = this._listeners.indexOf(fn);
-        if (idx !== -1) {
-            this._listeners.splice(idx, 1);
-        }
-    }
-
-    private set status(newStatus: ConnectionStatus) {
-        // TODO: this should not be per layet // maybe there should be an acitve layer later?
-        // now it is ok, as we only have bleLayer
-        setState(
-            StateProp.Connected,
-            newStatus === ConnectionStatus.Connected &&
-                this._client?.connected === true,
-        );
-        setState(StateProp.Connecting, newStatus === ConnectionStatus.Connecting);
-
-        if (this._status === newStatus) return;
-        this._status = newStatus;
-
-        CommandsTree.refresh();
-        DevicesTree.refreshCurrentItem();
+    public handleDeviceChange(event: DeviceChangeEvent) {
+        this._deviceChange.fire(event);
     }
 
     public get allDevices() {
@@ -171,17 +183,24 @@ export abstract class BaseLayer {
 
         const start = Date.now();
         return new Promise<void>((res, rej) => {
-            const listener = (device: DeviceMetadata) => {
-                if (device.id === id && device.devtype === devtype) {
-                    this.removeListener(listener);
+            const listener = this.onDeviceChange((event: DeviceChangeEvent) => {
+                if (event.metadata.id === id && event.metadata.devtype === devtype) {
+                    listener.dispose();
                     res();
                 } else if (Date.now() - start > timeout) {
                     // TODO: revisit
-                    this.removeListener(listener);
+                    listener.dispose();
                     rej(new Error('Timeout waiting for device'));
                 }
-            };
-            this.addListener(listener);
+            });
         });
+    }
+
+    public abstract stopScanning(): void;
+    public abstract startScanning(): Promise<void>;
+
+    public removeClient(client?: BaseClient) {
+        const id = client?.id;
+        if (id === this._client?.id) this._client = undefined;
     }
 }

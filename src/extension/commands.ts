@@ -6,6 +6,7 @@ import { connectDeviceAsyncAny } from '../commands/connect-device';
 import { disconnectDeviceAsync } from '../commands/disconnect-device';
 import { startUserProgramAsync } from '../commands/start-user-program';
 import { stopUserProgramAsync } from '../commands/stop-user-program';
+import { ConnectionManager } from '../communication/connection-manager';
 import { compileAsync } from '../logic/compile';
 import Config, { ConfigKeys } from '../utils/config';
 import { BlocklypyViewerProvider, ViewType } from '../views/BlocklypyViewerProvider';
@@ -36,6 +37,8 @@ export enum Commands {
     ShowPythonPreview = 'blocklypy-vscode.showPythonPreview',
     ShowSource = 'blocklypy-vscode.pythonPreview.showSource',
     ClearAllSlots = 'blocklypy-vscode.clearAllSlots',
+    StartScanning = 'blocklypy-vscode.startScanning',
+    StopScanning = 'blocklypy-vscode.stopScanning',
 }
 
 export const CommandMetaData: CommandMetaDataEntryExtended[] = [
@@ -161,6 +164,24 @@ export const CommandMetaData: CommandMetaDataEntryExtended[] = [
     {
         command: Commands.ClearAllSlots,
         handler: clearAllSlots,
+    },
+    {
+        command: Commands.StartScanning,
+        title: 'Start Scanning',
+        icon: '$(radio-tower)',
+        handler: async () => {
+            await ConnectionManager.startScanning();
+        },
+    },
+    {
+        command: Commands.StopScanning,
+        title: 'Stop Scanning',
+        icon: '$(radio-tower)',
+        // eslint-disable-next-line @typescript-eslint/require-await
+        handler: async () => {
+            ConnectionManager.stopScanning();
+            void Promise.resolve();
+        },
     },
 ];
 
