@@ -151,9 +151,10 @@ export class PybricksBleClient extends BaseClient {
             pnpId,
         };
 
-        this._exitStack.push(async () => {
+        this._exitStack.push(() => {
             this._rxtxCharacteristic?.removeAllListeners('data');
-            await this._rxtxCharacteristic?.unsubscribeAsync();
+            // sometimes this gets stuck, intentionally ignore wait
+            void this._rxtxCharacteristic?.unsubscribeAsync();
             this._rxtxCharacteristic = undefined;
         });
 

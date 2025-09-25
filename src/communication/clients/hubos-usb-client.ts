@@ -120,6 +120,7 @@ export class HubOSUsbClient extends HubOSBaseClient {
         if (!device) throw new Error('No portinfo in metadata');
 
         this._serialPort = await HubOSUsbClient.connectInternal(metadata);
+
         this._exitStack.push(() => {
             if (onDeviceRemoved) onDeviceRemoved(metadata);
         });
@@ -128,6 +129,11 @@ export class HubOSUsbClient extends HubOSBaseClient {
             'data',
             (data) => void this.handleIncomingDataAsync(data as Buffer),
         );
+        this._serialPort.on(
+            'close',
+            () => void this.handleDisconnectAsync(metadata.id),
+        );
+
         this._exitStack.push(async () => {
             await HubOSUsbClient.closeInternal(this._serialPort!);
             this._serialPort?.removeAllListeners();

@@ -6,7 +6,7 @@ import { hasState, StateProp } from '../logic/state';
 import { Commands } from './commands';
 import { BaseTreeDataProvider, TreeItemData } from './tree-base';
 
-const DEVICE_VISIBILITY_CHECK_INTERVAL = 1000; // milliseconds
+const DEVICE_VISIBILITY_CHECK_INTERVAL = 10 * 1000;
 
 export interface TreeItemDeviceData extends TreeItemData {
     validTill?: number;
@@ -35,36 +35,32 @@ class DevicesTreeDataProvider extends BaseTreeDataProvider<TreeItemDeviceData> {
             return [];
         }
 
-        if (this.deviceMap.size > 0) {
-            return Array.from(this.deviceMap.values());
-        } else {
-            if (hasState(StateProp.Scanning)) {
-                return [
-                    {
-                        title: 'Scanning for devices...',
-                        icon: '$(loading~spin)',
-                        command: Commands.StopScanning,
-                    },
-                ];
-            } else {
-                return [
-                    {
-                        title: 'No devices found.',
-                        icon: '$(circle-slash)',
-                        command: Commands.StartScanning,
-                        description: 'Click to start scanning',
-                    },
-                ];
-            }
+        const elems = Array.from(this.deviceMap.values());
+        if (!hasState(StateProp.Scanning)) {
+            elems.push({
+                title: 'Click to start scanning.',
+                // icon: '$(circle-slash)',
+                command: Commands.StartScanning,
+            });
+        } else if (elems.length === 0) {
+            // Show scanning status if no devices
+            elems.push({
+                title: 'Scanning for devices...',
+                icon: '$(loading~spin)',
+                command: Commands.StopScanning,
+            });
         }
+
+        return elems;
     }
 
-    refreshCurrentItem() {
-        const id = ConnectionManager.client?.id;
-        if (!id) return;
-        const item = this.deviceMap.get(id);
-        if (item) this.refreshItem(item);
-    }
+    // refreshCurrentItem() {
+    //     const id = ConnectionManager.client?.id;
+    //     if (!id) return;
+    //     const item = this.deviceMap.get(id);
+    //     if (item) this.refreshItem(item);
+    //     DevicesTree.refresh();
+    // }
 }
 
 const DevicesTree = new DevicesTreeDataProvider();

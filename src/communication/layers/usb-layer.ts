@@ -11,6 +11,8 @@ import {
 import { HubOSUsbClient } from '../clients/hubos-usb-client';
 import { BaseLayer, ConnectionStateChangeEvent, DeviceChangeEvent } from './base-layer';
 
+const USB_CLIENT_TTL = 20 * 1000;
+
 export class DeviceMetadataForUSB extends DeviceMetadata {
     private _resolvedName: string | undefined = undefined;
 
@@ -44,6 +46,7 @@ export class DeviceMetadataForUSB extends DeviceMetadata {
 }
 
 export class USBLayer extends BaseLayer {
+    public static readonly name: string = 'usb-layer';
     private _supportsHotPlug: boolean = false;
     private _scanHandle: NodeJS.Timeout | undefined = undefined;
     private _isWithinScan: boolean = false;
@@ -57,7 +60,22 @@ export class USBLayer extends BaseLayer {
         onDeviceChange?: (device: DeviceChangeEvent) => void,
     ) {
         super(onStateChange, onDeviceChange);
+    }
 
+    public async initialize() {
+        try {
+            usb.on('attach', this.handleUsbAttach.bind(this));
+            usb.on('detach', this.handleUsbDetach.bind(this));
+            this._supportsHotPlug = true;
+        } catch (e) {
+            console.error('Error setting up USB listeners:', e);
+            this._supportsHotPlug = false;
+
+            // Fallback: Periodic scanning
+            await this.startScanning();
+        }
+
+        await this.scan();
         this.state = ConnectionState.Disconnected; // initialized successfully
     }
 
@@ -103,24 +121,6 @@ export class USBLayer extends BaseLayer {
         }
     }
 
-    public async startup() {
-        await super.startup();
-
-        try {
-            usb.on('attach', this.handleUsbAttach.bind(this));
-            usb.on('detach', this.handleUsbDetach.bind(this));
-            this._supportsHotPlug = true;
-        } catch (e) {
-            console.error('Error setting up USB listeners:', e);
-            this._supportsHotPlug = false;
-
-            // Fallback: Periodic scanning
-            await this.startScanning();
-        }
-
-        await this.scan();
-    }
-
     public stopScanning() {
         if (this._scanHandle) {
             clearInterval(this._scanHandle);
@@ -133,7 +133,7 @@ export class USBLayer extends BaseLayer {
 
         this._scanHandle = setInterval(() => {
             void this.scan().catch(console.error);
-        }, 10000);
+        }, USB_CLIENT_TTL / 2);
 
         return Promise.resolve();
     }
@@ -167,7 +167,8 @@ export class USBLayer extends BaseLayer {
                 this._allDevices.set(metadata.id, metadata);
 
                 // If the device is not hot-pluggable, we set a timeout to forget it again
-                if (!this._supportsHotPlug) metadata.validTill = Date.now() + 15000;
+                if (!this._supportsHotPlug)
+                    metadata.validTill = Date.now() + USB_CLIENT_TTL;
 
                 try {
                     if (

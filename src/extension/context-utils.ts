@@ -33,7 +33,8 @@ export function registerContextUtils(context: vscode.ExtensionContext) {
                     : 'Disconnected';
                 setStatusBarItem(event.value, msg, msg);
 
-                DevicesTree.refreshCurrentItem();
+                // DevicesTree.refreshCurrentItem();
+                DevicesTree.refresh();
                 break;
 
             case StateProp.Running:

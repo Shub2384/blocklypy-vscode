@@ -76,12 +76,22 @@ export function activate(context: vscode.ExtensionContext) {
         void onTerminalUserInput(input);
     });
 
-    ConnectionManager.startup().catch(console.error);
+    // listen to window state changes
+    context.subscriptions.push(
+        vscode.window.onDidChangeWindowState((e) => {
+            if (!e.focused) {
+                ConnectionManager?.stopScanning();
+            }
+        }),
+    );
 
-    // Start BLE scanning at startup and keep it running
-    setTimeout(() => {
-        void ConnectionManager.autoConnectLastDevice();
-    }, 500);
+    // Finally, initialize the connection manager and auto-connect if needed
+    const startupFn = async () => {
+        await ConnectionManager.initialize();
+        await delay(500); // wait a bit for layers to settle
+        await ConnectionManager.autoConnectLastDevice();
+    };
+    void startupFn().catch(console.error);
 }
 
 export async function deactivate() {

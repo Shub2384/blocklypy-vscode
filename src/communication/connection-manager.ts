@@ -20,8 +20,6 @@ import { USBLayer } from './layers/usb-layer';
 export class ConnectionManager {
     private static busy = false;
     private static layers: BaseLayer[] = [];
-    private static bleLayer: BLELayer | undefined = undefined;
-    private static usbLayer: USBLayer | undefined = undefined;
     private static _deviceChange = new vscode.EventEmitter<DeviceChangeEvent>();
 
     public static get allDevices() {
@@ -48,22 +46,22 @@ export class ConnectionManager {
         return this.layers.find((layer) => layer.client)?.client;
     }
 
-    public static initialize() {
+    public static async initialize() {
         // Initialization code here
-        this.bleLayer = new BLELayer(
-            (event) => ConnectionManager.handleStateChange(event),
-            (event) => ConnectionManager.handleDeviceChange(event),
-        );
-        this.usbLayer = new USBLayer(
-            (event) => ConnectionManager.handleStateChange(event),
-            (event) => ConnectionManager.handleDeviceChange(event),
-        );
-        this.layers.push(this.bleLayer, this.usbLayer);
-    }
 
-    public static async startup() {
-        const startupfns = this.layers.map((layer) => layer.startup());
-        await Promise.all(startupfns);
+        for (const layerCtor of [BLELayer, USBLayer]) {
+            try {
+                const instance = new layerCtor(
+                    (event) => ConnectionManager.handleStateChange(event),
+                    (event) => ConnectionManager.handleDeviceChange(event),
+                );
+                await instance.initialize();
+                this.layers.push(instance);
+                console.log(`Successfully initialized ${layerCtor.name}.`);
+            } catch (e) {
+                console.error(`Failed to initialize ${layerCtor.name}:`, e);
+            }
+        }
     }
 
     public static async connect(id: string, devtype: string) {
@@ -120,7 +118,8 @@ export class ConnectionManager {
         }
 
         CommandsTree.refresh();
-        DevicesTree.refreshCurrentItem();
+        // DevicesTree.refreshCurrentItem();
+        DevicesTree.refresh();
     }
 
     private static handleDeviceChange(event: DeviceChangeEvent) {
@@ -128,6 +127,8 @@ export class ConnectionManager {
     }
 
     public static async startScanning() {
+        setState(StateProp.Scanning, true);
+
         await Promise.all(
             this.layers.map(async (layer) => {
                 if (!layer.ready) return;
@@ -136,10 +137,7 @@ export class ConnectionManager {
             }),
         );
 
-        if (this.layers.some((layer) => layer.ready)) {
-            setState(StateProp.Scanning, true);
-            DevicesTree.refresh();
-        }
+        DevicesTree.refresh();
     }
 
     public static stopScanning() {
@@ -191,5 +189,3 @@ export class ConnectionManager {
         }
     }
 }
-
-ConnectionManager.initialize();

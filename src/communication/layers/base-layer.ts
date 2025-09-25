@@ -19,11 +19,11 @@ export type DeviceChangeEvent = {
 };
 
 export abstract class BaseLayer {
+    public static readonly name: string;
     private _state: ConnectionState = ConnectionState.Initializing;
     protected _allDevices = new Map<string, DeviceMetadata>();
     protected _client: BaseClient | undefined = undefined;
     protected _exitStack: (() => Promise<void> | void)[] = [];
-    protected _isStartedUp: boolean = false;
     protected _stateChange = new vscode.EventEmitter<ConnectionStateChangeEvent>();
     protected _deviceChange = new vscode.EventEmitter<DeviceChangeEvent>();
 
@@ -54,14 +54,10 @@ export abstract class BaseLayer {
     }
 
     public abstract get scanning(): boolean;
+    public abstract initialize(): Promise<void>;
 
     public supportsDevtype(_devtype: string) {
         return false;
-    }
-
-    public startup(): Promise<void> {
-        this._isStartedUp = true;
-        return Promise.resolve();
     }
 
     public async connect(id: string, devtype: string) {

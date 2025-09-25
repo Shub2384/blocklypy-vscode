@@ -1,4 +1,8 @@
-import { Peripheral, PeripheralAdvertisement, withBindings } from '@stoprocent/noble';
+import {
+    type Noble,
+    type Peripheral,
+    type PeripheralAdvertisement,
+} from '@stoprocent/noble';
 import _ from 'lodash';
 import { ConnectionState, DeviceMetadata } from '..';
 import { isDevelopmentMode } from '../../extension';
@@ -16,8 +20,6 @@ import { HubOSBleClient } from '../clients/hubos-ble-client';
 import { PybricksBleClient } from '../clients/pybricks-ble-client';
 import { uuid128, uuid16 } from '../utils';
 import { BaseLayer, ConnectionStateChangeEvent, DeviceChangeEvent } from './base-layer';
-
-const noble = withBindings('default'); // 'hci', 'win', 'mac'
 
 export class DeviceMetadataWithPeripheral extends DeviceMetadata {
     constructor(
@@ -42,6 +44,7 @@ export class DeviceMetadataWithPeripheral extends DeviceMetadata {
 }
 
 export class BLELayer extends BaseLayer {
+    public static readonly name: string = 'ble-layer';
     private _isScanning: boolean = false;
     private _advertisementQueue: Map<
         string,
@@ -52,6 +55,7 @@ export class BLELayer extends BaseLayer {
         }
     > = new Map();
     private _advertisementHandle: NodeJS.Timeout | undefined = undefined;
+    private _noble: Noble | undefined = undefined;
 
     public supportsDevtype(_devtype: string) {
         return (
@@ -65,10 +69,22 @@ export class BLELayer extends BaseLayer {
         onDeviceChange?: (device: DeviceChangeEvent) => void,
     ) {
         super(onStateChange, onDeviceChange);
+    }
+
+    public async initialize() {
+        // throw new Error('Noble import not supported');
+        const nobleModule = await import('@stoprocent/noble');
+        this._noble = nobleModule?.withBindings('default'); // 'hci', 'win', 'mac'
+        if (!this._noble) throw new Error('Noble module not loaded');
+
+        this.state = ConnectionState.Disconnected; // initialized successfully
 
         // setup noble listeners
-        noble.on('stateChange', (state) => void this.handleNobleStateChange(state));
-        noble.on('scanStart', () => {
+        this._noble.on(
+            'stateChange',
+            (state) => void this.handleNobleStateChange(state),
+        );
+        this._noble.on('scanStart', () => {
             this._isScanning = true;
             setState(StateProp.Scanning, true);
             this._advertisementHandle = setInterval(
@@ -76,12 +92,12 @@ export class BLELayer extends BaseLayer {
                 1000,
             );
         });
-        noble.on('scanStop', () => {
+        this._noble.on('scanStop', () => {
             this._isScanning = false;
             clearInterval(this._advertisementHandle);
             this._advertisementHandle = undefined;
         });
-        noble.on('discover', (peripheral) => {
+        this._noble.on('discover', (peripheral) => {
             if (!peripheral.advertisement.localName) return;
 
             const advertisement = _.cloneDeep(peripheral.advertisement);
@@ -177,16 +193,8 @@ export class BLELayer extends BaseLayer {
             console.log(`Noble state changed to: ${state}`);
             // TODO: handle disconnect and restart scanning!
         }
-        if (state === 'poweredOn' && this._isStartedUp) {
+        if (state === 'poweredOn') {
             void this.restartScanning();
-        }
-    }
-
-    public async startup() {
-        await super.startup();
-
-        if (noble.state === 'poweredOn') {
-            this.restartScanning();
         }
     }
 
@@ -219,7 +227,7 @@ export class BLELayer extends BaseLayer {
 
     public async startScanning() {
         this._allDevices.clear();
-        await noble.startScanningAsync(
+        await this._noble?.startScanningAsync(
             [
                 pybricksServiceUUID, // pybricks connect uuid
                 uuid128(pnpIdUUID), // pybricks advertisement uuid
@@ -232,12 +240,12 @@ export class BLELayer extends BaseLayer {
     public waitForReadyAsync(timeout: number = 10000): Promise<void> {
         return withTimeout(
             new Promise<void>((resolve, reject) => {
-                if (noble.state === 'poweredOn') {
+                if (this._noble?.state === 'poweredOn') {
                     this.state = ConnectionState.Disconnected; // initialized successfully
                     resolve();
                     return;
                 }
-                noble.once('stateChange', (state) => {
+                this._noble?.once('stateChange', (state) => {
                     if (state === 'poweredOn') {
                         this.state = ConnectionState.Disconnected; // initialized successfully
                         resolve();
@@ -253,7 +261,7 @@ export class BLELayer extends BaseLayer {
     }
 
     public stopScanning() {
-        noble.stopScanning();
+        this._noble?.stopScanning();
     }
 
     public get scanning() {
