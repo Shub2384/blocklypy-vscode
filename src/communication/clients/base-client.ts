@@ -82,6 +82,7 @@ export abstract class BaseClient {
 
             await Config.setConfigValue(ConfigKeys.DeviceLastConnected, this.id);
         } catch (error) {
+            await this.disconnect();
             this._metadata = undefined;
             throw error;
         }

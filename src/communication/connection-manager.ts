@@ -49,7 +49,7 @@ export class ConnectionManager {
     public static async initialize() {
         // Initialization code here
 
-        for (const layerCtor of [BLELayer, USBLayer]) {
+        for (const layerCtor of [BLELayer /*, USBLayer*/]) {
             try {
                 const instance = new layerCtor(
                     (event) => ConnectionManager.handleStateChange(event),
@@ -75,7 +75,7 @@ export class ConnectionManager {
                 }
             }
         } catch (error) {
-            showWarning(`Failed to connect to device ${id}: ${String(error)}`);
+            showWarning(`Failed to connect to device ${id}. Error: ${String(error)}`);
         } finally {
             this.busy = false;
         }
@@ -132,7 +132,6 @@ export class ConnectionManager {
         await Promise.all(
             this.layers.map(async (layer) => {
                 if (!layer.ready) return;
-                layer.stopScanning();
                 await layer.startScanning();
             }),
         );

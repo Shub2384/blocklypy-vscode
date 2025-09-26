@@ -13,7 +13,7 @@ import {
     pybricksDecodeBleBroadcastData,
     PybricksDecodedBleBroadcast,
 } from '../../pybricks/protocol-ble-broadcast';
-import { SPIKE_SERVICE_UUID16 } from '../../spike/protocol';
+import { SPIKE_SERVICE_UUID, SPIKE_SERVICE_UUID16 } from '../../spike/protocol';
 import { withTimeout } from '../../utils/async';
 import Config, { ConfigKeys } from '../../utils/config';
 import { HubOSBleClient } from '../clients/hubos-ble-client';
@@ -228,11 +228,16 @@ export class BLELayer extends BaseLayer {
     public async startScanning() {
         this._allDevices.clear();
         await this._noble?.startScanningAsync(
-            [
-                pybricksServiceUUID, // pybricks connect uuid
-                uuid128(pnpIdUUID), // pybricks advertisement uuid
-                uuid128(SPIKE_SERVICE_UUID16), // spike prime connect uuid
-            ],
+            // undefined,
+            undefined,
+            // [
+            //     pybricksServiceUUID, // pybricks connect uuid
+            //     uuid128(pnpIdUUID), // pybricks advertisement uuid
+            //     SPIKE_SERVICE_UUID, // spike prime connect uuid
+            //     '0000fd02-0000-1000-8000-00805f9b34fb',
+            //     'fd02', // spike prime connect uuid (short)
+            // ],
+            // TODO: on windows short UUIDs do not work, check if this is still the case
             true,
         );
     }

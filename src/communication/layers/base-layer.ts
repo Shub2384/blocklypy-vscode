@@ -115,11 +115,12 @@ export abstract class BaseLayer {
 
             // TODO: on connect error, maybe remove device so that rescan can find it again
             // would be a problem for non polled (e.g. hotplug) layers
+            throw error;
         }
 
         if (this.state !== ConnectionState.Connected) {
             await this.disconnect();
-            throw new Error(`Failed to connect to ${id}: Timeout`);
+            throw new Error(`Failed to connect to ${id} with ${devtype}.`);
         }
     }
 

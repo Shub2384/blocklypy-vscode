@@ -4,12 +4,13 @@ import { usb } from 'usb';
 import { ConnectionState, DeviceMetadata } from '..';
 import {
     SPIKE_USB_PRODUCT_ID,
-    SPIKE_USB_PRODUCT_ID_NUM,
+    // SPIKE_USB_PRODUCT_ID_NUM,
     SPIKE_USB_VENDOR_ID,
-    SPIKE_USB_VENDOR_ID_NUM,
+    // SPIKE_USB_VENDOR_ID_NUM,
 } from '../../spike/protocol';
 import { HubOSUsbClient } from '../clients/hubos-usb-client';
 import { BaseLayer, ConnectionStateChangeEvent, DeviceChangeEvent } from './base-layer';
+// import { setInterval } from 'timers/promises';
 
 const USB_CLIENT_TTL = 20 * 1000;
 
@@ -63,63 +64,65 @@ export class USBLayer extends BaseLayer {
     }
 
     public async initialize() {
-        try {
-            usb.on('attach', this.handleUsbAttach.bind(this));
-            usb.on('detach', this.handleUsbDetach.bind(this));
-            this._supportsHotPlug = true;
-        } catch (e) {
-            console.error('Error setting up USB listeners:', e);
-            this._supportsHotPlug = false;
+        // try {
+        //     usb.on('attach', this.handleUsbAttach.bind(this));
+        //     usb.on('detach', this.handleUsbDetach.bind(this));
+        //     this._supportsHotPlug = true;
+        // } catch (e) {
+        //     console.error('Error setting up USB listeners:', e);
+        //     this._supportsHotPlug = false;
 
-            // Fallback: Periodic scanning
-            await this.startScanning();
-        }
+        //     // Fallback: Periodic scanning
+        //     await this.startScanning();
+        // }
+        // await this.scan();
 
-        await this.scan();
+        this._supportsHotPlug = false;
+        await this.startScanning();
         this.state = ConnectionState.Disconnected; // initialized successfully
     }
 
-    private usbRegistrySerial = new Map<usb.Device, string>();
+    // private usbRegistrySerial = new Map<usb.Device, string>();
 
-    private handleUsbAttach(device: usb.Device) {
-        if (
-            device.deviceDescriptor.idVendor === SPIKE_USB_VENDOR_ID_NUM &&
-            device.deviceDescriptor.idProduct === SPIKE_USB_PRODUCT_ID_NUM
-            // pybricks = VID:164, PID:16
-        ) {
-            const handleOpen = async (device: usb.Device) => {
-                device.open();
-                // const manufacturer = await _getUsbStringDescriptor(device, 1); // 1 = Manufacturer, LEGO System A/S
-                // const product = await _getUsbStringDescriptor(device, 2); // 2 = Product, SPIKE Prime VCP
-                const serialnumber = await _getUsbStringDescriptor(device, 3); // 3 = Serial Number, 000000000000
-                if (serialnumber) this.usbRegistrySerial.set(device, serialnumber);
-            };
-            handleOpen(device).catch(console.error);
-            void this.scan().catch(console.error);
-        }
-    }
+    // private handleUsbAttach(device: usb.Device) {
+    //     if (
+    //         device.deviceDescriptor.idVendor === SPIKE_USB_VENDOR_ID_NUM &&
+    //         device.deviceDescriptor.idProduct === SPIKE_USB_PRODUCT_ID_NUM
+    //         // pybricks = VID:164, PID:16
+    //     ) {
+    //         const handleOpen = async (device: usb.Device) => {
+    //             device.open();
+    //             // const manufacturer = await _getUsbStringDescriptor(device, 1); // 1 = Manufacturer, LEGO System A/S
+    //             // const product = await _getUsbStringDescriptor(device, 2); // 2 = Product, SPIKE Prime VCP
+    //             const serialnumber = await _getUsbStringDescriptor(device, 3); // 3 = Serial Number, 000000000000
+    //             if (serialnumber) this.usbRegistrySerial.set(device, serialnumber);
+    //         };
+    //         handleOpen(device).catch(console.error);
+    //         void this.scan().catch(console.error);
+    //     }
+    // }
 
-    private handleUsbDetach(device: usb.Device) {
-        if (
-            device.deviceDescriptor.idVendor === SPIKE_USB_VENDOR_ID_NUM &&
-            device.deviceDescriptor.idProduct === SPIKE_USB_PRODUCT_ID_NUM
-        ) {
-            const serialnumber = this.usbRegistrySerial.get(device);
-            if (serialnumber) {
-                for (const [id, metadata] of this._allDevices.entries()) {
-                    if (
-                        metadata instanceof DeviceMetadataForUSB &&
-                        metadata.serialNumber === serialnumber
-                    ) {
-                        metadata.validTill = 0;
-                        this._allDevices.delete(id);
-                        this._deviceChange.fire({ metadata });
-                    }
-                }
-            }
-            this.usbRegistrySerial.delete(device);
-        }
-    }
+    // private handleUsbDetach(device: usb.Device) {
+    //     if (
+    //         device.deviceDescriptor.idVendor === SPIKE_USB_VENDOR_ID_NUM &&
+    //         device.deviceDescriptor.idProduct === SPIKE_USB_PRODUCT_ID_NUM
+    //     ) {
+    //         const serialnumber = this.usbRegistrySerial.get(device);
+    //         if (serialnumber) {
+    //             for (const [id, metadata] of this._allDevices.entries()) {
+    //                 if (
+    //                     metadata instanceof DeviceMetadataForUSB &&
+    //                     metadata.serialNumber === serialnumber
+    //                 ) {
+    //                     metadata.validTill = 0;
+    //                     this._allDevices.delete(id);
+    //                     this._deviceChange.fire({ metadata });
+    //                 }
+    //             }
+    //         }
+    //         this.usbRegistrySerial.delete(device);
+    //     }
+    // }
 
     public stopScanning() {
         if (this._scanHandle) {
@@ -129,12 +132,12 @@ export class USBLayer extends BaseLayer {
     }
 
     public async startScanning() {
-        if (this.scanning) return;
+        if (!!this._scanHandle) return;
 
-        this._scanHandle = setInterval(() => {
-            void this.scan().catch(console.error);
-        }, USB_CLIENT_TTL / 2);
-
+        const handler = async () => this.scan();
+        handler(); // initial call
+        this._scanHandle = setInterval(handler, USB_CLIENT_TTL / 2);
+        // this._scanHandle = setInterval(USB_CLIENT_TTL / 2, handler);
         return Promise.resolve();
     }
 
@@ -148,6 +151,7 @@ export class USBLayer extends BaseLayer {
                     port.vendorId === SPIKE_USB_VENDOR_ID &&
                     port.productId === SPIKE_USB_PRODUCT_ID,
             );
+
             for (const port of portsOk) {
                 const serialNumber = port.serialNumber ?? 'unknown';
 
@@ -170,19 +174,18 @@ export class USBLayer extends BaseLayer {
                 if (!this._supportsHotPlug)
                     metadata.validTill = Date.now() + USB_CLIENT_TTL;
 
-                try {
-                    if (
-                        metadata.devtype === HubOSUsbClient.devtype &&
-                        !metadata.hasResolvedName
-                    ) {
-                        // try to get the real name from the device
-                        await HubOSUsbClient.refreshDeviceName(metadata);
-                    }
-                    this._deviceChange.fire({ metadata });
-                } catch (_e) {
-                    metadata.validTill = 0;
-                    this._allDevices.delete(metadata.id);
-                }
+                // try {
+                //     if (
+                //         metadata.devtype === HubOSUsbClient.devtype &&
+                //         !metadata.hasResolvedName
+                //     ) {
+                //         await HubOSUsbClient.refreshDeviceName(metadata);
+                //     }
+                //     this._deviceChange.fire({ metadata });
+                // } catch (_e) {
+                //     metadata.validTill = 0;
+                //     this._allDevices.delete(metadata.id);
+                // }
             }
         } catch (e) {
             console.error('Error scanning USB devices:', e);
@@ -194,7 +197,6 @@ export class USBLayer extends BaseLayer {
     public async connect(id: string, devtype: string): Promise<void> {
         const metadata = this._allDevices.get(id);
         if (!metadata) {
-            console.log(this._allDevices);
             throw new Error(`Device ${id} not found.`);
         }
 

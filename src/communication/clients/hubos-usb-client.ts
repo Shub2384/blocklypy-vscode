@@ -6,6 +6,7 @@ import { GetHubNameResponseMessage } from '../../spike/spike-messages/get-hub-na
 import { ProductGroupDeviceTypeMap } from '../../spike/spike-messages/info-response-message';
 import { DeviceMetadataForUSB } from '../layers/usb-layer';
 import { HubOSBaseClient } from './hubos-base-client';
+import { maybe } from '../../pybricks/utils';
 
 export class HubOSUsbClient extends HubOSBaseClient {
     public static readonly devtype = 'hubos-usb';
@@ -68,32 +69,52 @@ export class HubOSUsbClient extends HubOSBaseClient {
     ): Promise<string | undefined> {
         const serial = await HubOSUsbClient.connectInternal(metadata);
 
-        let dataHandler: ((data: Buffer) => void) | undefined = undefined;
-        const namePromise = new Promise<string | undefined>((resolve, reject) => {
-            dataHandler = (data: Buffer) => {
-                const data2 = unpack(data);
-                const response = GetHubNameResponseMessage.fromBytes(data2);
-                // console.log('Received line from SPIKE USB:', hex, response);
-                if (resolve) resolve(response.hubName);
-                else reject(new Error('No response'));
-            };
-            serial.on('data', dataHandler);
-        });
-        const message = new GetHubNameRequestMessage();
-        const payload = pack(message.serialize());
-        serial.write(payload);
-        const name = await namePromise;
+        try {
+            const namePromiseWithWrite = new Promise<string | undefined>(
+                (resolve, reject) => {
+                    const dataHandler = (data: Buffer) => {
+                        serial.removeListener('data', dataHandler!);
+                        timer && clearTimeout(timer);
 
-        serial.removeListener('data', dataHandler!);
-        await HubOSUsbClient.closeInternal(serial);
+                        let hubName: string | undefined;
+                        try {
+                            const data2 = unpack(data);
+                            hubName =
+                                GetHubNameResponseMessage.fromBytes(data2).hubName;
+                        } catch {
+                            reject(new Error('Failed to parse response'));
+                            return;
+                        }
 
-        return name;
+                        if (hubName) resolve(hubName);
+                        else reject(new Error('No response'));
+                    };
+                    serial.on('data', dataHandler);
+
+                    const message = new GetHubNameRequestMessage();
+                    const payload = pack(message.serialize());
+                    serial.write(payload);
+                    const timer = setTimeout(() => {
+                        serial.removeListener('data', dataHandler!);
+                        reject(new Error('Timeout waiting for response'));
+                    }, 3000);
+                },
+            );
+            const [name, _] = await maybe(namePromiseWithWrite);
+            return name;
+        } catch (e) {
+            console.error('Error getting name from USB device:', e);
+        } finally {
+            await HubOSUsbClient.closeInternal(serial);
+        }
+
+        return undefined;
     }
 
-    public static closeInternal(serial: SerialPort): Promise<void> {
-        if (!serial.isOpen) return Promise.resolve();
+    public static async closeInternal(serial: SerialPort): Promise<void> {
+        if (!serial.isOpen) return;
 
-        return new Promise<void>((resolve, reject) => {
+        await new Promise<void>((resolve, reject) => {
             serial.close((err) => {
                 if (err) return reject(err);
                 else return resolve();
@@ -125,18 +146,15 @@ export class HubOSUsbClient extends HubOSBaseClient {
             if (onDeviceRemoved) onDeviceRemoved(metadata);
         });
 
-        this._serialPort.on(
-            'data',
-            (data) => void this.handleIncomingDataAsync(data as Buffer),
-        );
-        this._serialPort.on(
-            'close',
-            () => void this.handleDisconnectAsync(metadata.id),
-        );
+        const handleData = (data: Buffer) => void this.handleIncomingDataAsync(data);
+        const handleClose = () => void this.handleDisconnectAsync(metadata.id);
+        this._serialPort.on('data', handleData);
+        this._serialPort.on('close', handleClose);
 
         this._exitStack.push(async () => {
             await HubOSUsbClient.closeInternal(this._serialPort!);
-            this._serialPort?.removeAllListeners();
+            this._serialPort?.removeListener('data', handleData);
+            this._serialPort?.removeListener('close', handleClose);
             this._hubOSHandler = undefined;
             this._serialPort = undefined;
         });

@@ -37,6 +37,7 @@ import Config, { ConfigKeys } from '../../utils/config';
 import { DeviceMetadataWithPeripheral } from '../layers/ble-layer';
 import { uuid128, uuidStr } from '../utils';
 import { BaseClient } from './base-client';
+import { DevicesTree } from '../../extension/tree-devices';
 interface Capabilities {
     maxWriteSize: number;
     flags: number;
@@ -107,10 +108,13 @@ export class PybricksBleClient extends BaseClient {
 
         this._exitStack.push(() => {
             device.removeAllListeners();
-            if (onDeviceRemoved) onDeviceRemoved(metadata);
-
             // need to remove this as pybricks creates a random BLE id on each reconnect
             this.parent.allDevices.delete(metadata.id);
+            metadata.validTill = 0;
+
+            if (onDeviceRemoved) onDeviceRemoved(metadata);
+
+            DevicesTree.refresh();
         });
 
         device.on(
@@ -131,17 +135,42 @@ export class PybricksBleClient extends BaseClient {
                     pnpIdUUID,
                 ].map((uuid16) => uuidStr(uuid16)),
             );
+        // Map characteristics by normalized UUID (lowercase, no dashes)
+        const characteristics = discoveredServicesandCharacterisitics.characteristics;
+        const charMap = new Map(
+            characteristics.map((c) => [c.uuid.replace(/-/g, '').toLowerCase(), c]),
+        );
 
-        const [
-            pybricksControlChar,
-            pybricksHubCapabilitiesChar,
-            firmwareChar,
-            softwareChar,
-            pnpIdChar,
-        ] = discoveredServicesandCharacterisitics.characteristics;
-        // const findChar = (uuid: string | number) =>
-        //     characteristics.find((c) => equalUuids(c.uuid, uuid));
+        const pybricksControlChar = charMap.get(
+            uuidStr(pybricksControlEventCharacteristicUUID)
+                .replace(/-/g, '')
+                .toLowerCase(),
+        );
+        const pybricksHubCapabilitiesChar = charMap.get(
+            uuidStr(pybricksHubCapabilitiesCharacteristicUUID)
+                .replace(/-/g, '')
+                .toLowerCase(),
+        );
+        const firmwareChar = charMap.get(
+            uuidStr(firmwareRevisionStringUUID).replace(/-/g, '').toLowerCase(),
+        );
+        const softwareChar = charMap.get(
+            uuidStr(softwareRevisionStringUUID).replace(/-/g, '').toLowerCase(),
+        );
+        const pnpIdChar = charMap.get(
+            uuidStr(pnpIdUUID).replace(/-/g, '').toLowerCase(),
+        );
+        if (
+            !pybricksControlChar ||
+            !pybricksHubCapabilitiesChar ||
+            !firmwareChar ||
+            !softwareChar ||
+            !pnpIdChar
+        ) {
+            throw new Error('Missing required characteristics');
+        }
 
+        // --- Read version info
         const firmwareRevision = (await firmwareChar.readAsync()).toString('utf8');
         const softwareRevision = (await softwareChar.readAsync()).toString('utf8');
         const pnpId = decodePnpId(new DataView((await pnpIdChar.readAsync()).buffer));
