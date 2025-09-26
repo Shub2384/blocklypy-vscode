@@ -8,6 +8,7 @@ import { withTimeout } from '../../utils/async';
 import Config, { ConfigKeys } from '../../utils/config';
 import { BaseClient } from '../clients/base-client';
 import { PybricksBleClient } from '../clients/pybricks-ble-client';
+import { CONNECTION_TIMEOUT_DEFAULT } from '../connection-manager';
 
 export type ConnectionStateChangeEvent = {
     client?: BaseClient;
@@ -96,7 +97,10 @@ export abstract class BaseLayer {
                             console.error('Error during client.connect:', err);
                             throw err;
                         }),
-                    Config.getConfigValue<number>(ConfigKeys.ConnectionTimeout, 15000),
+                    Config.getConfigValue<number>(
+                        ConfigKeys.ConnectionTimeout,
+                        CONNECTION_TIMEOUT_DEFAULT,
+                    ),
                 ),
             );
             if (error) throw error;
@@ -182,7 +186,7 @@ export abstract class BaseLayer {
     public waitTillDeviceAppearsAsync(
         id: string,
         devtype: string,
-        timeout: number = 10000,
+        timeout: number,
     ): Promise<void> | void {
         if (this._allDevices.has(id)) return;
 

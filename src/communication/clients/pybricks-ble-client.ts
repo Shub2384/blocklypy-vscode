@@ -35,6 +35,7 @@ import {
 } from '../../spike/utils/device-notification';
 import { withTimeout } from '../../utils/async';
 import Config, { ConfigKeys } from '../../utils/config';
+import { RSSI_REFRESH_WHILE_CONNECTED_INTERVAL } from '../connection-manager';
 import { DeviceMetadataWithPeripheral } from '../layers/ble-layer';
 import { UUIDu } from '../utils';
 import { BaseClient } from './base-client';
@@ -217,17 +218,20 @@ export class PybricksBleClient extends BaseClient {
             };
         }
 
-        // Repeatedly update RSSI
-        // const rssiUpdater = setInterval(() => device.updateRssi(), 1000);
-        // device.on('rssiUpdate', () => {
-        //     if (onDeviceUpdated) {
-        //         onDeviceUpdated(this.metadata as DeviceMetadata);
-        //     }
-        // });
-        // this._exitStack.push(() => {
-        //     clearInterval(rssiUpdater);
-        //     device.removeAllListeners();
-        // });
+        // Repeatedly update RSSI even while connected
+        const rssiUpdater = setInterval(
+            () => device.updateRssi(),
+            RSSI_REFRESH_WHILE_CONNECTED_INTERVAL,
+        );
+        device.on('rssiUpdate', () => {
+            if (onDeviceUpdated) {
+                onDeviceUpdated(this.metadata as DeviceMetadata);
+            }
+        });
+        this._exitStack.push(() => {
+            clearInterval(rssiUpdater);
+            device.removeAllListeners();
+        });
     }
 
     public async write(data: Uint8Array, withoutResponse: boolean = false) {

@@ -20,6 +20,9 @@ import { PybricksBleClient } from '../clients/pybricks-ble-client';
 import { UUIDu } from '../utils';
 import { BaseLayer, ConnectionStateChangeEvent, DeviceChangeEvent } from './base-layer';
 
+const ADVERTISEMENT_POLL_INTERVAL = 1000; // ms
+const DEFAULT_BLE_DEVICE_VISIBILITY = 10000; // ms
+
 export class DeviceMetadataWithPeripheral extends DeviceMetadata {
     constructor(
         public devtype: string,
@@ -88,7 +91,7 @@ export class BLELayer extends BaseLayer {
             setState(StateProp.Scanning, true);
             this._advertisementHandle = setInterval(
                 () => this.processAdvertisementQueue(),
-                1000,
+                ADVERTISEMENT_POLL_INTERVAL,
             );
         });
         this._noble.on('scanStop', () => {
@@ -179,7 +182,10 @@ export class BLELayer extends BaseLayer {
         // update the validTill value
         metadata.validTill =
             Date.now() +
-            Config.getConfigValue<number>(ConfigKeys.DeviceVisibilityTimeout, 10000);
+            Config.getConfigValue<number>(
+                ConfigKeys.DeviceVisibilityTimeout,
+                DEFAULT_BLE_DEVICE_VISIBILITY,
+            );
         this._deviceChange.fire({ metadata });
         return metadata;
     }

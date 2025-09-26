@@ -16,6 +16,10 @@ import {
 import { BLELayer } from './layers/ble-layer';
 import { USBLayer } from './layers/usb-layer';
 
+export const CONNECTION_TIMEOUT_DEFAULT = 15000;
+export const RSSI_REFRESH_WHILE_CONNECTED_INTERVAL = 5000;
+export const DEVICE_VISIBILITY_WAIT_TIMEOUT = 15000;
+
 export class ConnectionManager {
     private static busy = false;
     private static layers: BaseLayer[] = [];
@@ -160,7 +164,7 @@ export class ConnectionManager {
     public static async waitTillDeviceAppearsAsync(
         id: string,
         devtype: string,
-        timeout: number = 10000,
+        timeout: number,
     ): Promise<void> {
         // TODO: race
         const targetlayer = this.layers.find((l) => l.supportsDevtype(devtype));
@@ -186,7 +190,11 @@ export class ConnectionManager {
             const id = Config.deviceLastConnected;
             const { devtype } = Config.decodeDeviceKey(id);
 
-            await ConnectionManager.waitTillDeviceAppearsAsync(id, devtype, 15000);
+            await ConnectionManager.waitTillDeviceAppearsAsync(
+                id,
+                devtype,
+                DEVICE_VISIBILITY_WAIT_TIMEOUT,
+            );
             if (!hasState(StateProp.Connected) && !hasState(StateProp.Connecting))
                 await connectDeviceAsync(id, devtype);
         }

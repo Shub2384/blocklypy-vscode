@@ -7,6 +7,8 @@ import { GetHubNameResponseMessage } from '../../spike/spike-messages/get-hub-na
 import { DeviceMetadataForUSB, USBLayer } from '../layers/usb-layer';
 import { HubOSBaseClient } from './hubos-base-client';
 
+const GET_SERIAL_NAME_TIMEOUT = 3000;
+
 export class HubOSUsbClient extends HubOSBaseClient {
     public static readonly devtype = 'hubos-usb';
     public static readonly devname = 'HubOS on USB';
@@ -72,7 +74,7 @@ export class HubOSUsbClient extends HubOSBaseClient {
                     timer = setTimeout(() => {
                         serial.removeListener('data', dataHandler);
                         reject(new Error('Timeout waiting for response'));
-                    }, 3000);
+                    }, GET_SERIAL_NAME_TIMEOUT);
                 },
             );
             const [name, _] = await maybe(namePromiseWithWrite);

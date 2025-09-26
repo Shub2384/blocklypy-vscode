@@ -6,6 +6,7 @@ import {
     SPIKE_TX_CHAR_UUID,
 } from '../../spike/protocol';
 import { HubOSHandler } from '../common/hubos-handler';
+import { RSSI_REFRESH_WHILE_CONNECTED_INTERVAL } from '../connection-manager';
 import { BaseLayer } from '../layers/base-layer';
 import { DeviceMetadataWithPeripheral } from '../layers/ble-layer';
 import { UUIDu } from '../utils';
@@ -88,7 +89,10 @@ export class HubOSBleClient extends HubOSBaseClient {
         await this._hubOSHandler?.initialize();
 
         // Repeatedly update RSSI and notify listeners of RSSI update
-        const rssiUpdater = setInterval(() => peripheral.updateRssi(), 1000);
+        const rssiUpdater = setInterval(
+            () => peripheral.updateRssi(),
+            RSSI_REFRESH_WHILE_CONNECTED_INTERVAL,
+        );
         peripheral.on(
             'rssiUpdate',
             () => onDeviceUpdated && onDeviceUpdated(this.metadata),
