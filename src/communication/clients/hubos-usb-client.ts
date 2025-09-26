@@ -4,7 +4,6 @@ import { maybe } from '../../pybricks/utils';
 import { pack, unpack } from '../../spike/spike-messages/cobs';
 import { GetHubNameRequestMessage } from '../../spike/spike-messages/get-hub-name-request-message';
 import { GetHubNameResponseMessage } from '../../spike/spike-messages/get-hub-name-response-message';
-import { ProductGroupDeviceTypeMap } from '../../spike/spike-messages/info-response-message';
 import { DeviceMetadataForUSB, USBLayer } from '../layers/usb-layer';
 import { HubOSBaseClient } from './hubos-base-client';
 
@@ -19,20 +18,12 @@ export class HubOSUsbClient extends HubOSBaseClient {
         return this._metadata as DeviceMetadataForUSB;
     }
 
-    public get description(): string | undefined {
-        const capabilities = this._hubOSHandler?.capabilities;
-        if (!capabilities) return HubOSUsbClient.devname;
-
-        const hubType =
-            ProductGroupDeviceTypeMap[capabilities?.productGroupDeviceType] ??
-            'Unknown Hub';
-        const { rpcMajor, rpcMinor, rpcBuild, fwMajor, fwMinor, fwBuild } =
-            capabilities;
-        return `${hubType} with ${HubOSUsbClient.devname}, firmware: ${fwMajor}.${fwMinor}.${fwBuild}, software: ${rpcMajor}.${rpcMinor}.${rpcBuild}`;
-    }
-
     public get connected() {
         return !!this._serialPort?.isOpen;
+    }
+
+    public get location(): string | undefined {
+        return this._serialPort?.path; // use path as id for USB
     }
 
     public set serialPort(port: SerialPort | undefined) {

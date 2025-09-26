@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { DeviceMetadata } from '../communication';
 import { ConnectionManager } from '../communication/connection-manager';
 import { DeviceChangeEvent } from '../communication/layers/base-layer';
 import { EXTENSION_KEY } from '../const';
@@ -9,7 +10,7 @@ import { BaseTreeDataProvider, TreeItemData } from './tree-base';
 const DEVICE_VISIBILITY_CHECK_INTERVAL = 10 * 1000;
 
 export interface TreeItemDeviceData extends TreeItemData {
-    validTill?: number;
+    metadata?: DeviceMetadata;
 }
 
 class DevicesTreeDataProvider extends BaseTreeDataProvider<TreeItemDeviceData> {
@@ -61,6 +62,22 @@ class DevicesTreeDataProvider extends BaseTreeDataProvider<TreeItemDeviceData> {
     //     if (item) this.refreshItem(item);
     //     DevicesTree.refresh();
     // }
+
+    public checkForStaleDevices(forced: boolean = false) {
+        const now = Date.now();
+        let changed = false;
+        for (const [id, item] of this.deviceMap.entries()) {
+            if (!forced && ConnectionManager.client?.id === id) continue;
+
+            if (now > (item.metadata?.validTill ?? 0)) {
+                this.deviceMap.delete(id);
+                changed = true;
+            }
+        }
+        if (changed) {
+            this.refresh();
+        }
+    }
 }
 
 const DevicesTree = new DevicesTreeDataProvider();
@@ -95,10 +112,10 @@ function registerDevicesTree(context: vscode.ExtensionContext) {
         const item = DevicesTree.deviceMap.get(id) ?? ({} as TreeItemDeviceData);
         const isNew = item.command === undefined;
         const name = metadata.name ?? 'Unknown';
-        const validTill = metadata.validTill;
         Object.assign(item, {
             name,
             id,
+            metadata,
             title: name,
             command: Commands.ConnectDevice,
             commandArguments: [id, metadata.devtype],
@@ -106,7 +123,6 @@ function registerDevicesTree(context: vscode.ExtensionContext) {
                 ? `⛁ ${metadata.broadcastAsString}`
                 : '',
             //  on ch:${device.lastBroadcast.channel}
-            validTill,
             contextValue: metadata.devtype,
         } as TreeItemDeviceData);
 
@@ -125,21 +141,10 @@ function registerDevicesTree(context: vscode.ExtensionContext) {
 
     // Periodically remove devices not seen for X seconds
     // Except for currently connected device, that will not broadcast, yet it should stay in the list
-    const timer = setInterval(() => {
-        const now = Date.now();
-        let changed = false;
-        for (const [id, item] of DevicesTree.deviceMap.entries()) {
-            if (ConnectionManager.client?.id === id) continue;
-
-            if (now > (item.validTill ?? 0)) {
-                DevicesTree.deviceMap.delete(id);
-                changed = true;
-            }
-        }
-        if (changed) {
-            DevicesTree.refresh();
-        }
-    }, DEVICE_VISIBILITY_CHECK_INTERVAL);
+    const timer = setInterval(
+        () => DevicesTree.checkForStaleDevices(),
+        DEVICE_VISIBILITY_CHECK_INTERVAL,
+    );
 
     context.subscriptions.push(
         treeview,

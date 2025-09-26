@@ -16,7 +16,7 @@ export abstract class BaseClient {
 
     constructor(
         protected _metadata: DeviceMetadata | undefined,
-        protected parent: BaseLayer,
+        public parent: BaseLayer,
     ) {}
 
     public get devtype(): string {
@@ -42,6 +42,8 @@ export abstract class BaseClient {
     public abstract get description(): string | undefined;
 
     public abstract get connected(): boolean;
+
+    public abstract get location(): string | undefined;
 
     public abstract write(data: Uint8Array, withoutResponse: boolean): Promise<void>;
 

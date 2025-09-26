@@ -5,10 +5,10 @@ import {
     SPIKE_SERVICE_UUID,
     SPIKE_TX_CHAR_UUID,
 } from '../../spike/protocol';
-import { ProductGroupDeviceTypeMap } from '../../spike/spike-messages/info-response-message';
 import { HubOSHandler } from '../common/hubos-handler';
 import { BaseLayer } from '../layers/base-layer';
 import { DeviceMetadataWithPeripheral } from '../layers/ble-layer';
+import { UUIDu } from '../utils';
 import { HubOSBaseClient } from './hubos-base-client';
 
 export class HubOSBleClient extends HubOSBaseClient {
@@ -19,24 +19,16 @@ export class HubOSBleClient extends HubOSBaseClient {
     private _rxCharacteristic: Characteristic | undefined;
     private _txCharacteristic: Characteristic | undefined;
 
-    public get description(): string | undefined {
-        const capabilities = this._hubOSHandler?.capabilities;
-        if (!capabilities) return HubOSBleClient.devname;
-
-        const hubType =
-            ProductGroupDeviceTypeMap[capabilities?.productGroupDeviceType] ??
-            'Unknown Hub';
-        const { rpcMajor, rpcMinor, rpcBuild, fwMajor, fwMinor, fwBuild } =
-            capabilities;
-        return `${hubType} with ${HubOSBleClient.devname}, firmware: ${fwMajor}.${fwMinor}.${fwBuild}, software: ${rpcMajor}.${rpcMinor}.${rpcBuild}`;
+    public get metadata() {
+        return this._metadata as DeviceMetadataWithPeripheral;
     }
 
     public get connected() {
         return this.metadata?.peripheral?.state === 'connected';
     }
 
-    public get metadata() {
-        return this._metadata as DeviceMetadataWithPeripheral;
+    public get location(): string | undefined {
+        return UUIDu.toString(this.metadata?.peripheral?.id);
     }
 
     constructor(metadata: DeviceMetadata | undefined, parent: BaseLayer) {

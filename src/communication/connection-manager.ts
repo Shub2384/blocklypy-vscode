@@ -16,8 +16,6 @@ import {
 import { BLELayer } from './layers/ble-layer';
 import { USBLayer } from './layers/usb-layer';
 
-// TODO: remove _client / activeCLient from layer -> move it to the manager //!!
-
 export class ConnectionManager {
     private static busy = false;
     private static layers: BaseLayer[] = [];
@@ -44,7 +42,7 @@ export class ConnectionManager {
     }
 
     public static get client() {
-        return this.layers.find((layer) => layer.client)?.client;
+        return BaseLayer.ActiveClient;
     }
 
     public static async initialize() {
@@ -89,11 +87,8 @@ export class ConnectionManager {
         if (this.busy) throw new Error('Connection manager is busy, try again later');
         this.busy = true;
         try {
-            for (const layer of this.layers) {
-                if (layer.client?.connected) {
-                    await layer.disconnect();
-                    return;
-                }
+            if (BaseLayer.ActiveClient?.connected) {
+                await BaseLayer.ActiveClient?.parent?.disconnect();
             }
         } catch (error) {
             showWarning(`Failed to disconnect from device: ${String(error)}`);

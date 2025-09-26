@@ -36,8 +36,9 @@ import {
 import { withTimeout } from '../../utils/async';
 import Config, { ConfigKeys } from '../../utils/config';
 import { DeviceMetadataWithPeripheral } from '../layers/ble-layer';
-import { uuid128, uuidStr } from '../utils';
+import { UUIDu } from '../utils';
 import { BaseClient } from './base-client';
+
 interface Capabilities {
     maxWriteSize: number;
     flags: number;
@@ -67,7 +68,11 @@ export class PybricksBleClient extends BaseClient {
             : 'Unknown hub';
         const firmware = this._version?.firmware ?? 'unknown';
         const software = this._version?.software ?? 'unknown';
-        return `${hubType} with ${PybricksBleClient.devname}, firmware: ${firmware}, software: ${software}`;
+        return `${hubType} with ${PybricksBleClient.devname}, firmware: ${firmware}, software: ${software}, ${this.location}`;
+    }
+
+    public get metadata() {
+        return this._metadata as DeviceMetadataWithPeripheral;
     }
 
     public get capabilities() {
@@ -78,8 +83,8 @@ export class PybricksBleClient extends BaseClient {
         return this.metadata?.peripheral?.state === 'connected';
     }
 
-    public get metadata() {
-        return this._metadata as DeviceMetadataWithPeripheral;
+    public get location(): string | undefined {
+        return UUIDu.toString(this.metadata?.peripheral?.id);
     }
 
     protected async disconnectWorker() {
@@ -114,7 +119,8 @@ export class PybricksBleClient extends BaseClient {
 
             if (onDeviceRemoved) onDeviceRemoved(metadata);
 
-            DevicesTree.refresh();
+            // forced, even ok to remove current client
+            DevicesTree.checkForStaleDevices(true);
         });
 
         device.on(
@@ -125,15 +131,18 @@ export class PybricksBleClient extends BaseClient {
         // --- Discover services and characteristics
         const discoveredServicesandCharacterisitics =
             await device.discoverSomeServicesAndCharacteristicsAsync(
-                [pybricksServiceUUID, uuid128(deviceInformationServiceUUID)],
+                [pybricksServiceUUID, UUIDu.to128(deviceInformationServiceUUID)],
                 [
-                    pybricksControlEventCharacteristicUUID,
-                    pybricksHubCapabilitiesCharacteristicUUID,
-
-                    firmwareRevisionStringUUID,
-                    softwareRevisionStringUUID,
-                    pnpIdUUID,
-                ].map((uuid16) => uuidStr(uuid16)),
+                    ...[
+                        pybricksControlEventCharacteristicUUID,
+                        pybricksHubCapabilitiesCharacteristicUUID,
+                    ].map((uuid) => UUIDu.to128(uuid)),
+                    ...[
+                        firmwareRevisionStringUUID,
+                        softwareRevisionStringUUID,
+                        pnpIdUUID,
+                    ].map((uuid) => UUIDu.to16(uuid)),
+                ],
             );
         // Map characteristics by normalized UUID (lowercase, no dashes)
         const characteristics = discoveredServicesandCharacterisitics.characteristics;
@@ -142,23 +151,23 @@ export class PybricksBleClient extends BaseClient {
         );
 
         const pybricksControlChar = charMap.get(
-            uuidStr(pybricksControlEventCharacteristicUUID)
+            UUIDu.toString(pybricksControlEventCharacteristicUUID)
                 .replace(/-/g, '')
                 .toLowerCase(),
         );
         const pybricksHubCapabilitiesChar = charMap.get(
-            uuidStr(pybricksHubCapabilitiesCharacteristicUUID)
+            UUIDu.toString(pybricksHubCapabilitiesCharacteristicUUID)
                 .replace(/-/g, '')
                 .toLowerCase(),
         );
         const firmwareChar = charMap.get(
-            uuidStr(firmwareRevisionStringUUID).replace(/-/g, '').toLowerCase(),
+            UUIDu.toString(firmwareRevisionStringUUID).replace(/-/g, '').toLowerCase(),
         );
         const softwareChar = charMap.get(
-            uuidStr(softwareRevisionStringUUID).replace(/-/g, '').toLowerCase(),
+            UUIDu.toString(softwareRevisionStringUUID).replace(/-/g, '').toLowerCase(),
         );
         const pnpIdChar = charMap.get(
-            uuidStr(pnpIdUUID).replace(/-/g, '').toLowerCase(),
+            UUIDu.toString(pnpIdUUID).replace(/-/g, '').toLowerCase(),
         );
         if (
             !pybricksControlChar ||
@@ -209,17 +218,16 @@ export class PybricksBleClient extends BaseClient {
         }
 
         // Repeatedly update RSSI
-        const rssiUpdater = setInterval(() => device.updateRssi(), 1000);
-        // Notify listeners of RSSI update
-        device.on('rssiUpdate', () => {
-            if (onDeviceUpdated) {
-                onDeviceUpdated(this.metadata as DeviceMetadata);
-            }
-        });
-        this._exitStack.push(() => {
-            clearInterval(rssiUpdater);
-            device.removeAllListeners();
-        });
+        // const rssiUpdater = setInterval(() => device.updateRssi(), 1000);
+        // device.on('rssiUpdate', () => {
+        //     if (onDeviceUpdated) {
+        //         onDeviceUpdated(this.metadata as DeviceMetadata);
+        //     }
+        // });
+        // this._exitStack.push(() => {
+        //     clearInterval(rssiUpdater);
+        //     device.removeAllListeners();
+        // });
     }
 
     public async write(data: Uint8Array, withoutResponse: boolean = false) {

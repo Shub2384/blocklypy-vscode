@@ -9,10 +9,8 @@ import Config, { ConfigKeys } from '../../utils/config';
 import { BaseClient } from '../clients/base-client';
 import { PybricksBleClient } from '../clients/pybricks-ble-client';
 
-// TODO: remove _client / activeCLient from layer -> move it to the manager //!!
-
 export type ConnectionStateChangeEvent = {
-    client: BaseClient;
+    client?: BaseClient;
     state: ConnectionState;
 };
 export type DeviceChangeEvent = {
@@ -20,10 +18,11 @@ export type DeviceChangeEvent = {
 };
 
 export abstract class BaseLayer {
+    protected static activeClient: BaseClient | undefined = undefined;
+
     public static readonly name: string;
     private _state: ConnectionState = ConnectionState.Initializing;
     protected _allDevices = new Map<string, DeviceMetadata>();
-    protected _client: BaseClient | undefined = undefined;
     protected _exitStack: (() => Promise<void> | void)[] = [];
     protected _stateChange = new vscode.EventEmitter<ConnectionStateChangeEvent>();
     protected _deviceChange = new vscode.EventEmitter<DeviceChangeEvent>();
@@ -36,8 +35,8 @@ export abstract class BaseLayer {
         if (onDeviceChange) this._deviceChange.event(onDeviceChange);
     }
 
-    public get client() {
-        return this._client;
+    public static get ActiveClient() {
+        return this.activeClient;
     }
 
     public get state() {
@@ -51,7 +50,7 @@ export abstract class BaseLayer {
     protected set state(newState: ConnectionState) {
         if (this._state === newState) return;
         this._state = newState;
-        this._stateChange.fire({ client: this._client!, state: this._state });
+        this._stateChange.fire({ client: BaseLayer.activeClient, state: this._state });
     }
 
     public abstract get scanning(): boolean;
@@ -62,9 +61,8 @@ export abstract class BaseLayer {
     }
 
     public async connect(id: string, devtype: string) {
-        const client = this._client; // this is already set in the subclass connect, calling prior with super.connect
-        if (!client) throw new Error('Client not initialized');
-        if (client.connected) await this.disconnect();
+        if (!BaseLayer.activeClient) throw new Error('Client not initialized');
+        if (BaseLayer.activeClient.connected) await this.disconnect();
 
         const metadata = this._allDevices.get(id);
         if (!metadata || metadata.devtype !== devtype)
@@ -74,7 +72,7 @@ export abstract class BaseLayer {
             this.state = ConnectionState.Connecting;
             const [_, error] = await maybe(
                 withTimeout(
-                    client
+                    BaseLayer.activeClient
                         .connect(
                             (device) => {
                                 this._deviceChange.fire({ metadata: device });
@@ -106,10 +104,10 @@ export abstract class BaseLayer {
             this._exitStack.push(() => {
                 console.debug('Running cleanup function after disconnect');
                 this.state = ConnectionState.Disconnected;
-                this.removeClient(client);
+                this.removeClient(BaseLayer.activeClient);
             });
 
-            if (client.connected !== true)
+            if (BaseLayer.activeClient.connected !== true)
                 throw new Error('Client failed to connect for unknown reason.');
 
             this.state = ConnectionState.Connected;
@@ -118,7 +116,7 @@ export abstract class BaseLayer {
             this.state = ConnectionState.Disconnected;
             await this.runExitStack();
             await this.disconnect();
-            this.removeClient(client);
+            this.removeClient(BaseLayer.activeClient);
 
             // TODO: on connect error, maybe remove device so that rescan can find it again
             // would be a problem for non polled (e.g. hotplug) layers
@@ -132,16 +130,16 @@ export abstract class BaseLayer {
     }
 
     public async disconnect() {
-        if (!this._client) return;
+        if (!BaseLayer.activeClient) return;
 
         try {
             this.state = ConnectionState.Disconnecting;
-            await this._client.disconnect();
+            await BaseLayer.activeClient.disconnect();
             await this.runExitStack();
         } catch (error) {
             logDebug(`Error during disconnectAsync: ${String(error)}`);
         }
-        this.removeClient(this.client);
+        this.removeClient(BaseLayer.activeClient);
         this.state = ConnectionState.Disconnected;
 
         await delay(500);
@@ -208,6 +206,6 @@ export abstract class BaseLayer {
 
     public removeClient(client?: BaseClient) {
         const id = client?.id;
-        if (id === this._client?.id) this._client = undefined;
+        if (id === BaseLayer.activeClient?.id) BaseLayer.activeClient = undefined;
     }
 }

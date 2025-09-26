@@ -204,8 +204,7 @@ export class USBLayer extends BaseLayer {
 
         switch (metadata.devtype) {
             case HubOSUsbClient.devtype:
-                const client = new HubOSUsbClient(metadata, this);
-                this._client = client;
+                BaseLayer.activeClient = new HubOSUsbClient(metadata, this);
                 break;
             // case PybricksUsbClient.devtype:
             //     this._client = new PybricksUsbClient(metadata);

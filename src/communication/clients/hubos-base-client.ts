@@ -3,12 +3,28 @@ import {
     RequestMessage,
     ResponseMessage,
 } from '../../spike/spike-messages/base-message';
+import { ProductGroupDeviceTypeMap } from '../../spike/spike-messages/info-response-message';
 import { HubOSHandler } from '../common/hubos-handler';
 import { BaseLayer } from '../layers/base-layer';
 import { BaseClient } from './base-client';
 
 export abstract class HubOSBaseClient extends BaseClient {
     protected _hubOSHandler: HubOSHandler | undefined;
+
+    public get description(): string | undefined {
+        // const devtype = (this.constructor as typeof HubOSBaseClient).devtype;
+        const devname = (this.constructor as typeof HubOSBaseClient).devname;
+
+        const capabilities = this._hubOSHandler?.capabilities;
+        if (!capabilities) return devname;
+
+        const hubType =
+            ProductGroupDeviceTypeMap[capabilities?.productGroupDeviceType] ??
+            'Unknown Hub';
+        const { rpcMajor, rpcMinor, rpcBuild, fwMajor, fwMinor, fwBuild } =
+            capabilities;
+        return `${hubType} with ${devname}, firmware: ${fwMajor}.${fwMinor}.${fwBuild}, software: ${rpcMajor}.${rpcMinor}.${rpcBuild}, ${this.location}`;
+    }
 
     constructor(_metadata: DeviceMetadata | undefined, parent: BaseLayer) {
         super(_metadata, parent);

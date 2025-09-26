@@ -17,7 +17,7 @@ import { SPIKE_SERVICE_UUID16 } from '../../spike/protocol';
 import Config, { ConfigKeys } from '../../utils/config';
 import { HubOSBleClient } from '../clients/hubos-ble-client';
 import { PybricksBleClient } from '../clients/pybricks-ble-client';
-import { uuid128, uuid16 } from '../utils';
+import { UUIDu } from '../utils';
 import { BaseLayer, ConnectionStateChangeEvent, DeviceChangeEvent } from './base-layer';
 
 export class DeviceMetadataWithPeripheral extends DeviceMetadata {
@@ -103,14 +103,14 @@ export class BLELayer extends BaseLayer {
 
             // Identify device type and id
             const isPybricks = advertisement.serviceUuids?.includes(
-                uuid128(pybricksServiceUUID),
+                UUIDu.to128(pybricksServiceUUID),
             );
             const isSpike = advertisement.serviceUuids?.includes(
-                uuid16(SPIKE_SERVICE_UUID16),
+                UUIDu.to16(SPIKE_SERVICE_UUID16),
             );
-            const isPybricksAdv = advertisement.serviceData
-                ?.map((sd) => sd?.uuid)
-                .includes(uuid16(pnpIdUUID));
+            const isPybricksAdv = advertisement.serviceData.some(
+                (sd) => UUIDu.to16(pnpIdUUID) === sd.uuid,
+            );
 
             if (
                 !advertisement.localName ||
@@ -152,8 +152,8 @@ export class BLELayer extends BaseLayer {
         peripheral: Peripheral,
         advertisement: PeripheralAdvertisement,
     ) {
-        const metadata =
-            this._allDevices.get(targetid) ??
+        const metadata: DeviceMetadataWithPeripheral =
+            (this._allDevices.get(targetid) as DeviceMetadataWithPeripheral) ??
             (() => {
                 const newMetadata = new DeviceMetadataWithPeripheral(
                     devtype,
@@ -167,11 +167,11 @@ export class BLELayer extends BaseLayer {
         // only update on (passive) advertisement data
         const isPybricksAdv = advertisement.serviceData
             ?.map((sd) => sd?.uuid)
-            .includes(uuid16(pnpIdUUID));
+            .includes(UUIDu.to16(pnpIdUUID));
         if (isPybricksAdv) {
             const manufacturerDataBuffer = advertisement.manufacturerData;
             const decoded = pybricksDecodeBleBroadcastData(manufacturerDataBuffer);
-            (metadata as DeviceMetadataWithPeripheral).lastBroadcast = decoded;
+            metadata.lastBroadcast = decoded;
         } else {
             // ?? clear lastBroadcast
         }
@@ -202,10 +202,10 @@ export class BLELayer extends BaseLayer {
 
         switch (metadata.devtype) {
             case PybricksBleClient.devtype:
-                this._client = new PybricksBleClient(metadata, this);
+                BaseLayer.activeClient = new PybricksBleClient(metadata, this);
                 break;
             case HubOSBleClient.devtype:
-                this._client = new HubOSBleClient(metadata, this);
+                BaseLayer.activeClient = new HubOSBleClient(metadata, this);
                 break;
             default:
                 throw new Error(`Unknown device type: ${metadata.devtype}`);
@@ -227,8 +227,11 @@ export class BLELayer extends BaseLayer {
         this._allDevices.clear();
 
         // if there is an active connection, re-add it to keep the reference
-        if (this._client?.connected && this._client.metadata) {
-            this._allDevices.set(this._client.metadata.id, this._client.metadata);
+        if (BaseLayer.activeClient?.connected && BaseLayer.activeClient.metadata) {
+            this._allDevices.set(
+                BaseLayer.activeClient.metadata.id,
+                BaseLayer.activeClient.metadata,
+            );
         }
 
         await this._noble?.startScanningAsync(
