@@ -6,7 +6,6 @@ import {
     SPIKE_USB_PRODUCT_ID,
     // SPIKE_USB_PRODUCT_ID_NUM,
     SPIKE_USB_VENDOR_ID,
-    // SPIKE_USB_VENDOR_ID_NUM,
 } from '../../spike/protocol';
 import { HubOSUsbClient } from '../clients/hubos-usb-client';
 import { BaseLayer, ConnectionStateChangeEvent, DeviceChangeEvent } from './base-layer';
@@ -135,8 +134,8 @@ export class USBLayer extends BaseLayer {
         if (!!this._scanHandle) return;
 
         const handler = async () => this.scan();
-        handler(); // initial call
-        this._scanHandle = setInterval(handler, USB_CLIENT_TTL / 2);
+        await handler(); // initial call
+        this._scanHandle = setInterval(() => void handler(), USB_CLIENT_TTL / 2);
         // this._scanHandle = setInterval(USB_CLIENT_TTL / 2, handler);
         return Promise.resolve();
     }

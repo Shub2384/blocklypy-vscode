@@ -13,7 +13,7 @@ import {
     pybricksDecodeBleBroadcastData,
     PybricksDecodedBleBroadcast,
 } from '../../pybricks/protocol-ble-broadcast';
-import { SPIKE_SERVICE_UUID, SPIKE_SERVICE_UUID16 } from '../../spike/protocol';
+import { SPIKE_SERVICE_UUID16 } from '../../spike/protocol';
 import { withTimeout } from '../../utils/async';
 import Config, { ConfigKeys } from '../../utils/config';
 import { HubOSBleClient } from '../clients/hubos-ble-client';
