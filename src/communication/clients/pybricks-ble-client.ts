@@ -1,6 +1,7 @@
 import { Characteristic } from '@stoprocent/noble';
 import semver from 'semver';
 import { DeviceMetadata } from '..';
+import { DevicesTree } from '../../extension/tree-devices';
 import { handleDeviceNotificationAsync } from '../../logic/appdata-devicenotification-helper';
 import { setState, StateProp } from '../../logic/state';
 import {
@@ -37,7 +38,6 @@ import Config, { ConfigKeys } from '../../utils/config';
 import { DeviceMetadataWithPeripheral } from '../layers/ble-layer';
 import { uuid128, uuidStr } from '../utils';
 import { BaseClient } from './base-client';
-import { DevicesTree } from '../../extension/tree-devices';
 interface Capabilities {
     maxWriteSize: number;
     flags: number;
@@ -78,7 +78,7 @@ export class PybricksBleClient extends BaseClient {
         return this.metadata?.peripheral?.state === 'connected';
     }
 
-    protected get metadata() {
+    public get metadata() {
         return this._metadata as DeviceMetadataWithPeripheral;
     }
 
@@ -211,10 +211,11 @@ export class PybricksBleClient extends BaseClient {
         // Repeatedly update RSSI
         const rssiUpdater = setInterval(() => device.updateRssi(), 1000);
         // Notify listeners of RSSI update
-        device.on(
-            'rssiUpdate',
-            () => onDeviceUpdated && onDeviceUpdated(metadata as DeviceMetadata),
-        );
+        device.on('rssiUpdate', () => {
+            if (onDeviceUpdated) {
+                onDeviceUpdated(this.metadata as DeviceMetadata);
+            }
+        });
         this._exitStack.push(() => {
             clearInterval(rssiUpdater);
             device.removeAllListeners();

@@ -3,6 +3,7 @@ import { ConnectionState, DeviceMetadata } from '..';
 import { delay } from '../../extension';
 import { logDebug } from '../../extension/debug-channel';
 import { DevicesTree } from '../../extension/tree-devices';
+import { maybe } from '../../pybricks/utils';
 import { withTimeout } from '../../utils/async';
 import Config, { ConfigKeys } from '../../utils/config';
 import { BaseClient } from '../clients/base-client';
@@ -71,30 +72,36 @@ export abstract class BaseLayer {
 
         try {
             this.state = ConnectionState.Connecting;
-            await withTimeout(
-                client
-                    .connect(
-                        (device) => {
-                            this._deviceChange.fire({ metadata: device });
-                        },
-                        (_device) => {
-                            // need to remove this as pybricks creates a random BLE id on each reconnect
-                            if (_device.devtype === PybricksBleClient.devtype && !!id)
-                                this._allDevices.delete(id);
+            const [_, error] = await maybe(
+                withTimeout(
+                    client
+                        .connect(
+                            (device) => {
+                                this._deviceChange.fire({ metadata: device });
+                            },
+                            (_device) => {
+                                // need to remove this as pybricks creates a random BLE id on each reconnect
+                                if (
+                                    _device.devtype === PybricksBleClient.devtype &&
+                                    !!id
+                                )
+                                    this._allDevices.delete(id);
 
-                            this.state = ConnectionState.Disconnected;
-                            // setState(StateProp.Connected, false);
-                            // setState(StateProp.Connecting, false);
-                            // setState(StateProp.Running, false);
-                            DevicesTree.refresh();
-                        },
-                    )
-                    .catch((err) => {
-                        console.error('Error during client.connect:', err);
-                        throw err;
-                    }),
-                Config.getConfigValue<number>(ConfigKeys.ConnectionTimeout, 15000),
+                                this.state = ConnectionState.Disconnected;
+                                // setState(StateProp.Connected, false);
+                                // setState(StateProp.Connecting, false);
+                                // setState(StateProp.Running, false);
+                                DevicesTree.refresh();
+                            },
+                        )
+                        .catch((err) => {
+                            console.error('Error during client.connect:', err);
+                            throw err;
+                        }),
+                    Config.getConfigValue<number>(ConfigKeys.ConnectionTimeout, 15000),
+                ),
             );
+            if (error) throw error;
 
             this._exitStack.push(() => {
                 console.debug('Running cleanup function after disconnect');
@@ -170,7 +177,7 @@ export abstract class BaseLayer {
         return this._allDevices.get(id);
     }
 
-    public waitForReadyAsync(_timeout: number = 10000): Promise<void> {
+    public waitForReadyPromise(): Promise<void> {
         throw new Error('Not implemented');
     }
 

@@ -86,12 +86,7 @@ export function activate(context: vscode.ExtensionContext) {
     );
 
     // Finally, initialize the connection manager and auto-connect if needed
-    const startupFn = async () => {
-        await ConnectionManager.initialize();
-        await delay(500); // wait a bit for layers to settle
-        await ConnectionManager.autoConnectLastDevice();
-    };
-    void startupFn().catch(console.error);
+    ConnectionManager.initialize().catch(console.error);
 }
 
 export async function deactivate() {

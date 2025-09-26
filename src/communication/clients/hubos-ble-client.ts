@@ -5,7 +5,6 @@ import {
     SPIKE_SERVICE_UUID,
     SPIKE_TX_CHAR_UUID,
 } from '../../spike/protocol';
-import { ResponseMessage } from '../../spike/spike-messages/base-message';
 import { ProductGroupDeviceTypeMap } from '../../spike/spike-messages/info-response-message';
 import { HubOSHandler } from '../common/hubos-handler';
 import { BaseLayer } from '../layers/base-layer';
@@ -19,13 +18,6 @@ export class HubOSBleClient extends HubOSBaseClient {
 
     private _rxCharacteristic: Characteristic | undefined;
     private _txCharacteristic: Characteristic | undefined;
-    private _pendingMessagesPromises = new Map<
-        number,
-        [
-            (result: ResponseMessage | PromiseLike<ResponseMessage>) => void,
-            (e: string) => void,
-        ]
-    >();
 
     public get description(): string | undefined {
         const capabilities = this._hubOSHandler?.capabilities;
@@ -43,7 +35,7 @@ export class HubOSBleClient extends HubOSBaseClient {
         return this.metadata?.peripheral?.state === 'connected';
     }
 
-    protected get metadata() {
+    public get metadata() {
         return this._metadata as DeviceMetadataWithPeripheral;
     }
 
@@ -61,8 +53,8 @@ export class HubOSBleClient extends HubOSBaseClient {
     }
 
     protected async connectWorker(
-        onDeviceUpdated: (device: DeviceMetadata) => void,
-        onDeviceRemoved: (device: DeviceMetadata) => void,
+        onDeviceUpdated: (device: DeviceMetadata) => void | undefined,
+        onDeviceRemoved: (device: DeviceMetadata) => void | undefined,
     ) {
         // --- BLE specific stuff
         const metadata = this.metadata;

@@ -1,6 +1,5 @@
 import { PortInfo } from '@serialport/bindings-interface';
 import { SerialPort } from 'serialport';
-import { usb } from 'usb';
 import { ConnectionState, DeviceMetadata } from '..';
 import {
     SPIKE_USB_PRODUCT_ID,
@@ -150,6 +149,7 @@ export class USBLayer extends BaseLayer {
                     port.vendorId === SPIKE_USB_VENDOR_ID &&
                     port.productId === SPIKE_USB_PRODUCT_ID,
             );
+            if (portsOk.length === 0) return;
 
             for (const port of portsOk) {
                 const serialNumber = port.serialNumber ?? 'unknown';
@@ -173,18 +173,21 @@ export class USBLayer extends BaseLayer {
                 if (!this._supportsHotPlug)
                     metadata.validTill = Date.now() + USB_CLIENT_TTL;
 
-                // try {
-                //     if (
-                //         metadata.devtype === HubOSUsbClient.devtype &&
-                //         !metadata.hasResolvedName
-                //     ) {
-                //         await HubOSUsbClient.refreshDeviceName(metadata);
-                //     }
-                //     this._deviceChange.fire({ metadata });
-                // } catch (_e) {
-                //     metadata.validTill = 0;
-                //     this._allDevices.delete(metadata.id);
-                // }
+                try {
+                    if (
+                        metadata.devtype === HubOSUsbClient.devtype &&
+                        !metadata.hasResolvedName
+                    ) {
+                        const serial = await this.openPort(metadata);
+                        await HubOSUsbClient.refreshDeviceName(serial, metadata);
+                        await this.closePort(serial);
+                    }
+                    this._deviceChange.fire({ metadata });
+                } catch (_e) {
+                    metadata.validTill = 0;
+                    this._allDevices.delete(metadata.id);
+                }
+                this._deviceChange.fire({ metadata });
             }
         } catch (e) {
             console.error('Error scanning USB devices:', e);
@@ -194,14 +197,15 @@ export class USBLayer extends BaseLayer {
     }
 
     public async connect(id: string, devtype: string): Promise<void> {
-        const metadata = this._allDevices.get(id);
+        const metadata = this._allDevices.get(id) as DeviceMetadataForUSB;
         if (!metadata) {
             throw new Error(`Device ${id} not found.`);
         }
 
         switch (metadata.devtype) {
             case HubOSUsbClient.devtype:
-                this._client = new HubOSUsbClient(metadata, this);
+                const client = new HubOSUsbClient(metadata, this);
+                this._client = client;
                 break;
             // case PybricksUsbClient.devtype:
             //     this._client = new PybricksUsbClient(metadata);
@@ -225,17 +229,54 @@ export class USBLayer extends BaseLayer {
         return !!this._scanHandle;
     }
 
-    public waitForReadyAsync(_timeout: number = 10000): Promise<void> {
+    public waitForReadyPromise(): Promise<void> {
         return Promise.resolve();
+    }
+
+    public async closePort(serial: SerialPort): Promise<void> {
+        if (!serial.isOpen) return;
+
+        await new Promise<void>((resolve, reject) => {
+            serial.close((err) => {
+                const portpath = serial.path;
+                this.portRegistry.delete(portpath);
+                if (err) return reject(err);
+                else return resolve();
+            });
+        });
+    }
+
+    private portRegistry = new Map<string, SerialPort>();
+    public async openPort(metadata: DeviceMetadataForUSB): Promise<SerialPort> {
+        const portinfo = metadata?.portinfo;
+        if (!portinfo) throw new Error('No port info in metadata');
+        if (this.portRegistry.has(portinfo.path))
+            throw new Error('Port already opened');
+
+        const serial = new SerialPort({
+            path: portinfo.path,
+            baudRate: 115200,
+            autoOpen: false,
+        });
+        this.portRegistry.set(portinfo.path, serial);
+
+        const serialPromise = new Promise<SerialPort>((resolve, reject) => {
+            serial.open((err) => {
+                if (err) return reject(err);
+                else return resolve(serial);
+            });
+        });
+
+        return serialPromise;
     }
 }
 
-async function _getUsbStringDescriptor(device: usb.Device, desc_index: number) {
-    const promise = new Promise<string | undefined>((resolve, reject) => {
-        device.getStringDescriptor(desc_index, (error, data) => {
-            if (error) reject(error);
-            else resolve(data);
-        });
-    });
-    return promise;
-}
+// async function _getUsbStringDescriptor(device: usb.Device, desc_index: number) {
+//     const promise = new Promise<string | undefined>((resolve, reject) => {
+//         device.getStringDescriptor(desc_index, (error, data) => {
+//             if (error) reject(error);
+//             else resolve(data);
+//         });
+//     });
+//     return promise;
+// }

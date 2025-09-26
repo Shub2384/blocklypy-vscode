@@ -4,6 +4,7 @@ import { showWarning } from '../../extension/diagnostics';
 import { handleDeviceNotificationAsync } from '../../logic/appdata-devicenotification-helper';
 import { FILENAME_SAMPLE_COMPILED } from '../../logic/compile';
 import { setState, StateProp } from '../../logic/state';
+import { maybe } from '../../pybricks/utils';
 import { decodeSpikeMessage } from '../../spike/spike-messages';
 import {
     BaseMessage,
@@ -73,9 +74,11 @@ export class HubOSHandler {
 
         await this.writeHandler(payload);
 
-        const response = await withTimeout<TResponse>(
-            resultPromise as Promise<TResponse>,
-            SPIKE_RECEIVE_MESSAGE_TIMEOUT,
+        const [response, _] = await maybe(
+            withTimeout<TResponse>(
+                resultPromise as Promise<TResponse>,
+                SPIKE_RECEIVE_MESSAGE_TIMEOUT,
+            ),
         );
         return response;
     }
@@ -130,7 +133,6 @@ export class HubOSHandler {
                 }
                 case ConsoleNotificationMessage.Id: {
                     const consoleMsg = message as ConsoleNotificationMessage;
-                    console.log(' >> ', consoleMsg.text.length);
                     await this.dataHandler(consoleMsg.text);
                     break;
                 }

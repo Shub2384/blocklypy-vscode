@@ -27,6 +27,10 @@ export abstract class BaseClient {
         return (this.constructor as typeof BaseClient).supportsModularMpy;
     }
 
+    public get metadata() {
+        return this._metadata;
+    }
+
     public get name(): string | undefined {
         return this._metadata?.name;
     }
@@ -68,8 +72,8 @@ export abstract class BaseClient {
     }
 
     public async connect(
-        onDeviceUpdated: (device: DeviceMetadata) => void,
-        onFinalizing: (device: DeviceMetadata) => void,
+        onDeviceUpdated: (device: DeviceMetadata) => void | undefined,
+        onFinalizing: (device: DeviceMetadata) => void | undefined,
     ): Promise<void> {
         try {
             await this.runExitStack();
@@ -89,10 +93,8 @@ export abstract class BaseClient {
     }
 
     protected abstract connectWorker(
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        onDeviceUpdated: (device: DeviceMetadata) => void,
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        onFinalizing: (device: DeviceMetadata) => void,
+        onDeviceUpdated: (device: DeviceMetadata) => void | undefined,
+        onFinalizing: (device: DeviceMetadata) => void | undefined,
     ): Promise<void>;
 
     protected async runExitStack() {

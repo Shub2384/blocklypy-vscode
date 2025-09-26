@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { ConnectionState, DeviceMetadata } from '.';
 import { connectDeviceAsync } from '../commands/connect-device';
+import { delay } from '../extension';
 import { logDebug } from '../extension/debug-channel';
 import { showWarning } from '../extension/diagnostics';
 import { CommandsTree } from '../extension/tree-commands';
@@ -49,7 +50,7 @@ export class ConnectionManager {
     public static async initialize() {
         // Initialization code here
 
-        for (const layerCtor of [BLELayer /*, USBLayer*/]) {
+        for (const layerCtor of [BLELayer, USBLayer]) {
             try {
                 const instance = new layerCtor(
                     (event) => ConnectionManager.handleStateChange(event),
@@ -62,6 +63,9 @@ export class ConnectionManager {
                 console.error(`Failed to initialize ${layerCtor.name}:`, e);
             }
         }
+
+        await delay(500); // wait a bit for layers to settle
+        await ConnectionManager.autoConnectLastDevice();
     }
 
     public static async connect(id: string, devtype: string) {
@@ -110,6 +114,11 @@ export class ConnectionManager {
                     event.client.connected === true,
             );
             setState(StateProp.Connecting, event.state === ConnectionState.Connecting);
+
+            // when connected, stop scanning
+            if (event.state === ConnectionState.Connected) {
+                this.stopScanning();
+            }
         } else {
             console.log(
                 `Ignoring state change from non-active client: ${event.client?.id} (${event.state})`,
@@ -145,12 +154,12 @@ export class ConnectionManager {
         DevicesTree.refresh();
     }
 
-    public static waitForReadyAsync(timeout: number = 10000) {
+    public static waitForReadyPromise(): Promise<void[]> {
         // Wait for any layer to be ready using Promise.race
         const readyPromises = this.layers
-            .map((layer) => layer.waitForReadyAsync?.(timeout))
+            .map((layer) => layer.waitForReadyPromise?.())
             .filter(Boolean);
-        return Promise.all(readyPromises);
+        return Promise.all<void>(readyPromises);
     }
 
     public static async waitTillDeviceAppearsAsync(
@@ -174,7 +183,7 @@ export class ConnectionManager {
     public static async autoConnectLastDevice() {
         logDebug('BlocklyPy Commander started up successfully.', true);
 
-        await ConnectionManager.waitForReadyAsync();
+        await ConnectionManager.waitForReadyPromise();
         // await Device.startScanning();
 
         // autoconnect to last connected device

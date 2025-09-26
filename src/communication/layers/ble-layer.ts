@@ -14,7 +14,6 @@ import {
     PybricksDecodedBleBroadcast,
 } from '../../pybricks/protocol-ble-broadcast';
 import { SPIKE_SERVICE_UUID16 } from '../../spike/protocol';
-import { withTimeout } from '../../utils/async';
 import Config, { ConfigKeys } from '../../utils/config';
 import { HubOSBleClient } from '../clients/hubos-ble-client';
 import { PybricksBleClient } from '../clients/pybricks-ble-client';
@@ -153,10 +152,6 @@ export class BLELayer extends BaseLayer {
         peripheral: Peripheral,
         advertisement: PeripheralAdvertisement,
     ) {
-        // const queued = this._advertisementQueue.get(targetId);
-        // if (!queued) return;
-        // const { peripheral, advertisement } = queued;
-
         const metadata =
             this._allDevices.get(targetid) ??
             (() => {
@@ -177,6 +172,8 @@ export class BLELayer extends BaseLayer {
             const manufacturerDataBuffer = advertisement.manufacturerData;
             const decoded = pybricksDecodeBleBroadcastData(manufacturerDataBuffer);
             (metadata as DeviceMetadataWithPeripheral).lastBroadcast = decoded;
+        } else {
+            // ?? clear lastBroadcast
         }
 
         // update the validTill value
@@ -184,6 +181,7 @@ export class BLELayer extends BaseLayer {
             Date.now() +
             Config.getConfigValue<number>(ConfigKeys.DeviceVisibilityTimeout, 10000);
         this._deviceChange.fire({ metadata });
+        return metadata;
     }
 
     private handleNobleStateChange(state: string) {
@@ -227,6 +225,12 @@ export class BLELayer extends BaseLayer {
 
     public async startScanning() {
         this._allDevices.clear();
+
+        // if there is an active connection, re-add it to keep the reference
+        if (this._client?.connected && this._client.metadata) {
+            this._allDevices.set(this._client.metadata.id, this._client.metadata);
+        }
+
         await this._noble?.startScanningAsync(
             // undefined,
             undefined,
@@ -242,27 +246,22 @@ export class BLELayer extends BaseLayer {
         );
     }
 
-    public waitForReadyAsync(timeout: number = 10000): Promise<void> {
-        return withTimeout(
-            new Promise<void>((resolve, reject) => {
-                if (this._noble?.state === 'poweredOn') {
+    public waitForReadyPromise(): Promise<void> {
+        return new Promise<void>((resolve, reject) => {
+            if (this._noble?.state === 'poweredOn') {
+                this.state = ConnectionState.Disconnected; // initialized successfully
+                resolve();
+                return;
+            }
+            this._noble?.once('stateChange', (state) => {
+                if (state === 'poweredOn') {
                     this.state = ConnectionState.Disconnected; // initialized successfully
                     resolve();
-                    return;
+                } else {
+                    reject(new Error(`BLE state changed to ${state}, not poweredOn`));
                 }
-                this._noble?.once('stateChange', (state) => {
-                    if (state === 'poweredOn') {
-                        this.state = ConnectionState.Disconnected; // initialized successfully
-                        resolve();
-                    } else {
-                        reject(
-                            new Error(`BLE state changed to ${state}, not poweredOn`),
-                        );
-                    }
-                });
-            }),
-            timeout,
-        );
+            });
+        });
     }
 
     public stopScanning() {

@@ -1,12 +1,12 @@
 import { SerialPort } from 'serialport';
 import { DeviceMetadata } from '..';
+import { maybe } from '../../pybricks/utils';
 import { pack, unpack } from '../../spike/spike-messages/cobs';
 import { GetHubNameRequestMessage } from '../../spike/spike-messages/get-hub-name-request-message';
 import { GetHubNameResponseMessage } from '../../spike/spike-messages/get-hub-name-response-message';
 import { ProductGroupDeviceTypeMap } from '../../spike/spike-messages/info-response-message';
-import { DeviceMetadataForUSB } from '../layers/usb-layer';
+import { DeviceMetadataForUSB, USBLayer } from '../layers/usb-layer';
 import { HubOSBaseClient } from './hubos-base-client';
-import { maybe } from '../../pybricks/utils';
 
 export class HubOSUsbClient extends HubOSBaseClient {
     public static readonly devtype = 'hubos-usb';
@@ -35,6 +35,10 @@ export class HubOSUsbClient extends HubOSBaseClient {
         return !!this._serialPort?.isOpen;
     }
 
+    public set serialPort(port: SerialPort | undefined) {
+        this._serialPort = port;
+    }
+
     public async write(data: Uint8Array): Promise<void> {
         if (!this.connected || !this.metadata) return; // before connecting use serial.write directly for getName
 
@@ -42,39 +46,19 @@ export class HubOSUsbClient extends HubOSBaseClient {
         return Promise.resolve();
     }
 
-    public static async connectInternal(
-        metadata: DeviceMetadataForUSB,
-    ): Promise<SerialPort> {
-        const portinfo = metadata?.portinfo;
-        if (!portinfo) throw new Error('No port info in metadata');
-
-        const serial = new SerialPort({
-            path: portinfo.path,
-            baudRate: 115200,
-            autoOpen: false,
-        });
-
-        const serialPromise = new Promise<SerialPort>((resolve, reject) => {
-            serial.open((err) => {
-                if (err) return reject(err);
-                else return resolve(serial);
-            });
-        });
-
-        return serialPromise;
-    }
-
     public static async getNameFromDevice(
-        metadata: DeviceMetadataForUSB,
+        serial: SerialPort,
     ): Promise<string | undefined> {
-        const serial = await HubOSUsbClient.connectInternal(metadata);
-
         try {
             const namePromiseWithWrite = new Promise<string | undefined>(
                 (resolve, reject) => {
+                    let timer: NodeJS.Timeout | undefined;
                     const dataHandler = (data: Buffer) => {
-                        serial.removeListener('data', dataHandler!);
-                        timer && clearTimeout(timer);
+                        serial.removeListener('data', dataHandler);
+                        if (timer) {
+                            clearTimeout(timer);
+                            timer = undefined;
+                        }
 
                         let hubName: string | undefined;
                         try {
@@ -94,8 +78,8 @@ export class HubOSUsbClient extends HubOSBaseClient {
                     const message = new GetHubNameRequestMessage();
                     const payload = pack(message.serialize());
                     serial.write(payload);
-                    const timer = setTimeout(() => {
-                        serial.removeListener('data', dataHandler!);
+                    timer = setTimeout(() => {
+                        serial.removeListener('data', dataHandler);
                         reject(new Error('Timeout waiting for response'));
                     }, 3000);
                 },
@@ -104,28 +88,14 @@ export class HubOSUsbClient extends HubOSBaseClient {
             return name;
         } catch (e) {
             console.error('Error getting name from USB device:', e);
-        } finally {
-            await HubOSUsbClient.closeInternal(serial);
         }
-
-        return undefined;
-    }
-
-    public static async closeInternal(serial: SerialPort): Promise<void> {
-        if (!serial.isOpen) return;
-
-        await new Promise<void>((resolve, reject) => {
-            serial.close((err) => {
-                if (err) return reject(err);
-                else return resolve();
-            });
-        });
     }
 
     public static async refreshDeviceName(
+        serial: SerialPort,
         metadata: DeviceMetadataForUSB,
     ): Promise<void> {
-        const name = await HubOSUsbClient.getNameFromDevice(metadata);
+        const name = await HubOSUsbClient.getNameFromDevice(serial);
         if (name) metadata.name = name;
 
         // update and refresh
@@ -140,7 +110,8 @@ export class HubOSUsbClient extends HubOSBaseClient {
         const device = metadata?.portinfo;
         if (!device) throw new Error('No portinfo in metadata');
 
-        this._serialPort = await HubOSUsbClient.connectInternal(metadata);
+        this._serialPort = await (this.parent as USBLayer).openPort(metadata);
+        if (!this._serialPort.isOpen) throw new Error('Failed to open serial port');
 
         this._exitStack.push(() => {
             if (onDeviceRemoved) onDeviceRemoved(metadata);
@@ -152,7 +123,7 @@ export class HubOSUsbClient extends HubOSBaseClient {
         this._serialPort.on('close', handleClose);
 
         this._exitStack.push(async () => {
-            await HubOSUsbClient.closeInternal(this._serialPort!);
+            await (this.parent as USBLayer).closePort(this._serialPort!);
             this._serialPort?.removeListener('data', handleData);
             this._serialPort?.removeListener('close', handleClose);
             this._hubOSHandler = undefined;
@@ -169,7 +140,8 @@ export class HubOSUsbClient extends HubOSBaseClient {
         await super.disconnectWorker();
 
         this._serialPort?.removeAllListeners();
-        if (this._serialPort) await HubOSUsbClient.closeInternal(this._serialPort);
+        if (this._serialPort)
+            await (this.parent as USBLayer).closePort(this._serialPort);
         this._serialPort = undefined;
     }
 }
