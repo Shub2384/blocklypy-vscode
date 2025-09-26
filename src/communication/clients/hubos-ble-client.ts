@@ -28,7 +28,7 @@ export class HubOSBleClient extends HubOSBaseClient {
         return this.metadata?.peripheral?.state === 'connected';
     }
 
-    public get location(): string | undefined {
+    public get uniqueSerial(): string | undefined {
         return UUIDu.toString(this.metadata?.peripheral?.id);
     }
 

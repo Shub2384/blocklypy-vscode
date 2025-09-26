@@ -6,7 +6,7 @@ export interface TreeItemData {
     id?: string;
     command: string;
     title?: string;
-    tooltip?: string;
+    tooltip?: string | vscode.MarkdownString;
     description?: string;
     icon?: string;
     check?: boolean;

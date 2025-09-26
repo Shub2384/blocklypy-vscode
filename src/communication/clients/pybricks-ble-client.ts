@@ -8,7 +8,6 @@ import {
     decodePnpId,
     deviceInformationServiceUUID,
     firmwareRevisionStringUUID,
-    getHubTypeName,
     PnpId,
     pnpIdUUID,
     softwareRevisionStringUUID,
@@ -63,13 +62,18 @@ export class PybricksBleClient extends BaseClient {
     private _capabilities: Capabilities | undefined;
     private _version: VersionInfo | undefined;
 
-    public get description() {
-        const hubType = this._version
-            ? getHubTypeName(this._version?.pnpId)
-            : 'Unknown hub';
+    public get descriptionKVP(): [string, string][] {
+        const kvp: [string, string][] = [];
+        const devname = (this.constructor as typeof PybricksBleClient).devname;
+        if (devname) kvp.push(['devname', devname]);
+
         const firmware = this._version?.firmware ?? 'unknown';
+        kvp.push(['firmware', firmware]);
         const software = this._version?.software ?? 'unknown';
-        return `${hubType} with ${PybricksBleClient.devname}, firmware: ${firmware}, software: ${software}, ${this.location}`;
+        kvp.push(['software', software]);
+        if (this.uniqueSerial) kvp.push(['serial', this.uniqueSerial]);
+
+        return kvp;
     }
 
     public get metadata() {
@@ -84,7 +88,7 @@ export class PybricksBleClient extends BaseClient {
         return this.metadata?.peripheral?.state === 'connected';
     }
 
-    public get location(): string | undefined {
+    public get uniqueSerial(): string | undefined {
         return UUIDu.toString(this.metadata?.peripheral?.id);
     }
 

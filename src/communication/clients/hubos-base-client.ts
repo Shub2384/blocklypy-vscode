@@ -11,19 +11,23 @@ import { BaseClient } from './base-client';
 export abstract class HubOSBaseClient extends BaseClient {
     protected _hubOSHandler: HubOSHandler | undefined;
 
-    public get description(): string | undefined {
-        // const devtype = (this.constructor as typeof HubOSBaseClient).devtype;
+    public get descriptionKVP(): [string, string][] {
+        const retval: [string, string][] = [];
         const devname = (this.constructor as typeof HubOSBaseClient).devname;
+        if (devname) retval.push(['devname', devname]);
 
         const capabilities = this._hubOSHandler?.capabilities;
-        if (!capabilities) return devname;
+        if (!capabilities) return retval;
 
-        const hubType =
-            ProductGroupDeviceTypeMap[capabilities?.productGroupDeviceType] ??
-            'Unknown Hub';
+        const hubType = ProductGroupDeviceTypeMap[capabilities.productGroupDeviceType];
+        if (hubType) retval.push(['hubType', hubType]);
         const { rpcMajor, rpcMinor, rpcBuild, fwMajor, fwMinor, fwBuild } =
             capabilities;
-        return `${hubType} with ${devname}, firmware: ${fwMajor}.${fwMinor}.${fwBuild}, software: ${rpcMajor}.${rpcMinor}.${rpcBuild}, ${this.location}`;
+        retval.push(['firmware', `${fwMajor}.${fwMinor}.${fwBuild}`]);
+        retval.push(['software', `${rpcMajor}.${rpcMinor}.${rpcBuild}`]);
+        if (this.uniqueSerial) retval.push(['serial', this.uniqueSerial]);
+
+        return retval;
     }
 
     constructor(_metadata: DeviceMetadata | undefined, parent: BaseLayer) {

@@ -77,3 +77,18 @@ function getIconInternal(
         return new vscode.ThemeIcon(icon);
     }
 }
+
+// export function MarkdownStringFromLines(
+//     items: [string, string][],
+// ): vscode.MarkdownString {
+//     const converted =
+//         `## ${items[0][1]}  \n___\n  ` +
+//         items
+//             .slice(1)
+//             .map(([name, value]) => `**${name}**: ${value}  `)
+//             .join('\n');
+//     const md = new vscode.MarkdownString(converted);
+//     console.log('Generated markdown:', converted, md);
+//     md.isTrusted = true;
+//     return md;
+// }

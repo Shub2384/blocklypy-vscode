@@ -24,8 +24,8 @@ export class HubOSUsbClient extends HubOSBaseClient {
         return !!this._serialPort?.isOpen;
     }
 
-    public get location(): string | undefined {
-        return this._serialPort?.path; // use path as id for USB
+    public get uniqueSerial(): string | undefined {
+        return this.metadata?.portinfo.serialNumber;
     }
 
     public set serialPort(port: SerialPort | undefined) {

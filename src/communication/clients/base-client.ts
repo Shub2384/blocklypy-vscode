@@ -39,11 +39,15 @@ export abstract class BaseClient {
         return this._metadata?.id;
     }
 
-    public abstract get description(): string | undefined;
+    public get description(): string {
+        return this.descriptionKVP.map(([key, value]) => `${key}: ${value}`).join(', ');
+    }
+
+    public abstract get descriptionKVP(): [string, string][];
 
     public abstract get connected(): boolean;
 
-    public abstract get location(): string | undefined;
+    public abstract get uniqueSerial(): string | undefined;
 
     public abstract write(data: Uint8Array, withoutResponse: boolean): Promise<void>;
 

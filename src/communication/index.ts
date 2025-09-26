@@ -13,6 +13,15 @@ export class DeviceMetadata {
     public get id(): string {
         return DeviceMetadata.generateId(this.devtype, this.name ?? '');
     }
+    public get mdtooltip(): [string, string][] {
+        const tooltip: [string, string][] = [];
+        tooltip.push(['Name', String(this.name)]);
+        tooltip.push(['Type', this.devtype]);
+        if (this.rssi !== undefined) tooltip.push(['RSSI', this.rssi.toString()]);
+        if (this.broadcastAsString) tooltip.push(['Broadcast', this.broadcastAsString]);
+
+        return tooltip;
+    }
     public static generateId(devtype: string, id: string): string {
         return `${devtype}:${id}`;
     }

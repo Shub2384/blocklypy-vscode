@@ -112,6 +112,11 @@ function registerDevicesTree(context: vscode.ExtensionContext) {
         const item = DevicesTree.deviceMap.get(id) ?? ({} as TreeItemDeviceData);
         const isNew = item.command === undefined;
         const name = metadata.name ?? 'Unknown';
+        // const tooltip =
+        //     ConnectionManager.client?.id === id
+        //         ? MarkdownStringFromLines(ConnectionManager.client?.descriptionKVP)
+        //         : MarkdownStringFromLines(metadata.mdtooltip);
+
         Object.assign(item, {
             name,
             id,

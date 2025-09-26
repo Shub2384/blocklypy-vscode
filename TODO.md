@@ -5,7 +5,6 @@
 - snippets
 - USB connect EV3/Spike
 - better compilation for LEGO files (get pybrick content / or switch to)
-- add Traceback for LEGO files as well
 - consider TextDocumentContentProvider
   <https://code.visualstudio.com/api/extension-guides/virtual-documents>
 - consider fsprovider for multi views:
@@ -30,12 +29,8 @@
 - <https://code.visualstudio.com/api/ux-guidelines/panel>
 - datalog through AppData send
 - use debug console
-- use @stoprocent/noble
 - cancelled promise / debug
-- clarify and handle licensing, adjust Apache and MIT - include pybricks,
-  lego--vscode, pybricks-vscode projects
 
-- feature: spike - clear slot/slots
 - feature: spike - tunnel
 
 - plot: ability to group metrics to same axis
@@ -44,8 +39,7 @@
 
 ## TO-FIX
 
-- setState state handling is connected to all clients // should handle the
-  active client and maybe ignore the others?
+N/A
 
 ## SPIKE
 
@@ -55,8 +49,7 @@
   72, MoveSlotResponse: 73, ListPathRequest: 74, ListPathResponse: 75,
   DeletePathRequest: 76, DeletePathResponse: 77
 
-- !! move client / state handling to connmanager
-- check usb with pyb!
+- check/align usb with pyb!
 
 - todo: handle COBS multiple messages when decoding
 
